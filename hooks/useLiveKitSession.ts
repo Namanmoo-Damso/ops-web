@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-const IDENTITY_STORAGE_KEY = "damso.identity";
-const NAME_STORAGE_KEY = "damso.name";
+const IDENTITY_STORAGE_KEY = 'damso.identity';
+const NAME_STORAGE_KEY = 'damso.name';
 
 const generateIdentity = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return `host-${crypto.randomUUID()}`;
   }
   return `host-${Date.now()}`;
@@ -14,7 +14,7 @@ const generateIdentity = () => {
 
 // Lazy initializer that checks localStorage first (runs only once)
 const getOrCreateIdentity = () => {
-  if (typeof window === "undefined") return generateIdentity();
+  if (typeof window === 'undefined') return generateIdentity();
   const stored = window.localStorage.getItem(IDENTITY_STORAGE_KEY);
   if (stored) return stored;
   const newId = generateIdentity();
@@ -22,7 +22,7 @@ const getOrCreateIdentity = () => {
   return newId;
 };
 
-type Role = "host" | "viewer" | "observer";
+type Role = 'host' | 'viewer' | 'observer';
 
 export type UseLiveKitSessionOptions = {
   apiBase: string;
@@ -62,11 +62,11 @@ export function useLiveKitSession({
   // Use lazy initializer to get identity from localStorage or create new one
   const [identity] = useState(getOrCreateIdentity);
   const [name, setName] = useState(() => {
-    if (typeof window === "undefined") return "Host";
-    return window.localStorage.getItem(NAME_STORAGE_KEY) || "Host";
+    if (typeof window === 'undefined') return 'Host';
+    return window.localStorage.getItem(NAME_STORAGE_KEY) || 'Host';
   });
   const [roomName] = useState(defaultRoomName);
-  const [token, setToken] = useState<string>("");
+  const [token, setToken] = useState<string>('');
   const [serverUrl, setServerUrl] = useState<string>(livekitUrl);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -87,8 +87,8 @@ export function useLiveKitSession({
     try {
       const apiBaseResolved = apiBase || window.location.origin;
       const authRes = await fetch(`${apiBaseResolved}/v1/auth/anonymous`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity, displayName: name }),
       });
       if (!authRes.ok) {
@@ -97,16 +97,16 @@ export function useLiveKitSession({
       const authData = await authRes.json();
 
       const rtcRes = await fetch(`${apiBaseResolved}/v1/rtc/token`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authData.accessToken || ""}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authData.accessToken || ''}`,
         },
         body: JSON.stringify({
           roomName,
           identity,
           name,
-          role: "host" as Role,
+          role: 'host' as Role,
         }),
       });
       if (!rtcRes.ok) {
@@ -114,14 +114,14 @@ export function useLiveKitSession({
       }
       const rtcData = await rtcRes.json();
       if (!rtcData?.token) {
-        throw new Error("RTC token missing");
+        throw new Error('RTC token missing');
       }
       setToken(rtcData.token);
       setServerUrl(rtcData.livekitUrl || livekitUrl);
       setConnected(true);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Join failed");
+      setError(err instanceof Error ? err.message : 'Join failed');
     } finally {
       setConnecting(false);
     }
@@ -137,49 +137,52 @@ export function useLiveKitSession({
 
   const leaveRoom = useCallback(() => {
     setConnected(false);
-    setToken("");
+    setToken('');
     setServerUrl(livekitUrl);
     setFocusedId(null);
   }, [livekitUrl]);
 
-  const inviteParticipant = useCallback(async (targetIdentity: string) => {
-    if (inviteBusy) return;
-    const target = targetIdentity.trim();
-    if (!target) {
-      setInviteStatus("목록에서 참가자를 선택하세요");
-      return;
-    }
-    if (target === identity) {
-      setInviteStatus("자기 자신에게는 호출할 수 없습니다");
-      return;
-    }
-    setInviteBusy(true);
-    setInviteStatus(null);
-    try {
-      const apiBaseResolved = apiBase || window.location.origin;
-      const res = await fetch(`${apiBaseResolved}/v1/calls/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          callerIdentity: identity,
-          callerName: name,
-          calleeIdentity: target,
-          roomName,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || `Invite failed (${res.status})`);
+  const inviteParticipant = useCallback(
+    async (targetIdentity: string) => {
+      if (inviteBusy) return;
+      const target = targetIdentity.trim();
+      if (!target) {
+        setInviteStatus('목록에서 참가자를 선택하세요');
+        return;
       }
-      const callId = data?.callId ? ` (${data.callId})` : "";
-      setInviteStatus(`Invite sent${callId}`);
-    } catch (err) {
-      console.error(err);
-      setInviteStatus(err instanceof Error ? err.message : "Invite failed");
-    } finally {
-      setInviteBusy(false);
-    }
-  }, [inviteBusy, identity, name, apiBase, roomName]);
+      if (target === identity) {
+        setInviteStatus('자기 자신에게는 호출할 수 없습니다');
+        return;
+      }
+      setInviteBusy(true);
+      setInviteStatus(null);
+      try {
+        const apiBaseResolved = apiBase || window.location.origin;
+        const res = await fetch(`${apiBaseResolved}/v1/calls/invite`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callerIdentity: identity,
+            callerName: name,
+            calleeIdentity: target,
+            roomName,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.message || `Invite failed (${res.status})`);
+        }
+        const callId = data?.callId ? ` (${data.callId})` : '';
+        setInviteStatus(`Invite sent${callId}`);
+      } catch (err) {
+        console.error(err);
+        setInviteStatus(err instanceof Error ? err.message : 'Invite failed');
+      } finally {
+        setInviteBusy(false);
+      }
+    },
+    [inviteBusy, identity, name, apiBase, roomName],
+  );
 
   return {
     identity,

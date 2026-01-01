@@ -2,7 +2,7 @@ services:
   web:
     build: .
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - NEXT_PUBLIC_API_URL=${API_URL:-http://localhost:8080}
       - NEXT_PUBLIC_LIVEKIT_URL=${LIVEKIT_URL}
