@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const IDENTITY_STORAGE_KEY = "damso.identity";
 const NAME_STORAGE_KEY = "damso.name";
@@ -10,6 +10,16 @@ const generateIdentity = () => {
     return `host-${crypto.randomUUID()}`;
   }
   return `host-${Date.now()}`;
+};
+
+// Lazy initializer that checks localStorage first (runs only once)
+const getOrCreateIdentity = () => {
+  if (typeof window === "undefined") return generateIdentity();
+  const stored = window.localStorage.getItem(IDENTITY_STORAGE_KEY);
+  if (stored) return stored;
+  const newId = generateIdentity();
+  window.localStorage.setItem(IDENTITY_STORAGE_KEY, newId);
+  return newId;
 };
 
 type Role = "host" | "viewer" | "observer";
@@ -49,8 +59,12 @@ export function useLiveKitSession({
   defaultRoomName,
   autoJoin = false,
 }: UseLiveKitSessionOptions): UseLiveKitSessionReturn {
-  const [identity, setIdentity] = useState(generateIdentity);
-  const [name, setName] = useState("Host");
+  // Use lazy initializer to get identity from localStorage or create new one
+  const [identity] = useState(getOrCreateIdentity);
+  const [name, setName] = useState(() => {
+    if (typeof window === "undefined") return "Host";
+    return window.localStorage.getItem(NAME_STORAGE_KEY) || "Host";
+  });
   const [roomName] = useState(defaultRoomName);
   const [token, setToken] = useState<string>("");
   const [serverUrl, setServerUrl] = useState<string>(livekitUrl);
@@ -63,25 +77,8 @@ export function useLiveKitSession({
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(true);
 
-  const [identityLoaded, setIdentityLoaded] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const storedIdentity = window.localStorage.getItem(IDENTITY_STORAGE_KEY);
-    if (storedIdentity) {
-      setIdentity(storedIdentity);
-    } else {
-      const nextIdentity = generateIdentity();
-      window.localStorage.setItem(IDENTITY_STORAGE_KEY, nextIdentity);
-      setIdentity(nextIdentity);
-    }
-
-    const storedName = window.localStorage.getItem(NAME_STORAGE_KEY);
-    if (storedName) {
-      setName(storedName);
-    }
-    setIdentityLoaded(true);
-  }, []);
+  // Track if auto-join has been attempted to prevent duplicates
+  const autoJoinAttempted = useRef(false);
 
   const joinRoom = useCallback(async () => {
     if (connecting || connected) return;
@@ -130,12 +127,13 @@ export function useLiveKitSession({
     }
   }, [connecting, connected, apiBase, identity, name, roomName, livekitUrl]);
 
-  // Auto-join when enabled and identity is loaded
+  // Auto-join when enabled (only once)
   useEffect(() => {
-    if (autoJoin && identityLoaded && apiBase && !connected && !connecting) {
+    if (autoJoin && apiBase && !autoJoinAttempted.current) {
+      autoJoinAttempted.current = true;
       joinRoom();
     }
-  }, [autoJoin, identityLoaded, apiBase, connected, connecting, joinRoom]);
+  }, [autoJoin, apiBase, joinRoom]);
 
   const leaveRoom = useCallback(() => {
     setConnected(false);
