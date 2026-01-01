@@ -1,6 +1,6 @@
-import { VideoTrack, TrackRefContext } from "@livekit/components-react";
-import { IconUser } from "../Icons";
-import styles from "../../app/page.module.css";
+import { VideoTrack, TrackRefContext } from '@livekit/components-react';
+import { IconUser } from '../Icons';
+import styles from '../../app/page.module.css';
 
 export const getInitials = (name: string) => {
   const parts = name.trim().split(' ');
