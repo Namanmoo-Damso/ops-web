@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 import {
   IconMic,
   IconCam,
@@ -56,22 +56,22 @@ export const ControlBar = ({
         onClick={() => setIsHidden(false)}
         className={styles.controlBarToggle}
         style={{
-          position: "fixed",
-          bottom: "20px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "48px",
-          height: "48px",
-          borderRadius: "50%",
-          background: "white",
-          border: "1px solid #e2e8f0",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-          cursor: "pointer",
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          background: 'white',
+          border: '1px solid #e2e8f0',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+          cursor: 'pointer',
           zIndex: 10,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transition: "all 150ms ease",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 150ms ease',
         }}
       >
         <svg
@@ -93,7 +93,7 @@ export const ControlBar = ({
       <div className={styles.controlGroup}>
         <button
           className={`${styles.controlButton} ${
-            isMicrophoneEnabled ? styles.active : ""
+            isMicrophoneEnabled ? styles.active : ''
           }`}
           onClick={onToggleMicrophone}
           disabled={!canControl}
@@ -102,7 +102,7 @@ export const ControlBar = ({
         </button>
         <button
           className={`${styles.controlButton} ${
-            isCameraEnabled ? styles.active : ""
+            isCameraEnabled ? styles.active : ''
           }`}
           onClick={onToggleCamera}
           disabled={!canControl}
@@ -116,7 +116,7 @@ export const ControlBar = ({
       <div className={styles.controlGroupWide}>
         <button
           className={`${styles.controlButtonWide} ${
-            allAudioOff ? styles.controlButtonWideActive : ""
+            allAudioOff ? styles.controlButtonWideActive : ''
           }`}
           onClick={onToggleAllAudio}
           disabled={!canControl}
@@ -127,7 +127,7 @@ export const ControlBar = ({
         </button>
         <button
           className={`${styles.controlButtonWide} ${
-            allVideoOff ? styles.controlButtonWideActive : ""
+            allVideoOff ? styles.controlButtonWideActive : ''
           }`}
           onClick={onToggleAllVideo}
           disabled={!canControl}
@@ -140,7 +140,7 @@ export const ControlBar = ({
       <div className={styles.controlGroup}>
         <button
           className={`${styles.controlButton} ${
-            showParticipantList ? styles.active : ""
+            showParticipantList ? styles.active : ''
           }`}
           onClick={onToggleParticipantList}
         >
@@ -182,7 +182,7 @@ export const ControlBar = ({
         className={styles.controlButton}
         onClick={() => setIsHidden(true)}
         title="Hide controls"
-        style={{ marginLeft: "8px" }}
+        style={{ marginLeft: '8px' }}
       >
         <svg
           width="20"
