@@ -162,10 +162,16 @@ const RoomShell = ({
   showParticipantList: boolean;
   onToggleParticipantList: () => void;
 }) => {
-  const tracks = useTracks(
+  const allTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },
   );
+
+  // Filter out admin participants from grid (admins are audio-only and invisible)
+  const tracks = allTracks.filter(track =>
+    !track.participant.identity.startsWith('admin_')
+  );
+
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } =
     useLocalParticipant();
   const room = useRoomContext();
@@ -365,26 +371,26 @@ const RoomShell = ({
   };
 
   const allAudioOff = useMemo(() => {
-    return tracks.every((track) => {
+    return allTracks.every((track) => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return true;
       const identity = getParticipantId(participant);
       return audioOverrides[identity] === true;
     });
-  }, [tracks, audioOverrides]);
+  }, [allTracks, audioOverrides]);
 
   const allVideoOff = useMemo(() => {
-    return tracks.every((track) => {
+    return allTracks.every((track) => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return true;
       const identity = getParticipantId(participant);
       return videoOverrides[identity] === true;
     });
-  }, [tracks, videoOverrides]);
+  }, [allTracks, videoOverrides]);
 
   const toggleAllAudio = () => {
     const newState = !allAudioOff;
-    tracks.forEach((track) => {
+    allTracks.forEach((track) => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
@@ -395,7 +401,7 @@ const RoomShell = ({
 
   const toggleAllVideo = () => {
     const newState = !allVideoOff;
-    tracks.forEach((track) => {
+    allTracks.forEach((track) => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
