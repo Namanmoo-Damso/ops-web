@@ -135,21 +135,8 @@ export default function BeneficiaryListPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-background flex">
-            <Sidebar
-                isOpen={isSidebarOpen}
-                navItems={navItems}
-                bottomNavItems={bottomNavItems}
-                activePath={activePath}
-                onNavigate={setActivePath}
-                user={{
-                    name: "박관리 센터장",
-                    role: "총괄 관리자",
-                    avatarColor: "bg-[#4A5D23]"
-                }}
-            />
-
-            <div className="flex-1 flex flex-col min-w-0 h-screen relative">
+        <div className="flex flex-col h-full bg-background">
+            <div className="flex-1 flex flex-col min-w-0 h-full relative">
                 
                 {/* Header */}
                 <Header 

@@ -26,7 +26,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { Sidebar, Header } from "@/components/custom"
+import { Header } from "@/components/custom"
 
 // --- Navigation Config ---
 const mainNavItems = [
@@ -57,7 +57,6 @@ export default function MapPage() {
     const [selectedPin, setSelectedPin] = useState<number | null>(null)
     const [filterStatus, setFilterStatus] = useState<'ALL' | 'WARNING'>('ALL')
     const [showHeatmap, setShowHeatmap] = useState(false)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
     const filteredLocations = filterStatus === 'ALL' 
         ? MAP_LOCATIONS 
@@ -66,20 +65,8 @@ export default function MapPage() {
     const selectedTarget = MAP_LOCATIONS.find(l => l.id === selectedPin)
 
     return (
-        <div className="flex h-screen bg-[#F5F7FA]">
-            <Sidebar
-                isOpen={isSidebarOpen}
-                navItems={mainNavItems}
-                bottomNavItems={bottomNavItems}
-                activePath="/map"
-                user={{
-                    name: "박관리 센터장",
-                    role: "총괄 관리자",
-                    avatarColor: "bg-[#4A5D23]"
-                }}
-            />
-
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <div className="flex flex-col h-full bg-[#F5F7FA]">
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                 <Header title="위치 기반 관제 (GIS)" notificationCount={1} userInitial="박">
                     <div className="flex items-center gap-4">
                         {/* Status Stats in Header */}

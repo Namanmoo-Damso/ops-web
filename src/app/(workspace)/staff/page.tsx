@@ -21,7 +21,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { useState } from "react"
-import { Sidebar, Header } from "@/components/custom"
+import { Header } from "@/components/custom"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -57,9 +57,6 @@ const ELDERLY_POOL = [
 ]
 
 export default function StaffPage() {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-    const [activePath, setActivePath] = useState("/staff")
-    
     // Modals State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
@@ -70,36 +67,9 @@ export default function StaffPage() {
         setIsAssignModalOpen(true)
     }
 
-    const navItems = [
-        { icon: LayoutDashboard, label: "대시보드 홈", path: "/dashboard" },
-        { icon: Grid2x2, label: "모니터링 뷰", path: "/monitoring" },
-        { icon: Map, label: "지도 뷰", path: "/map" },
-        { icon: Users, label: "대상자 관리", path: "/users" },
-        { icon: Briefcase, label: "직원 관리", path: "/staff" },
-        { icon: Phone, label: "통화 기록", path: "/calls" },
-        { icon: FileText, label: "리포트 & 통계", path: "/report" },
-    ]
-
-    const bottomNavItems = [
-        { icon: Settings, label: "설정", path: "/settings" },
-    ]
-
     return (
-        <div className="min-h-screen bg-background flex">
-            <Sidebar
-                isOpen={isSidebarOpen}
-                navItems={navItems}
-                bottomNavItems={bottomNavItems}
-                activePath={activePath}
-                onNavigate={setActivePath}
-                user={{
-                    name: "박관리 센터장",
-                    role: "총괄 관리자",
-                    avatarColor: "bg-primary"
-                }}
-            />
-
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <div className="flex flex-col h-full bg-background">
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                 
                 <Header title="직원 업무 현황 및 배정">
                     <div className="flex items-center gap-4">

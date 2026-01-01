@@ -108,22 +108,9 @@ export default function MonitoringPage() {
     const selectedSession = LIVE_SESSIONS.find(s => s.id === selectedFeed)
 
     return (
-        <div className="flex h-screen bg-[#F5F7FA]">
-            {/* Standard Sidebar */}
-            <Sidebar
-                isOpen={isSidebarOpen}
-                navItems={mainNavItems}
-                bottomNavItems={bottomNavItems}
-                activePath="/monitoring"
-                user={{
-                    name: "박관리 센터장",
-                    role: "총괄 관리자",
-                    avatarColor: "bg-[#4A5D23]"
-                }}
-            />
-
+        <div className="flex flex-col h-full bg-[#F5F7FA]">
             {/* Main Layout */}
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                 {/* Standard Header with Controls injected */}
                 <Header title="실시간 영상 모니터링" notificationCount={1} userInitial="박">
                     <div className="flex items-center gap-4">

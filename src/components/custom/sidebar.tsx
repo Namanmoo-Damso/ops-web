@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { LucideIcon, LogOut } from "lucide-react"
+import { LucideIcon, LogOut, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { NavItem } from "./nav-item"
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from "next/navigation"
@@ -59,8 +59,8 @@ export function Sidebar({
       isOpen ? "w-64" : "w-20"
     )}>
       {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-border justify-between">
-        <div className="flex items-center">
+      <div className="h-16 flex items-center px-4 border-b border-border justify-between transition-all">
+        <div className={cn("flex items-center", !isOpen && "justify-center w-full")}>
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-black text-sm shrink-0">
             담
             </div>
@@ -70,12 +70,27 @@ export function Sidebar({
             </span>
             )}
         </div>
-        {/* Toggle Button handling if needed, or parent handles it via props */}
-        {/* If onToggle is provided, we can show a toggle button, but the design mockup had it in the header usually or here? */}
-        {/* Original Mockup code had toggle button inside sidebar header */}
-        {/* We reuse the parent's state toggle logic if we want, but usually sidebar component should expose toggle */}
-        {/* User's mockup `01_dashboard.tsx` had toggle inside sidebar header area. */}
+        {/* Toggle Button */}
+        {isOpen && (
+            <button 
+                onClick={onToggle}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+            >
+                <ChevronsLeft size={20} />
+            </button>
+        )}
       </div>
+      
+      {!isOpen && (
+          <div className="flex justify-center py-2 border-b border-border">
+              <button 
+                onClick={onToggle}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+            >
+                <ChevronsRight size={20} />
+            </button>
+          </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -87,6 +102,7 @@ export function Sidebar({
             isActive={isActive(item.path)}
             badge={item.badge !== undefined ? (typeof item.badge === 'string' ? parseInt(item.badge) : item.badge) : undefined}
             href={getHref(item.path)}
+            isOpen={isOpen}
           />
         ))}
       </nav>
@@ -101,6 +117,7 @@ export function Sidebar({
               label={isOpen ? item.label : ""}
               isActive={isActive(item.path)}
               href={getHref(item.path)}
+              isOpen={isOpen}
             />
           ))}
         </div>

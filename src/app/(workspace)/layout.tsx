@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Phone, FileText, Settings, Clock, 
   Map as MapIcon, Grid2x2, Briefcase, UserCircle 
 } from "lucide-react"
-import { Sidebar, Header } from "@/components/custom"
+import { Sidebar } from "@/components/custom"
 import AuthGuard from "@/components/auth/AuthGuard"
 
 // Types
@@ -26,7 +26,7 @@ export default function WorkspaceLayout({
 }) {
   // State
   const [currentRole, setCurrentRole] = useState<UserRole>('MANAGER')
-  const [isSidebarOpen] = useState(true) // Sidebar toggle logic can be added later
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true) 
 
   // Mock Profile Data (In real app, fetch from User Context/API)
   const managerProfile: UserProfile = { name: "박관리 센터장", role: "MANAGER", avatarColor: "bg-[#4A5D23]" }
@@ -36,10 +36,7 @@ export default function WorkspaceLayout({
   // Navigation Config
   const mainNavItems = currentRole === 'MANAGER' 
     ? [
-        { icon: LayoutDashboard, label: "대시보드 홈", path: "/dashboard" }, // Maps to / via mapping in Sidebar? Or we should use real path /
-        // Wait, I mapped /dashboard to / in Sidebar component logic? 
-        // Step 757 Sidebar: if (path === '/dashboard') return '/'
-        // So I can use /dashboard here.
+        { icon: LayoutDashboard, label: "대시보드 홈", path: "/dashboard" }, 
         { icon: Grid2x2, label: "모니터링 뷰", path: "/monitoring", badge: "LIVE" },
         { icon: MapIcon, label: "지도 뷰", path: "/map" },
         { icon: Users, label: "전체 대상자 관리", path: "/users" },
@@ -61,15 +58,13 @@ export default function WorkspaceLayout({
     { icon: Settings, label: "시스템 설정", path: "/settings" },
   ]
 
-  // Header Logic: Title based on role (or path?)
-  const title = currentRole === 'MANAGER' ? '기관 통합 관제' : '내 업무 현황'
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-background flex">
         {/* Sidebar */}
         <Sidebar
           isOpen={isSidebarOpen}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
           navItems={mainNavItems}
           bottomNavItems={bottomNavItems}
           user={{
@@ -83,42 +78,7 @@ export default function WorkspaceLayout({
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-          
-          {/* Header */}
-          <Header 
-            title={title}
-            notificationCount={2}
-            userInitial={activeProfile.name[0]}
-          >
-            {/* Role Switcher */}
-            <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-              <button 
-                onClick={() => setCurrentRole('MANAGER')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                  currentRole === 'MANAGER' 
-                    ? 'bg-card shadow-sm text-foreground' 
-                    : 'text-muted-foreground'
-                }`}
-              >
-                관리자
-              </button>
-              <button 
-                onClick={() => setCurrentRole('STAFF')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${
-                  currentRole === 'STAFF' 
-                    ? 'bg-card shadow-sm text-foreground' 
-                    : 'text-muted-foreground'
-                }`}
-              >
-                직원
-              </button>
-            </div>
-          </Header>
-
-          {/* Children (Page Content) */}
-          <main className="flex-1 overflow-y-auto">
              {children}
-          </main>
         </div>
       </div>
     </AuthGuard>
