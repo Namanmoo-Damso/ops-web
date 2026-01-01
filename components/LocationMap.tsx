@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 declare global {
   interface Window {
@@ -83,7 +83,7 @@ declare namespace naver {
       function addListener(
         target: object,
         eventName: string,
-        handler: (...args: unknown[]) => void
+        handler: (...args: unknown[]) => void,
       ): void;
     }
   }
@@ -96,7 +96,7 @@ export type WardLocation = {
   longitude: number;
   accuracy: number | null;
   lastUpdated: string;
-  status: "normal" | "warning" | "emergency";
+  status: 'normal' | 'warning' | 'emergency';
   organizationId: string | null;
 };
 
@@ -107,15 +107,15 @@ type Props = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  normal: "#22c55e",
-  warning: "#f59e0b",
-  emergency: "#ef4444",
+  normal: '#22c55e',
+  warning: '#f59e0b',
+  emergency: '#ef4444',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  normal: "정상",
-  warning: "주의",
-  emergency: "비상",
+  normal: '정상',
+  warning: '주의',
+  emergency: '비상',
 };
 
 export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
@@ -141,10 +141,10 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
 
       mapInstanceRef.current = map;
       infoWindowRef.current = new window.naver.maps.InfoWindow({
-        content: "",
+        content: '',
         maxWidth: 300,
-        backgroundColor: "#fff",
-        borderColor: "#ddd",
+        backgroundColor: '#fff',
+        borderColor: '#ddd',
         borderWidth: 1,
         anchorSkew: true,
       });
@@ -161,20 +161,20 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
     // Load Naver Maps script
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
     if (!clientId) {
-      setError("Naver Map API 키가 설정되지 않았습니다.");
+      setError('Naver Map API 키가 설정되지 않았습니다.');
       return;
     }
 
-    const script = document.createElement("script");
+    const script = document.createElement('script');
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
     script.async = true;
     script.onload = () => initMap();
-    script.onerror = () => setError("Naver Map 스크립트 로드 실패");
+    script.onerror = () => setError('Naver Map 스크립트 로드 실패');
     document.head.appendChild(script);
 
     return () => {
       // Cleanup markers
-      markersRef.current.forEach((marker) => marker.setMap(null));
+      markersRef.current.forEach(marker => marker.setMap(null));
       markersRef.current.clear();
     };
   }, []);
@@ -185,10 +185,10 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
 
     const map = mapInstanceRef.current;
     const currentMarkerIds = new Set(markersRef.current.keys());
-    const newLocationIds = new Set(locations.map((loc) => loc.wardId));
+    const newLocationIds = new Set(locations.map(loc => loc.wardId));
 
     // Remove markers that are no longer in locations
-    currentMarkerIds.forEach((id) => {
+    currentMarkerIds.forEach(id => {
       if (!newLocationIds.has(id)) {
         const marker = markersRef.current.get(id);
         if (marker) {
@@ -199,8 +199,11 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
     });
 
     // Add or update markers
-    locations.forEach((loc) => {
-      const position = new window.naver.maps.LatLng(loc.latitude, loc.longitude);
+    locations.forEach(loc => {
+      const position = new window.naver.maps.LatLng(
+        loc.latitude,
+        loc.longitude,
+      );
       const existingMarker = markersRef.current.get(loc.wardId);
 
       const iconContent = `
@@ -232,7 +235,7 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
           icon: { content: iconContent },
         });
 
-        window.naver.maps.Event.addListener(marker, "click", () => {
+        window.naver.maps.Event.addListener(marker, 'click', () => {
           const infoContent = `
             <div style="padding: 12px; min-width: 150px;">
               <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">
@@ -244,7 +247,7 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
                 </span>
               </div>
               <div style="font-size: 12px; color: #666;">
-                마지막 업데이트: ${new Date(loc.lastUpdated).toLocaleString("ko-KR")}
+                마지막 업데이트: ${new Date(loc.lastUpdated).toLocaleString('ko-KR')}
               </div>
             </div>
           `;
@@ -270,7 +273,7 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
           minLng: Math.min(acc.minLng, loc.longitude),
           maxLng: Math.max(acc.maxLng, loc.longitude),
         }),
-        { minLat: 90, maxLat: -90, minLng: 180, maxLng: -180 }
+        { minLat: 90, maxLat: -90, minLng: 180, maxLng: -180 },
       );
 
       const centerLat = (bounds.minLat + bounds.maxLat) / 2;
@@ -283,11 +286,11 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
   useEffect(() => {
     if (!isMapReady || !mapInstanceRef.current || !selectedWardId) return;
 
-    const location = locations.find((loc) => loc.wardId === selectedWardId);
+    const location = locations.find(loc => loc.wardId === selectedWardId);
     if (location) {
       mapInstanceRef.current.panTo(
         new window.naver.maps.LatLng(location.latitude, location.longitude),
-        { duration: 300 }
+        { duration: 300 },
       );
     }
   }, [isMapReady, selectedWardId, locations]);
@@ -296,13 +299,13 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
     return (
       <div
         style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f3f4f6",
-          color: "#ef4444",
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f3f4f6',
+          color: '#ef4444',
         }}
       >
         {error}
@@ -314,20 +317,20 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
     <div
       ref={mapRef}
       style={{
-        width: "100%",
-        height: "100%",
-        minHeight: "400px",
-        backgroundColor: "#e5e7eb",
+        width: '100%',
+        height: '100%',
+        minHeight: '400px',
+        backgroundColor: '#e5e7eb',
       }}
     >
       {!isMapReady && (
         <div
           style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
           지도 로딩 중...

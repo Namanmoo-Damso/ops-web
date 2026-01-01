@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 type AuthGuardProps = {
   children: React.ReactNode;
 };
 
 // 인증이 필요없는 페이지들
-const PUBLIC_PATHS = ["/login", "/login/callback"];
+const PUBLIC_PATHS = ['/login', '/login/callback'];
 
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
@@ -24,10 +24,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       return;
     }
 
-    const accessToken = localStorage.getItem("admin_access_token");
+    const accessToken = localStorage.getItem('admin_access_token');
 
     if (!accessToken) {
-      router.replace("/login");
+      router.replace('/login');
       return;
     }
 
@@ -41,29 +41,29 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return (
       <div
         style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f8fafc",
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f8fafc',
         }}
       >
         <div
           style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "16px",
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px',
           }}
         >
           <div
             style={{
-              width: "40px",
-              height: "40px",
-              border: "3px solid #e2e8f0",
-              borderTopColor: "#3b82f6",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
+              width: '40px',
+              height: '40px',
+              border: '3px solid #e2e8f0',
+              borderTopColor: '#3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
             }}
           />
           <style>{`
@@ -71,7 +71,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
               to { transform: rotate(360deg); }
             }
           `}</style>
-          <p style={{ color: "#64748b", fontSize: "14px" }}>로딩 중...</p>
+          <p style={{ color: '#64748b', fontSize: '14px' }}>로딩 중...</p>
         </div>
       </div>
     );

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   LineChart,
@@ -14,12 +14,12 @@ import {
   Cell,
   BarChart,
   Bar,
-} from "recharts";
+} from 'recharts';
 
 const MOOD_COLORS = {
-  positive: "#22c55e",
-  neutral: "#f59e0b",
-  negative: "#ef4444",
+  positive: '#22c55e',
+  neutral: '#f59e0b',
+  negative: '#ef4444',
 };
 
 type WeeklyTrendData = {
@@ -49,9 +49,9 @@ export function WeeklyTrendChart({ data }: { data: WeeklyTrendData[] }) {
         <YAxis stroke="#9ca3af" fontSize={12} />
         <Tooltip
           contentStyle={{
-            backgroundColor: "#1f2937",
-            border: "1px solid #374151",
-            borderRadius: "8px",
+            backgroundColor: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '8px',
           }}
         />
         <Legend />
@@ -93,9 +93,9 @@ export function MoodPieChart({ data }: { data: MoodData[] }) {
         </Pie>
         <Tooltip
           contentStyle={{
-            backgroundColor: "#1f2937",
-            border: "1px solid #374151",
-            borderRadius: "8px",
+            backgroundColor: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '8px',
           }}
         />
       </PieChart>
@@ -118,9 +118,9 @@ export function OrganizationBarChart({ data }: { data: OrgData[] }) {
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: "#1f2937",
-            border: "1px solid #374151",
-            borderRadius: "8px",
+            backgroundColor: '#1f2937',
+            border: '1px solid #374151',
+            borderRadius: '8px',
           }}
         />
         <Legend />
@@ -142,12 +142,18 @@ export function KeywordsBarChart({ data }: { data: KeywordData[] }) {
       <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis type="number" stroke="#9ca3af" fontSize={12} />
-        <YAxis type="category" dataKey="keyword" stroke="#9ca3af" fontSize={12} width={60} />
+        <YAxis
+          type="category"
+          dataKey="keyword"
+          stroke="#9ca3af"
+          fontSize={12}
+          width={60}
+        />
         <Tooltip
           contentStyle={{
-            backgroundColor: "#fff",
-            border: "1px solid #e5e7eb",
-            borderRadius: "8px",
+            backgroundColor: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
           }}
         />
         <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
