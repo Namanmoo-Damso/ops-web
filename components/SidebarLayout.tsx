@@ -250,37 +250,37 @@ export default function SidebarLayout({
         {/* Logo */}
         <div
           style={{
-            padding: '20px 16px',
-            borderBottom: '1px solid #e2e8f0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            padding: "20px 16px",
+            borderBottom: "1px solid #e2e8f0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
           <Link
             href="/"
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textDecoration: 'none',
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              textDecoration: "none",
             }}
           >
             <div
               style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
+                width: "36px",
+                height: "36px",
+                borderRadius: "10px",
                 background:
-                  'conic-gradient(from 120deg, #3b82f6, #1e40af, #22c55e, #3b82f6)',
-                boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.12)',
+                  "conic-gradient(from 120deg, #3b82f6, #1e40af, #22c55e, #3b82f6)",
+                boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.12)",
               }}
             />
             <span
               style={{
-                fontSize: '18px',
+                fontSize: "18px",
                 fontWeight: 700,
-                color: '#1e293b',
+                color: "#1e293b",
               }}
             >
               담소 관제센터
@@ -288,28 +288,28 @@ export default function SidebarLayout({
           </Link>
           <button
             onClick={() => {
-              console.log('[DEBUG] Close button clicked - collapsing sidebar');
+              console.log("[DEBUG] Close button clicked - collapsing sidebar");
               setSidebarCollapsed(true);
             }}
             style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              display: 'grid',
-              placeItems: 'center',
-              color: '#94a3b8',
-              cursor: 'pointer',
-              transition: 'all 150ms ease',
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              border: "none",
+              background: "transparent",
+              display: "grid",
+              placeItems: "center",
+              color: "#94a3b8",
+              cursor: "pointer",
+              transition: "all 150ms ease",
             }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#f1f5f9';
-              e.currentTarget.style.color = '#64748b';
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#f1f5f9";
+              e.currentTarget.style.color = "#64748b";
             }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#94a3b8';
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "#94a3b8";
             }}
           >
             <IconClose />
@@ -335,8 +335,8 @@ export default function SidebarLayout({
                 type="button"
                 onClick={() => {
                   console.log(
-                    '[DEBUG] Nav button clicked, navigating to:',
-                    item.href,
+                    "[DEBUG] Nav button clicked, navigating to:",
+                    item.href
                   );
                   window.location.href = item.href;
                 }}
@@ -350,14 +350,14 @@ export default function SidebarLayout({
                   textDecoration: 'none',
                   fontSize: '14px',
                   fontWeight: isActive ? 600 : 500,
-                  color: isActive ? '#3b82f6' : '#475569',
+                  color: isActive ? "#3b82f6" : "#475569",
                   backgroundColor: isActive
-                    ? 'rgba(59, 130, 246, 0.08)'
-                    : 'transparent',
-                  transition: 'all 150ms ease',
-                  cursor: 'pointer',
-                  width: '100%',
-                  textAlign: 'left',
+                    ? "rgba(59, 130, 246, 0.08)"
+                    : "transparent",
+                  transition: "all 150ms ease",
+                  cursor: "pointer",
+                  width: "100%",
+                  textAlign: "left",
                 }}
                 onMouseEnter={e => {
                   if (!isActive) {
@@ -462,10 +462,10 @@ export default function SidebarLayout({
               ? {
                   flex: 1,
                   minHeight: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
+                  display: "flex",
+                  flexDirection: "column",
                 }
-              : { padding: '24px 28px' }
+              : { padding: "24px 28px" }
           }
         >
           {children}
