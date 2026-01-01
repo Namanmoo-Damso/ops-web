@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 const IconClose = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -51,26 +51,26 @@ export default function CsvUploadModal({
   onManualSubmit,
 }: CsvUploadModalProps) {
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [mode, setMode] = useState<"upload" | "manual">("upload");
+  const [mode, setMode] = useState<'upload' | 'manual'>('upload');
   const [isDragActive, setIsDragActive] = useState(false);
   const [manualForm, setManualForm] = useState({
-    name: "",
-    email: "",
-    phone_number: "",
-    birth_date: "",
-    address: "",
+    name: '',
+    email: '',
+    phone_number: '',
+    birth_date: '',
+    address: '',
   });
 
   useEffect(() => {
     if (!open) {
       setCsvFile(null);
-      setMode("upload");
+      setMode('upload');
       setManualForm({
-        name: "",
-        email: "",
-        phone_number: "",
-        birth_date: "",
-        address: "",
+        name: '',
+        email: '',
+        phone_number: '',
+        birth_date: '',
+        address: '',
       });
       setIsDragActive(false);
     }
@@ -79,9 +79,9 @@ export default function CsvUploadModal({
   if (!open) return null;
 
   const handleUpload = () => {
-    if (mode === "upload") {
+    if (mode === 'upload') {
       if (!csvFile) return;
-      console.log("[DEBUG] Upload clicked - file:", csvFile.name);
+      console.log('[DEBUG] Upload clicked - file:', csvFile.name);
       onUpload?.(csvFile);
       onClose();
     } else {
@@ -92,7 +92,7 @@ export default function CsvUploadModal({
         birth_date: manualForm.birth_date.trim() || undefined,
         address: manualForm.address.trim() || undefined,
       };
-      console.log("[DEBUG] Manual submit:", payload);
+      console.log('[DEBUG] Manual submit:', payload);
       onManualSubmit?.(payload);
       onClose();
     }
@@ -103,78 +103,78 @@ export default function CsvUploadModal({
     (manualForm.email.trim().length > 0 ||
       manualForm.phone_number.trim().length > 0);
 
-  const uploadDisabled = mode === "upload" ? !csvFile : !allowManualSubmit;
+  const uploadDisabled = mode === 'upload' ? !csvFile : !allowManualSubmit;
 
   return (
     <div
       style={{
-        position: "fixed",
+        position: 'fixed',
         inset: 0,
-        backgroundColor: "rgba(15, 23, 42, 0.4)",
-        display: "grid",
-        placeItems: "center",
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        display: 'grid',
+        placeItems: 'center',
         zIndex: 10000,
-        padding: "16px",
+        padding: '16px',
       }}
       onClick={() => {
-        console.log("[DEBUG] Modal overlay clicked - closing modal");
+        console.log('[DEBUG] Modal overlay clicked - closing modal');
         onClose();
       }}
     >
       <div
         style={{
-          width: "100%",
-          maxWidth: "640px",
-          borderRadius: "16px",
-          backgroundColor: "#ffffff",
-          boxShadow: "0 20px 50px rgba(15,23,42,0.15)",
-          padding: "28px",
-          border: "1px solid #e2e8f0",
+          width: '100%',
+          maxWidth: '640px',
+          borderRadius: '16px',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 20px 50px rgba(15,23,42,0.15)',
+          padding: '28px',
+          border: '1px solid #e2e8f0',
         }}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "12px",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '12px',
           }}
         >
           <h3
             style={{
               margin: 0,
-              fontSize: "18px",
+              fontSize: '18px',
               fontWeight: 700,
-              color: "#111827",
+              color: '#111827',
             }}
           >
             Register CSV
           </h3>
           <button
             onClick={() => {
-              console.log("[DEBUG] Modal close button clicked");
+              console.log('[DEBUG] Modal close button clicked');
               onClose();
             }}
             style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              border: "none",
-              background: "transparent",
-              display: "grid",
-              placeItems: "center",
-              color: "#94a3b8",
-              cursor: "pointer",
-              transition: "all 150ms ease",
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#f1f5f9";
-              e.currentTarget.style.color = "#64748b";
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#f1f5f9';
+              e.currentTarget.style.color = '#64748b';
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "#94a3b8";
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#94a3b8';
             }}
           >
             <IconClose />
@@ -183,31 +183,31 @@ export default function CsvUploadModal({
 
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "8px",
-            marginBottom: "14px",
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '8px',
+            marginBottom: '14px',
           }}
         >
           {[
-            { key: "upload", label: "CSV 업로드" },
-            { key: "manual", label: "직접 입력" },
-          ].map((option) => {
+            { key: 'upload', label: 'CSV 업로드' },
+            { key: 'manual', label: '직접 입력' },
+          ].map(option => {
             const isActive = mode === option.key;
             return (
               <button
                 key={option.key}
                 onClick={() => setMode(option.key as typeof mode)}
                 style={{
-                  padding: "10px 12px",
-                  borderRadius: "10px",
-                  border: isActive ? "1px solid #2563eb" : "1px solid #e2e8f0",
-                  backgroundColor: isActive ? "#eff6ff" : "#ffffff",
-                  color: isActive ? "#1d4ed8" : "#475569",
-                  fontSize: "14px",
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  border: isActive ? '1px solid #2563eb' : '1px solid #e2e8f0',
+                  backgroundColor: isActive ? '#eff6ff' : '#ffffff',
+                  color: isActive ? '#1d4ed8' : '#475569',
+                  fontSize: '14px',
                   fontWeight: 600,
-                  cursor: "pointer",
-                  transition: "all 150ms ease",
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
                 }}
               >
                 {option.label}
@@ -216,178 +216,178 @@ export default function CsvUploadModal({
           })}
         </div>
 
-        {mode === "upload" ? (
+        {mode === 'upload' ? (
           <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}
           >
             <label
               style={{
-                fontSize: "14px",
+                fontSize: '14px',
                 fontWeight: 600,
-                color: "#1e293b",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
+                color: '#1e293b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
               }}
             ></label>
             <div
-              onDragOver={(e) => {
+              onDragOver={e => {
                 e.preventDefault();
                 setIsDragActive(true);
               }}
-              onDragLeave={(e) => {
+              onDragLeave={e => {
                 e.preventDefault();
                 setIsDragActive(false);
               }}
-              onDrop={(e) => {
+              onDrop={e => {
                 e.preventDefault();
                 setIsDragActive(false);
                 const dropped = e.dataTransfer.files?.[0] ?? null;
                 if (dropped) {
                   setCsvFile(dropped);
-                  console.log("[DEBUG] CSV dropped:", dropped.name);
+                  console.log('[DEBUG] CSV dropped:', dropped.name);
                 }
               }}
               onClick={() => {
-                document.getElementById("csv-file-input")?.click();
+                document.getElementById('csv-file-input')?.click();
               }}
               style={{
-                width: "100%",
-                minHeight: "220px",
-                borderRadius: "12px",
-                border: `2px dashed ${isDragActive ? "#2563eb" : "#e2e8f0"}`,
-                backgroundColor: isDragActive ? "#eff6ff" : "#f8fafc",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                cursor: "pointer",
-                transition: "all 150ms ease",
-                textAlign: "center",
-                padding: "20px",
+                width: '100%',
+                minHeight: '220px',
+                borderRadius: '12px',
+                border: `2px dashed ${isDragActive ? '#2563eb' : '#e2e8f0'}`,
+                backgroundColor: isDragActive ? '#eff6ff' : '#f8fafc',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                transition: 'all 150ms ease',
+                textAlign: 'center',
+                padding: '20px',
               }}
             >
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "12px",
-                  backgroundColor: "#e0f2fe",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "#2563eb",
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '12px',
+                  backgroundColor: '#e0f2fe',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: '#2563eb',
                 }}
               >
                 <IconUpload />
               </div>
               <div
-                style={{ fontSize: "15px", fontWeight: 600, color: "#1e293b" }}
+                style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}
               >
                 {csvFile
                   ? csvFile.name
-                  : "여기에 파일을 끌어다 놓거나 클릭해서 선택"}
+                  : '여기에 파일을 끌어다 놓거나 클릭해서 선택'}
               </div>
-              <div style={{ fontSize: "13px", color: "#64748b" }}>
+              <div style={{ fontSize: '13px', color: '#64748b' }}>
                 CSV 형식만 업로드 가능합니다
               </div>
               <input
                 id="csv-file-input"
                 type="file"
                 accept=".csv"
-                onChange={(e) => {
+                onChange={e => {
                   const file = e.target.files?.[0] ?? null;
                   setCsvFile(file);
                   console.log(
-                    "[DEBUG] CSV file selected:",
-                    file ? file.name : "none"
+                    '[DEBUG] CSV file selected:',
+                    file ? file.name : 'none',
                   );
                 }}
-                style={{ display: "none" }}
+                style={{ display: 'none' }}
               />
             </div>
           </div>
         ) : (
           <div
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "12px",
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
             }}
           >
             {[
               {
-                key: "name",
-                label: "이름",
+                key: 'name',
+                label: '이름',
                 required: true,
-                placeholder: "홍길동",
+                placeholder: '홍길동',
               },
               {
-                key: "email",
-                label: "이메일",
+                key: 'email',
+                label: '이메일',
                 required: false,
-                placeholder: "user@example.com",
+                placeholder: 'user@example.com',
               },
               {
-                key: "phone_number",
-                label: "전화번호",
+                key: 'phone_number',
+                label: '전화번호',
                 required: false,
-                placeholder: "010-1234-5678",
+                placeholder: '010-1234-5678',
               },
               {
-                key: "birth_date",
-                label: "생년월일",
+                key: 'birth_date',
+                label: '생년월일',
                 required: false,
-                placeholder: "1990-01-01",
+                placeholder: '1990-01-01',
               },
               {
-                key: "address",
-                label: "주소",
+                key: 'address',
+                label: '주소',
                 required: false,
-                placeholder: "서울특별시 ...",
+                placeholder: '서울특별시 ...',
               },
-            ].map((field) => (
+            ].map(field => (
               <div
                 key={field.key}
-                style={{ display: "flex", flexDirection: "column", gap: "6px" }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
               >
                 <label
                   style={{
-                    fontSize: "14px",
+                    fontSize: '14px',
                     fontWeight: 600,
-                    color: "#1e293b",
-                    display: "flex",
-                    gap: "6px",
-                    alignItems: "center",
+                    color: '#1e293b',
+                    display: 'flex',
+                    gap: '6px',
+                    alignItems: 'center',
                   }}
                 >
                   <span>{field.label}</span>
                   {field.required && (
-                    <span style={{ color: "#dc2626" }}>*</span>
+                    <span style={{ color: '#dc2626' }}>*</span>
                   )}
                 </label>
                 <input
                   value={(manualForm as any)[field.key]}
-                  onChange={(e) =>
-                    setManualForm((prev) => ({
+                  onChange={e =>
+                    setManualForm(prev => ({
                       ...prev,
                       [field.key]: e.target.value,
                     }))
                   }
                   placeholder={field.placeholder}
                   style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "10px",
-                    border: "1px solid #e2e8f0",
-                    backgroundColor: "#f8fafc",
-                    fontSize: "14px",
-                    color: "#1f2937",
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#f8fafc',
+                    fontSize: '14px',
+                    color: '#1f2937',
                   }}
                 />
               </div>
             ))}
-            <div style={{ fontSize: "12px", color: "#64748b" }}>
+            <div style={{ fontSize: '12px', color: '#64748b' }}>
               이름과 이메일 또는 전화번호 중 하나는 반드시 입력해주세요.
             </div>
           </div>
@@ -395,37 +395,37 @@ export default function CsvUploadModal({
 
         <div
           style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: "8px",
-            marginTop: "18px",
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '8px',
+            marginTop: '18px',
           }}
         >
           <button
             onClick={() => {
-              console.log("[DEBUG] Modal cancel clicked");
+              console.log('[DEBUG] Modal cancel clicked');
               onClose();
             }}
             style={{
-              padding: "10px 14px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              backgroundColor: "#ffffff",
-              color: "#475569",
-              fontSize: "14px",
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#475569',
+              fontSize: '14px',
               fontWeight: 600,
-              cursor: "pointer",
-              transition: "all 150ms ease",
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#f8fafc";
-              e.currentTarget.style.color = "#1e293b";
-              e.currentTarget.style.borderColor = "#cbd5e1";
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.color = '#1e293b';
+              e.currentTarget.style.borderColor = '#cbd5e1';
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#ffffff";
-              e.currentTarget.style.color = "#475569";
-              e.currentTarget.style.borderColor = "#e2e8f0";
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.color = '#475569';
+              e.currentTarget.style.borderColor = '#e2e8f0';
             }}
           >
             Cancel
@@ -434,29 +434,29 @@ export default function CsvUploadModal({
             disabled={uploadDisabled}
             onClick={handleUpload}
             style={{
-              padding: "10px 14px",
-              borderRadius: "10px",
-              border: "none",
-              backgroundColor: uploadDisabled ? "#93c5fd" : "#2563eb",
-              color: "#ffffff",
-              fontSize: "14px",
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: uploadDisabled ? '#93c5fd' : '#2563eb',
+              color: '#ffffff',
+              fontSize: '14px',
               fontWeight: 700,
-              cursor: uploadDisabled ? "not-allowed" : "pointer",
-              transition: "all 150ms ease",
+              cursor: uploadDisabled ? 'not-allowed' : 'pointer',
+              transition: 'all 150ms ease',
               boxShadow: uploadDisabled
-                ? "none"
-                : "0 10px 30px rgba(37,99,235,0.15)",
+                ? 'none'
+                : '0 10px 30px rgba(37,99,235,0.15)',
             }}
-            onMouseEnter={(e) => {
+            onMouseEnter={e => {
               if (uploadDisabled) return;
-              e.currentTarget.style.backgroundColor = "#1d4ed8";
+              e.currentTarget.style.backgroundColor = '#1d4ed8';
             }}
-            onMouseLeave={(e) => {
+            onMouseLeave={e => {
               if (uploadDisabled) return;
-              e.currentTarget.style.backgroundColor = "#2563eb";
+              e.currentTarget.style.backgroundColor = '#2563eb';
             }}
           >
-            {mode === "upload" ? "Upload" : "추가하기"}
+            {mode === 'upload' ? 'Upload' : '추가하기'}
           </button>
         </div>
       </div>
