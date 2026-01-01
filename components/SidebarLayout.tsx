@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ReactNode, useState } from "react";
-import AuthGuard from "./AuthGuard";
-import { useSessionMonitor } from "../hooks/useSessionMonitor";
-import CsvUploadModal from "./CsvUploadModal";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { ReactNode, useState } from 'react';
+import AuthGuard from './AuthGuard';
+import { useSessionMonitor } from '../hooks/useSessionMonitor';
+import CsvUploadModal from './CsvUploadModal';
 
 const IconMenu = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -173,11 +173,11 @@ const IconLogout = () => (
 );
 
 const navItems = [
-  { href: "/", label: "모니터링", icon: IconMonitor },
-  { href: "/dashboard", label: "대시보드", icon: IconDashboard },
-  { href: "/my-wards", label: "내 담당 고객", icon: IconMyWards },
-  { href: "/locations", label: "위치정보", icon: IconLocation },
-  { href: "/emergencies", label: "비상연락", icon: IconEmergency },
+  { href: '/', label: '모니터링', icon: IconMonitor },
+  { href: '/dashboard', label: '대시보드', icon: IconDashboard },
+  { href: '/my-wards', label: '내 담당 고객', icon: IconMyWards },
+  { href: '/locations', label: '위치정보', icon: IconLocation },
+  { href: '/emergencies', label: '비상연락', icon: IconEmergency },
 ];
 
 type SidebarLayoutProps = {
@@ -206,23 +206,23 @@ export default function SidebarLayout({
       {sidebarCollapsed && (
         <button
           onClick={() => {
-            console.log("[DEBUG] Menu button clicked - opening sidebar");
+            console.log('[DEBUG] Menu button clicked - opening sidebar');
             setSidebarCollapsed(false);
           }}
           style={{
-            position: "fixed",
-            top: "16px",
-            left: "8px",
-            width: "44px",
-            height: "44px",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            background: "white",
-            display: "grid",
-            placeItems: "center",
-            color: "#475569",
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            position: 'fixed',
+            top: '16px',
+            left: '8px',
+            width: '44px',
+            height: '44px',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            background: 'white',
+            display: 'grid',
+            placeItems: 'center',
+            color: '#475569',
+            cursor: 'pointer',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             zIndex: 9999,
           }}
         >
@@ -233,54 +233,54 @@ export default function SidebarLayout({
       {/* Sidebar */}
       <aside
         style={{
-          position: "fixed",
+          position: 'fixed',
           top: 0,
           left: 0,
           bottom: 0,
-          width: "240px",
-          backgroundColor: "#ffffff",
-          borderRight: "1px solid #e2e8f0",
-          display: "flex",
-          flexDirection: "column",
-          transform: sidebarCollapsed ? "translateX(-240px)" : "translateX(0)",
-          transition: "transform 200ms ease",
+          width: '240px',
+          backgroundColor: '#ffffff',
+          borderRight: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          transform: sidebarCollapsed ? 'translateX(-240px)' : 'translateX(0)',
+          transition: 'transform 200ms ease',
           zIndex: 9999,
         }}
       >
         {/* Logo */}
         <div
           style={{
-            padding: "20px 16px",
-            borderBottom: "1px solid #e2e8f0",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            padding: '20px 16px',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
           <Link
             href="/"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              textDecoration: "none",
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textDecoration: 'none',
             }}
           >
             <div
               style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "10px",
+                width: '36px',
+                height: '36px',
+                borderRadius: '10px',
                 background:
-                  "conic-gradient(from 120deg, #3b82f6, #1e40af, #22c55e, #3b82f6)",
-                boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.12)",
+                  'conic-gradient(from 120deg, #3b82f6, #1e40af, #22c55e, #3b82f6)',
+                boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.12)',
               }}
             />
             <span
               style={{
-                fontSize: "18px",
+                fontSize: '18px',
                 fontWeight: 700,
-                color: "#1e293b",
+                color: '#1e293b',
               }}
             >
               담소 관제센터
@@ -288,28 +288,28 @@ export default function SidebarLayout({
           </Link>
           <button
             onClick={() => {
-              console.log("[DEBUG] Close button clicked - collapsing sidebar");
+              console.log('[DEBUG] Close button clicked - collapsing sidebar');
               setSidebarCollapsed(true);
             }}
             style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "8px",
-              border: "none",
-              background: "transparent",
-              display: "grid",
-              placeItems: "center",
-              color: "#94a3b8",
-              cursor: "pointer",
-              transition: "all 150ms ease",
+              width: '32px',
+              height: '32px',
+              borderRadius: '8px',
+              border: 'none',
+              background: 'transparent',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#94a3b8',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#f1f5f9";
-              e.currentTarget.style.color = "#64748b";
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#f1f5f9';
+              e.currentTarget.style.color = '#64748b';
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "#94a3b8";
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#94a3b8';
             }}
           >
             <IconClose />
@@ -320,13 +320,13 @@ export default function SidebarLayout({
         <nav
           style={{
             flex: 1,
-            padding: "16px 12px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
+            padding: '16px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
           }}
         >
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
             return (
@@ -335,40 +335,40 @@ export default function SidebarLayout({
                 type="button"
                 onClick={() => {
                   console.log(
-                    "[DEBUG] Nav button clicked, navigating to:",
-                    item.href
+                    '[DEBUG] Nav button clicked, navigating to:',
+                    item.href,
                   );
                   window.location.href = item.href;
                 }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  padding: "12px 14px",
-                  borderRadius: "10px",
-                  border: "none",
-                  textDecoration: "none",
-                  fontSize: "14px",
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  textDecoration: 'none',
+                  fontSize: '14px',
                   fontWeight: isActive ? 600 : 500,
-                  color: isActive ? "#3b82f6" : "#475569",
+                  color: isActive ? '#3b82f6' : '#475569',
                   backgroundColor: isActive
-                    ? "rgba(59, 130, 246, 0.08)"
-                    : "transparent",
-                  transition: "all 150ms ease",
-                  cursor: "pointer",
-                  width: "100%",
-                  textAlign: "left",
+                    ? 'rgba(59, 130, 246, 0.08)'
+                    : 'transparent',
+                  transition: 'all 150ms ease',
+                  cursor: 'pointer',
+                  width: '100%',
+                  textAlign: 'left',
                 }}
-                onMouseEnter={(e) => {
+                onMouseEnter={e => {
                   if (!isActive) {
-                    e.currentTarget.style.backgroundColor = "#f1f5f9";
-                    e.currentTarget.style.color = "#1e293b";
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                    e.currentTarget.style.color = '#1e293b';
                   }
                 }}
-                onMouseLeave={(e) => {
+                onMouseLeave={e => {
                   if (!isActive) {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                    e.currentTarget.style.color = "#475569";
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#475569';
                   }
                 }}
               >
@@ -382,41 +382,41 @@ export default function SidebarLayout({
         {/* Footer */}
         <div
           style={{
-            padding: "16px 12px",
+            padding: '16px 12px',
           }}
         >
           <button
             onClick={() => {
               console.log(
-                "[DEBUG] Register CSV button clicked - opening modal"
+                '[DEBUG] Register CSV button clicked - opening modal',
               );
               setIsCsvModalOpen(true);
             }}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              width: "100%",
-              padding: "12px 14px",
-              marginBottom: "8px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              background: "#f8fafc",
-              fontSize: "14px",
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '12px 14px',
+              marginBottom: '8px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              fontSize: '14px',
               fontWeight: 600,
-              color: "#1f2937",
-              cursor: "pointer",
-              transition: "all 150ms ease",
+              color: '#1f2937',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#e2e8f0";
-              e.currentTarget.style.color = "#1e293b";
-              e.currentTarget.style.borderColor = "#cbd5e1";
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e2e8f0';
+              e.currentTarget.style.color = '#1e293b';
+              e.currentTarget.style.borderColor = '#cbd5e1';
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "#f8fafc";
-              e.currentTarget.style.color = "#1f2937";
-              e.currentTarget.style.borderColor = "#e2e8f0";
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.color = '#1f2937';
+              e.currentTarget.style.borderColor = '#e2e8f0';
             }}
           >
             <IconUpload />
@@ -424,35 +424,35 @@ export default function SidebarLayout({
           </button>
           <div
             style={{
-              height: "1px",
-              backgroundColor: "#e2e8f0",
-              marginBottom: "10px",
-              marginTop: "6px",
+              height: '1px',
+              backgroundColor: '#e2e8f0',
+              marginBottom: '10px',
+              marginTop: '6px',
             }}
           />
           <button
             onClick={handleLogout}
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "12px",
-              padding: "12px 14px",
-              borderRadius: "10px",
-              border: "none",
-              background: "transparent",
-              fontSize: "14px",
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              border: 'none',
+              background: 'transparent',
+              fontSize: '14px',
               fontWeight: 500,
-              color: "#64748b",
-              cursor: "pointer",
-              transition: "all 150ms ease",
+              color: '#64748b',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "#fef2f2";
-              e.currentTarget.style.color = "#dc2626";
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#fef2f2';
+              e.currentTarget.style.color = '#dc2626';
             }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-              e.currentTarget.style.color = "#64748b";
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#64748b';
             }}
           >
             <IconLogout />
@@ -465,22 +465,22 @@ export default function SidebarLayout({
       <main
         style={{
           flex: 1,
-          marginLeft: sidebarCollapsed ? 0 : "240px",
-          minHeight: "100vh",
-          height: noPadding ? "100vh" : undefined,
-          display: noPadding ? "flex" : undefined,
-          flexDirection: noPadding ? "column" : undefined,
-          transition: "margin-left 200ms ease",
+          marginLeft: sidebarCollapsed ? 0 : '240px',
+          minHeight: '100vh',
+          height: noPadding ? '100vh' : undefined,
+          display: noPadding ? 'flex' : undefined,
+          flexDirection: noPadding ? 'column' : undefined,
+          transition: 'margin-left 200ms ease',
         }}
       >
         {/* Header */}
         {title && (
           <header
             style={{
-              backgroundColor: "#ffffff",
-              borderBottom: "1px solid #e2e8f0",
-              padding: "20px 28px",
-              position: "sticky",
+              backgroundColor: '#ffffff',
+              borderBottom: '1px solid #e2e8f0',
+              padding: '20px 28px',
+              position: 'sticky',
               top: 0,
               zIndex: 40,
             }}
@@ -488,9 +488,9 @@ export default function SidebarLayout({
             <h1
               style={{
                 margin: 0,
-                fontSize: "22px",
+                fontSize: '22px',
                 fontWeight: 700,
-                color: "#1e293b",
+                color: '#1e293b',
               }}
             >
               {title}
@@ -505,10 +505,10 @@ export default function SidebarLayout({
               ? {
                   flex: 1,
                   minHeight: 0,
-                  display: "flex",
-                  flexDirection: "column",
+                  display: 'flex',
+                  flexDirection: 'column',
                 }
-              : { padding: "24px 28px" }
+              : { padding: '24px 28px' }
           }
         >
           {children}

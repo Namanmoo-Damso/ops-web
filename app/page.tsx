@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   useEffect,
@@ -7,7 +7,7 @@ import {
   useState,
   type Dispatch,
   type SetStateAction,
-} from "react";
+} from 'react';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -16,10 +16,10 @@ import {
   useLocalParticipant,
   useRoomContext,
   useTracks,
-} from "@livekit/components-react";
-import { RoomEvent, Track, VideoQuality } from "livekit-client";
-import SidebarLayout from "../components/SidebarLayout";
-import { IconMic, IconCam } from "../components/Icons";
+} from '@livekit/components-react';
+import { RoomEvent, Track, VideoQuality } from 'livekit-client';
+import SidebarLayout from '../components/SidebarLayout';
+import { IconMic, IconCam } from '../components/Icons';
 import {
   JoinBanner,
   ControlBar,
@@ -28,10 +28,10 @@ import {
   TileActionButton,
   TileSignal,
   getInitials,
-} from "../components/video";
-import type { MockParticipant } from "../components/video";
-import { useLiveKitSession } from "../hooks";
-import styles from "./page.module.css";
+} from '../components/video';
+import type { MockParticipant } from '../components/video';
+import { useLiveKitSession } from '../hooks';
+import styles from './page.module.css';
 
 type RosterMember = {
   identity: string;
@@ -46,8 +46,8 @@ type LiveTileData = {
 };
 
 type GridSlot =
-  | { type: "live"; key: string; tile: LiveTileData }
-  | { type: "empty"; key: string };
+  | { type: 'live'; key: string; tile: LiveTileData }
+  | { type: 'empty'; key: string };
 
 const LiveTile = ({
   trackRef,
@@ -78,8 +78,8 @@ const LiveTile = ({
 
   return (
     <div
-      className={`${styles.tile} ${focused ? styles.focused : ""} ${
-        speaking ? styles.speaking : ""
+      className={`${styles.tile} ${focused ? styles.focused : ''} ${
+        speaking ? styles.speaking : ''
       }`}
       onClick={onFocus}
     >
@@ -97,7 +97,7 @@ const LiveTile = ({
             onClick={onToggleAudio}
             disabled={!canControl}
             off={micMuted}
-            title={micMuted ? "Unmute" : "Mute"}
+            title={micMuted ? 'Unmute' : 'Mute'}
           >
             <IconMic muted={micMuted} />
           </TileActionButton>
@@ -105,7 +105,7 @@ const LiveTile = ({
             onClick={onToggleVideo}
             disabled={!canControl}
             off={cameraOff}
-            title={cameraOff ? "Start video" : "Stop video"}
+            title={cameraOff ? 'Start video' : 'Stop video'}
           >
             <IconCam off={cameraOff} />
           </TileActionButton>
@@ -170,13 +170,21 @@ const RoomShell = ({
     useLocalParticipant();
   const room = useRoomContext();
   const canControl = connected && !!localParticipant;
-  const [audioOverrides, setAudioOverrides] = useState<Record<string, boolean>>({});
-  const [videoOverrides, setVideoOverrides] = useState<Record<string, boolean>>({});
+  const [audioOverrides, setAudioOverrides] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [videoOverrides, setVideoOverrides] = useState<Record<string, boolean>>(
+    {},
+  );
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastKey, setToastKey] = useState(0);
   const [ending, setEnding] = useState(false);
-  const [knownParticipants, setKnownParticipants] = useState<Record<string, MockParticipant>>({});
-  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+  const [knownParticipants, setKnownParticipants] = useState<
+    Record<string, MockParticipant>
+  >({});
+  const [selectedParticipantId, setSelectedParticipantId] = useState<
+    string | null
+  >(null);
   const deletedIdentitiesRef = useRef<Set<string>>(new Set());
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -191,8 +199,8 @@ const RoomShell = ({
   useEffect(() => {
     if (!room) return;
     const handleDisconnected = () => {
-      setToastMessage("연결이 종료되었습니다");
-      setToastKey((prev) => prev + 1);
+      setToastMessage('연결이 종료되었습니다');
+      setToastKey(prev => prev + 1);
       setEnding(true);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => setToastMessage(null), 2000);
@@ -212,21 +220,28 @@ const RoomShell = ({
 
   useEffect(() => {
     if (!roomName) return;
-    const base = apiBase || "";
+    const base = apiBase || '';
     let cancelled = false;
     const fetchRoster = async () => {
       try {
-        const res = await fetch(`${base}/v1/rooms/${encodeURIComponent(roomName)}/members`);
+        const res = await fetch(
+          `${base}/v1/rooms/${encodeURIComponent(roomName)}/members`,
+        );
         if (!res.ok) throw new Error(`Roster fetch failed (${res.status})`);
         const data = await res.json();
-        const members: RosterMember[] = Array.isArray(data?.members) ? data.members : [];
+        const members: RosterMember[] = Array.isArray(data?.members)
+          ? data.members
+          : [];
         if (cancelled) return;
 
         const now = new Date().toISOString();
-        console.log("[fetchRoster] Members from API:", members.map(m => m.identity));
-        setKnownParticipants((prev) => {
+        console.log(
+          '[fetchRoster] Members from API:',
+          members.map(m => m.identity),
+        );
+        setKnownParticipants(prev => {
           const next = { ...prev };
-          members.forEach((member) => {
+          members.forEach(member => {
             const id = member.identity;
             if (!id) return;
             // SSE로 삭제된 사용자는 다시 추가하지 않음
@@ -240,8 +255,8 @@ const RoomShell = ({
             next[id] = {
               id,
               name,
-              status: online ? existing?.status ?? "" : "Offline",
-              speaking: online ? existing?.speaking ?? false : false,
+              status: online ? (existing?.status ?? '') : 'Offline',
+              speaking: online ? (existing?.speaking ?? false) : false,
               muted: existing?.muted ?? true,
               cameraOff: existing?.cameraOff ?? true,
               you: id === selfIdentity ? true : existing?.you,
@@ -249,7 +264,10 @@ const RoomShell = ({
               lastSeen: existing?.lastSeen ?? member.joinedAt ?? now,
             };
           });
-          console.log("[fetchRoster] Updated knownParticipants:", Object.keys(next));
+          console.log(
+            '[fetchRoster] Updated knownParticipants:',
+            Object.keys(next),
+          );
           return next;
         });
       } catch (err) {
@@ -257,7 +275,9 @@ const RoomShell = ({
       }
     };
     fetchRoster();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [apiBase, roomName, selfIdentity]);
 
   const updateOverride = (
@@ -265,7 +285,7 @@ const RoomShell = ({
     identity: string,
     disabled: boolean,
   ) => {
-    setter((prev) => {
+    setter(prev => {
       const next = { ...prev };
       if (disabled) next[identity] = true;
       else delete next[identity];
@@ -274,13 +294,13 @@ const RoomShell = ({
   };
 
   const getParticipantId = (participant: any) =>
-    participant.identity || participant.sid || "unknown";
+    participant.identity || participant.sid || 'unknown';
 
   const getBaseName = (participant: any) =>
-    (participant.name || participant.identity || "User").trim();
+    (participant.name || participant.identity || 'User').trim();
 
   const resolveRosterName = (member: RosterMember) =>
-    (member.displayName || member.identity || "User").trim();
+    (member.displayName || member.identity || 'User').trim();
 
   const isAudioOff = (participant: any) => {
     if (participant.isLocal) return !isMicrophoneEnabled;
@@ -297,8 +317,11 @@ const RoomShell = ({
     return (videoOverrides[identity] ?? false) || !publishing;
   };
 
-  const setRemoteSubscription = (publications: Map<string, any>, enabled: boolean) => {
-    publications.forEach((publication) => {
+  const setRemoteSubscription = (
+    publications: Map<string, any>,
+    enabled: boolean,
+  ) => {
+    publications.forEach(publication => {
       if (publication?.setSubscribed) publication.setSubscribed(enabled);
     });
   };
@@ -307,12 +330,17 @@ const RoomShell = ({
     const publications = participant?.videoTrackPublications;
     if (!publications) return;
     publications.forEach((publication: any) => {
-      if (typeof publication?.setVideoQuality === "function") publication.setVideoQuality(quality);
-      else if (typeof publication?.setPreferredLayer === "function") publication.setPreferredLayer(quality);
+      if (typeof publication?.setVideoQuality === 'function')
+        publication.setVideoQuality(quality);
+      else if (typeof publication?.setPreferredLayer === 'function')
+        publication.setPreferredLayer(quality);
     });
   };
 
-  const setRemoteTrackPriority = (participant: any, priority: "low" | "standard" | "high") => {
+  const setRemoteTrackPriority = (
+    participant: any,
+    priority: 'low' | 'standard' | 'high',
+  ) => {
     const publications = participant?.videoTrackPublications;
     if (!publications) return;
     const priorityEnum = (Track as any).Priority;
@@ -321,7 +349,8 @@ const RoomShell = ({
     const value = priorityEnum[key] ?? priorityEnum.STANDARD;
     if (!value) return;
     publications.forEach((publication: any) => {
-      if (typeof publication?.setPriority === "function") publication.setPriority(value);
+      if (typeof publication?.setPriority === 'function')
+        publication.setPriority(value);
     });
   };
 
@@ -365,7 +394,7 @@ const RoomShell = ({
   };
 
   const allAudioOff = useMemo(() => {
-    return tracks.every((track) => {
+    return tracks.every(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return true;
       const identity = getParticipantId(participant);
@@ -374,7 +403,7 @@ const RoomShell = ({
   }, [tracks, audioOverrides]);
 
   const allVideoOff = useMemo(() => {
-    return tracks.every((track) => {
+    return tracks.every(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return true;
       const identity = getParticipantId(participant);
@@ -384,7 +413,7 @@ const RoomShell = ({
 
   const toggleAllAudio = () => {
     const newState = !allAudioOff;
-    tracks.forEach((track) => {
+    tracks.forEach(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
@@ -395,7 +424,7 @@ const RoomShell = ({
 
   const toggleAllVideo = () => {
     const newState = !allVideoOff;
-    tracks.forEach((track) => {
+    tracks.forEach(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
@@ -406,7 +435,7 @@ const RoomShell = ({
 
   const liveTiles: LiveTileData[] = useMemo(() => {
     const tiles: LiveTileData[] = [];
-    tracks.forEach((trackRef) => {
+    tracks.forEach(trackRef => {
       const participant = trackRef.participant;
       if (!participant) return;
       const identity = getParticipantId(participant);
@@ -418,7 +447,7 @@ const RoomShell = ({
 
   // tracks에서 knownParticipants 업데이트 (useMemo에서 분리)
   useEffect(() => {
-    tracks.forEach((trackRef) => {
+    tracks.forEach(trackRef => {
       const participant = trackRef.participant;
       if (!participant) return;
       const identity = getParticipantId(participant);
@@ -426,11 +455,13 @@ const RoomShell = ({
 
       // 사용자가 다시 로그인한 경우 (active track이 있음), deletedIdentities에서 제거
       if (deletedIdentitiesRef.current.has(identity)) {
-        console.log(`[tracks] User logged back in, removing from deleted set: ${identity}`);
+        console.log(
+          `[tracks] User logged back in, removing from deleted set: ${identity}`,
+        );
         deletedIdentitiesRef.current.delete(identity);
       }
 
-      setKnownParticipants((prev) => {
+      setKnownParticipants(prev => {
         const existing = prev[identity];
         if (existing && existing.online) return prev;
         return {
@@ -438,7 +469,7 @@ const RoomShell = ({
           [identity]: {
             id: identity,
             name: displayName,
-            status: "",
+            status: '',
             speaking: participant.isSpeaking || false,
             muted: !participant.isMicrophoneEnabled,
             cameraOff: !participant.isCameraEnabled,
@@ -452,11 +483,11 @@ const RoomShell = ({
   }, [tracks]);
 
   useEffect(() => {
-    const onlineIds = new Set(liveTiles.map((t) => t.key));
-    setKnownParticipants((prev) => {
+    const onlineIds = new Set(liveTiles.map(t => t.key));
+    setKnownParticipants(prev => {
       let changed = false;
       const next = { ...prev };
-      Object.keys(next).forEach((id) => {
+      Object.keys(next).forEach(id => {
         const wasOnline = next[id].online;
         const nowOnline = onlineIds.has(id);
         if (wasOnline !== nowOnline) {
@@ -464,7 +495,7 @@ const RoomShell = ({
           next[id] = {
             ...next[id],
             online: nowOnline,
-            status: nowOnline ? "" : "Offline",
+            status: nowOnline ? '' : 'Offline',
           };
         }
       });
@@ -473,43 +504,50 @@ const RoomShell = ({
   }, [liveTiles]);
 
   useEffect(() => {
-    tracks.forEach((trackRef) => {
+    tracks.forEach(trackRef => {
       const participant = trackRef.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
       const isFocused = identity === focusedId;
       if (isFocused) {
         setRemoteVideoQuality(participant, VideoQuality.HIGH);
-        setRemoteTrackPriority(participant, "high");
+        setRemoteTrackPriority(participant, 'high');
       } else {
         setRemoteVideoQuality(participant, VideoQuality.LOW);
-        setRemoteTrackPriority(participant, "low");
+        setRemoteTrackPriority(participant, 'low');
       }
     });
   }, [focusedId, tracks]);
 
   const showOnlyFocused = !!focusedId && liveTiles.length > 1;
   const visibleTiles = showOnlyFocused
-    ? liveTiles.filter((t) => t.key === focusedId)
+    ? liveTiles.filter(t => t.key === focusedId)
     : liveTiles;
 
   const gridSlots = useMemo<GridSlot[]>(() => {
     if (showOnlyFocused) {
-      return visibleTiles.map((tile) => ({ type: "live" as const, key: tile.key, tile }));
+      return visibleTiles.map(tile => ({
+        type: 'live' as const,
+        key: tile.key,
+        tile,
+      }));
     }
     const slots = gridSize * gridSize;
     const result: GridSlot[] = [];
     for (let i = 0; i < slots; i++) {
       const tile = visibleTiles[i];
-      if (tile) result.push({ type: "live" as const, key: tile.key, tile });
-      else result.push({ type: "empty" as const, key: `empty-${i}` });
+      if (tile) result.push({ type: 'live' as const, key: tile.key, tile });
+      else result.push({ type: 'empty' as const, key: `empty-${i}` });
     }
     return result;
   }, [visibleTiles, gridSize, showOnlyFocused]);
 
   const sidebarList = useMemo(() => {
-    console.log("[sidebarList] Computing, knownParticipants keys:", Object.keys(knownParticipants));
-    const list = Object.values(knownParticipants).filter((participant) => {
+    console.log(
+      '[sidebarList] Computing, knownParticipants keys:',
+      Object.keys(knownParticipants),
+    );
+    const list = Object.values(knownParticipants).filter(participant => {
       if (participant.you && participant.online === false) return false;
       return true;
     });
@@ -518,7 +556,12 @@ const RoomShell = ({
       if (onlineDiff !== 0) return onlineDiff;
       return a.name.localeCompare(b.name);
     });
-    console.log("[sidebarList] Result count:", list.length, "names:", list.map(p => p.name));
+    console.log(
+      '[sidebarList] Result count:',
+      list.length,
+      'names:',
+      list.map(p => p.name),
+    );
     return list;
   }, [knownParticipants]);
 
@@ -530,9 +573,9 @@ const RoomShell = ({
 
   // SSE 이벤트 구독 (로그아웃/회원탈퇴 시 목록에서 삭제)
   useEffect(() => {
-    const base = apiBase || "";
+    const base = apiBase || '';
     if (!base) {
-      console.log("[SSE] apiBase is empty, skipping SSE connection");
+      console.log('[SSE] apiBase is empty, skipping SSE connection');
       return;
     }
 
@@ -542,21 +585,23 @@ const RoomShell = ({
     const eventSource = new EventSource(sseUrl);
 
     eventSource.onopen = () => {
-      console.log(`[SSE] Connection opened, readyState: ${eventSource.readyState}`);
+      console.log(
+        `[SSE] Connection opened, readyState: ${eventSource.readyState}`,
+      );
     };
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = event => {
       console.log(`[SSE] Message received:`, event.data);
       try {
         const data = JSON.parse(event.data);
         console.log(`[SSE] Parsed event:`, data);
-        if (data.type === "user-logout" || data.type === "user-deleted") {
+        if (data.type === 'user-logout' || data.type === 'user-deleted') {
           const { identity } = data;
           if (identity) {
             console.log(`[SSE] Removing participant: ${identity}`);
             // 삭제된 identity 기록 (재추가 방지)
             deletedIdentitiesRef.current.add(identity);
-            setKnownParticipants((prev) => {
+            setKnownParticipants(prev => {
               const next = { ...prev };
               delete next[identity];
               console.log(`[SSE] Updated participants:`, Object.keys(next));
@@ -565,45 +610,64 @@ const RoomShell = ({
           }
         }
       } catch (err) {
-        console.error("[SSE] Parse error:", err);
+        console.error('[SSE] Parse error:', err);
       }
     };
 
-    eventSource.onerror = (err) => {
-      console.error(`[SSE] Connection error, readyState: ${eventSource.readyState}`, err);
+    eventSource.onerror = err => {
+      console.error(
+        `[SSE] Connection error, readyState: ${eventSource.readyState}`,
+        err,
+      );
     };
 
     return () => {
-      console.log("[SSE] Closing connection");
+      console.log('[SSE] Closing connection');
       eventSource.close();
     };
   }, [apiBase]);
 
   return (
-    <div className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ""}`}>
-      <div className={`${styles.stage} ${ending ? styles.stageEnding : ""}`}>
-        {showJoin ? <JoinBanner onJoin={onJoin} busy={joinBusy} error={error} /> : null}
+    <div
+      className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}
+    >
+      <div className={`${styles.stage} ${ending ? styles.stageEnding : ''}`}>
+        {showJoin ? (
+          <JoinBanner onJoin={onJoin} busy={joinBusy} error={error} />
+        ) : null}
         {toastMessage ? (
-          <div key={toastKey} className={styles.toast}>{toastMessage}</div>
+          <div key={toastKey} className={styles.toast}>
+            {toastMessage}
+          </div>
         ) : null}
         <RoomAudioRenderer />
         <div
-          className={`${styles.grid} ${showOnlyFocused ? styles.gridFocused : ""}`}
+          className={`${styles.grid} ${showOnlyFocused ? styles.gridFocused : ''}`}
           style={{
-            gridTemplateColumns: showOnlyFocused ? "1fr" : `repeat(${gridSize}, minmax(0, 1fr))`,
-            gridTemplateRows: showOnlyFocused ? "1fr" : `repeat(${gridSize}, minmax(0, 1fr))`,
+            gridTemplateColumns: showOnlyFocused
+              ? '1fr'
+              : `repeat(${gridSize}, minmax(0, 1fr))`,
+            gridTemplateRows: showOnlyFocused
+              ? '1fr'
+              : `repeat(${gridSize}, minmax(0, 1fr))`,
           }}
         >
-          {gridSlots.map((slot) =>
-            slot.type === "live" ? (
+          {gridSlots.map(slot =>
+            slot.type === 'live' ? (
               <LiveTile
                 key={slot.key}
                 trackRef={slot.tile.ref}
                 displayName={slot.tile.displayName}
                 focused={focusedId === slot.tile.key}
-                onFocus={() => onFocus(focusedId === slot.tile.key ? null : slot.tile.key)}
-                onToggleAudio={() => toggleParticipantAudio(slot.tile.ref.participant)}
-                onToggleVideo={() => toggleParticipantVideo(slot.tile.ref.participant)}
+                onFocus={() =>
+                  onFocus(focusedId === slot.tile.key ? null : slot.tile.key)
+                }
+                onToggleAudio={() =>
+                  toggleParticipantAudio(slot.tile.ref.participant)
+                }
+                onToggleVideo={() =>
+                  toggleParticipantVideo(slot.tile.ref.participant)
+                }
                 audioOff={isAudioOff(slot.tile.ref.participant)}
                 videoOff={isVideoOff(slot.tile.ref.participant)}
                 canControl={canControl}
@@ -651,9 +715,9 @@ const RoomShell = ({
 };
 
 export default function Home() {
-  const apiBaseEnv = process.env.NEXT_PUBLIC_API_BASE ?? "";
-  const livekitEnv = process.env.NEXT_PUBLIC_LIVEKIT_URL ?? "";
-  const defaultRoom = process.env.NEXT_PUBLIC_ROOM_NAME ?? "demo-room";
+  const apiBaseEnv = process.env.NEXT_PUBLIC_API_BASE ?? '';
+  const livekitEnv = process.env.NEXT_PUBLIC_LIVEKIT_URL ?? '';
+  const defaultRoom = process.env.NEXT_PUBLIC_ROOM_NAME ?? 'demo-room';
 
   const [apiBase, setApiBase] = useState(apiBaseEnv);
 
@@ -662,7 +726,7 @@ export default function Home() {
       setApiBase(apiBaseEnv);
       return;
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== 'undefined') {
       setApiBase(window.location.origin);
     }
   }, [apiBaseEnv]);
@@ -699,12 +763,14 @@ export default function Home() {
               inviteBusy={session.inviteBusy}
               inviteStatus={session.inviteStatus}
               roomName={session.roomName}
-              apiBase={apiBase || ""}
+              apiBase={apiBase || ''}
               selfIdentity={session.identity}
               gridSize={session.gridSize}
               onGridSizeChange={session.setGridSize}
               showParticipantList={session.showParticipantList}
-              onToggleParticipantList={() => session.setShowParticipantList(!session.showParticipantList)}
+              onToggleParticipantList={() =>
+                session.setShowParticipantList(!session.showParticipantList)
+              }
             />
           </LiveKitRoom>
         </div>

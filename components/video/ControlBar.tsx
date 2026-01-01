@@ -9,8 +9,8 @@ import {
   IconMinus,
   IconPlus,
   IconEnd,
-} from "../Icons";
-import styles from "../../app/page.module.css";
+} from '../Icons';
+import styles from '../../app/page.module.css';
 
 type ControlBarProps = {
   isMicrophoneEnabled: boolean;
@@ -50,14 +50,14 @@ export const ControlBar = ({
   <div className={styles.controlBar}>
     <div className={styles.controlGroup}>
       <button
-        className={`${styles.controlButton} ${isMicrophoneEnabled ? styles.active : ""}`}
+        className={`${styles.controlButton} ${isMicrophoneEnabled ? styles.active : ''}`}
         onClick={onToggleMicrophone}
         disabled={!canControl}
       >
         <IconMic muted={!isMicrophoneEnabled} />
       </button>
       <button
-        className={`${styles.controlButton} ${isCameraEnabled ? styles.active : ""}`}
+        className={`${styles.controlButton} ${isCameraEnabled ? styles.active : ''}`}
         onClick={onToggleCamera}
         disabled={!canControl}
       >
@@ -69,7 +69,7 @@ export const ControlBar = ({
     </div>
     <div className={styles.controlGroupWide}>
       <button
-        className={`${styles.controlButtonWide} ${allAudioOff ? styles.controlButtonWideActive : ""}`}
+        className={`${styles.controlButtonWide} ${allAudioOff ? styles.controlButtonWideActive : ''}`}
         onClick={onToggleAllAudio}
         disabled={!canControl}
         type="button"
@@ -78,7 +78,7 @@ export const ControlBar = ({
         <span>All Audio</span>
       </button>
       <button
-        className={`${styles.controlButtonWide} ${allVideoOff ? styles.controlButtonWideActive : ""}`}
+        className={`${styles.controlButtonWide} ${allVideoOff ? styles.controlButtonWideActive : ''}`}
         onClick={onToggleAllVideo}
         disabled={!canControl}
         type="button"
@@ -92,7 +92,7 @@ export const ControlBar = ({
         <IconChat />
       </button>
       <button
-        className={`${styles.controlButton} ${showParticipantList ? styles.active : ""}`}
+        className={`${styles.controlButton} ${showParticipantList ? styles.active : ''}`}
         onClick={onToggleParticipantList}
       >
         <IconPeople />
@@ -112,7 +112,9 @@ export const ControlBar = ({
       </button>
       <div className={styles.gridSpinnerValue}>
         <IconGrid />
-        <span>{gridSize}×{gridSize}</span>
+        <span>
+          {gridSize}×{gridSize}
+        </span>
       </div>
       <button
         className={styles.gridSpinnerBtn}

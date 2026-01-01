@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useState } from "react";
-import SidebarLayout from "../../components/SidebarLayout";
-import { LocationMap, type WardLocation } from "../../components/LocationMap";
+import { useCallback, useEffect, useState } from 'react';
+import SidebarLayout from '../../components/SidebarLayout';
+import { LocationMap, type WardLocation } from '../../components/LocationMap';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function LocationsPage() {
   const [locations, setLocations] = useState<WardLocation[]>([]);
@@ -15,9 +15,9 @@ export default function LocationsPage() {
 
   const fetchLocations = useCallback(async () => {
     try {
-      const token = localStorage.getItem("admin_access_token");
+      const token = localStorage.getItem('admin_access_token');
       if (!token) {
-        window.location.href = "/login";
+        window.location.href = '/login';
         return;
       }
       const response = await fetch(`${API_BASE}/v1/admin/locations`, {
@@ -25,10 +25,10 @@ export default function LocationsPage() {
       });
       if (!response.ok) {
         if (response.status === 401) {
-          localStorage.removeItem("admin_access_token");
-          localStorage.removeItem("admin_refresh_token");
-          localStorage.removeItem("admin_info");
-          window.location.href = "/login";
+          localStorage.removeItem('admin_access_token');
+          localStorage.removeItem('admin_refresh_token');
+          localStorage.removeItem('admin_info');
+          window.location.href = '/login';
           return;
         }
         throw new Error(`HTTP ${response.status}`);
@@ -62,7 +62,7 @@ export default function LocationsPage() {
   }, []);
 
   const selectedLocation = selectedWardId
-    ? locations.find((loc) => loc.wardId === selectedWardId)
+    ? locations.find(loc => loc.wardId === selectedWardId)
     : null;
 
   const statusCounts = locations.reduce(
@@ -70,36 +70,47 @@ export default function LocationsPage() {
       acc[loc.status] = (acc[loc.status] || 0) + 1;
       return acc;
     },
-    { normal: 0, warning: 0, emergency: 0 } as Record<string, number>
+    { normal: 0, warning: 0, emergency: 0 } as Record<string, number>,
   );
 
   return (
     <SidebarLayout>
-      <div style={{ display: "flex", gap: "24px", height: "calc(100vh - 80px)" }}>
+      <div
+        style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 80px)' }}
+      >
         {/* Ward List Panel */}
         <aside
           style={{
-            width: "340px",
-            backgroundColor: "white",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            display: "flex",
-            flexDirection: "column",
+            width: '340px',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
             flexShrink: 0,
-            overflow: "hidden",
+            overflow: 'hidden',
           }}
         >
           {/* Header */}
           <div
             style={{
-              padding: "20px",
-              borderBottom: "1px solid #e2e8f0",
+              padding: '20px',
+              borderBottom: '1px solid #e2e8f0',
             }}
           >
-            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: 700, color: "#1e293b" }}>
+            <h2
+              style={{
+                margin: 0,
+                fontSize: '18px',
+                fontWeight: 700,
+                color: '#1e293b',
+              }}
+            >
               실시간 위치 현황
             </h2>
-            <p style={{ margin: "6px 0 0", fontSize: "14px", color: "#64748b" }}>
+            <p
+              style={{ margin: '6px 0 0', fontSize: '14px', color: '#64748b' }}
+            >
               등록된 피보호자: {locations.length}명
             </p>
           </div>
@@ -107,46 +118,68 @@ export default function LocationsPage() {
           {/* Status Summary */}
           <div
             style={{
-              display: "flex",
-              gap: "8px",
-              padding: "14px 20px",
-              borderBottom: "1px solid #e2e8f0",
+              display: 'flex',
+              gap: '8px',
+              padding: '14px 20px',
+              borderBottom: '1px solid #e2e8f0',
             }}
           >
-            <StatusBadge label="정상" count={statusCounts.normal} color="#22c55e" />
-            <StatusBadge label="주의" count={statusCounts.warning} color="#f59e0b" />
-            <StatusBadge label="비상" count={statusCounts.emergency} color="#ef4444" />
+            <StatusBadge
+              label="정상"
+              count={statusCounts.normal}
+              color="#22c55e"
+            />
+            <StatusBadge
+              label="주의"
+              count={statusCounts.warning}
+              color="#f59e0b"
+            />
+            <StatusBadge
+              label="비상"
+              count={statusCounts.emergency}
+              color="#ef4444"
+            />
           </div>
 
           {/* Controls */}
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "14px 20px",
-              borderBottom: "1px solid #e2e8f0",
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 20px',
+              borderBottom: '1px solid #e2e8f0',
             }}
           >
-            <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <label
+              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            >
               <input
                 type="checkbox"
                 checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                style={{ width: "16px", height: "16px", accentColor: "#3b82f6" }}
+                onChange={e => setAutoRefresh(e.target.checked)}
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  accentColor: '#3b82f6',
+                }}
               />
-              <span style={{ fontSize: "14px", color: "#475569", fontWeight: 500 }}>자동 새로고침</span>
+              <span
+                style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}
+              >
+                자동 새로고침
+              </span>
             </label>
             <button
               onClick={fetchLocations}
               style={{
-                padding: "8px 14px",
-                fontSize: "13px",
-                backgroundColor: "#3b82f6",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
+                padding: '8px 14px',
+                fontSize: '13px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
                 fontWeight: 600,
               }}
             >
@@ -155,21 +188,39 @@ export default function LocationsPage() {
           </div>
 
           {/* Ward List */}
-          <div style={{ flex: 1, overflow: "auto" }}>
+          <div style={{ flex: 1, overflow: 'auto' }}>
             {isLoading ? (
-              <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>
+              <div
+                style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: '#64748b',
+                }}
+              >
                 로딩 중...
               </div>
             ) : error ? (
-              <div style={{ padding: "32px", textAlign: "center", color: "#dc2626" }}>
+              <div
+                style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: '#dc2626',
+                }}
+              >
                 오류: {error}
               </div>
             ) : locations.length === 0 ? (
-              <div style={{ padding: "32px", textAlign: "center", color: "#64748b" }}>
+              <div
+                style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: '#64748b',
+                }}
+              >
                 등록된 위치 정보가 없습니다.
               </div>
             ) : (
-              locations.map((loc) => (
+              locations.map(loc => (
                 <WardListItem
                   key={loc.wardId}
                   location={loc}
@@ -184,27 +235,44 @@ export default function LocationsPage() {
           {selectedLocation && (
             <div
               style={{
-                padding: "20px",
-                borderTop: "1px solid #e2e8f0",
-                backgroundColor: "#f8fafc",
+                padding: '20px',
+                borderTop: '1px solid #e2e8f0',
+                backgroundColor: '#f8fafc',
               }}
             >
-              <h3 style={{ margin: "0 0 14px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
+              <h3
+                style={{
+                  margin: '0 0 14px',
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                }}
+              >
                 {selectedLocation.wardName}
               </h3>
-              <div style={{ fontSize: "13px", color: "#475569", lineHeight: "1.9" }}>
+              <div
+                style={{
+                  fontSize: '13px',
+                  color: '#475569',
+                  lineHeight: '1.9',
+                }}
+              >
                 <div>
-                  <strong style={{ color: "#1e293b" }}>위치:</strong> {selectedLocation.latitude.toFixed(6)},{" "}
+                  <strong style={{ color: '#1e293b' }}>위치:</strong>{' '}
+                  {selectedLocation.latitude.toFixed(6)},{' '}
                   {selectedLocation.longitude.toFixed(6)}
                 </div>
                 {selectedLocation.accuracy && (
                   <div>
-                    <strong style={{ color: "#1e293b" }}>정확도:</strong> {selectedLocation.accuracy.toFixed(1)}m
+                    <strong style={{ color: '#1e293b' }}>정확도:</strong>{' '}
+                    {selectedLocation.accuracy.toFixed(1)}m
                   </div>
                 )}
                 <div>
-                  <strong style={{ color: "#1e293b" }}>마지막 업데이트:</strong>{" "}
-                  {new Date(selectedLocation.lastUpdated).toLocaleString("ko-KR")}
+                  <strong style={{ color: '#1e293b' }}>마지막 업데이트:</strong>{' '}
+                  {new Date(selectedLocation.lastUpdated).toLocaleString(
+                    'ko-KR',
+                  )}
                 </div>
               </div>
             </div>
@@ -212,7 +280,14 @@ export default function LocationsPage() {
         </aside>
 
         {/* Map */}
-        <main style={{ flex: 1, borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+        <main
+          style={{
+            flex: 1,
+            borderRadius: '12px',
+            overflow: 'hidden',
+            border: '1px solid #e2e8f0',
+          }}
+        >
           <LocationMap
             locations={locations}
             onWardClick={handleWardClick}
@@ -236,24 +311,24 @@ function StatusBadge({
   return (
     <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "6px",
-        padding: "6px 12px",
-        backgroundColor: color + "15",
-        borderRadius: "20px",
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '6px 12px',
+        backgroundColor: color + '15',
+        borderRadius: '20px',
         border: `1px solid ${color}30`,
       }}
     >
       <div
         style={{
-          width: "8px",
-          height: "8px",
-          borderRadius: "50%",
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
           backgroundColor: color,
         }}
       />
-      <span style={{ fontSize: "13px", color: "#1e293b", fontWeight: 500 }}>
+      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>
         {label}: {count}
       </span>
     </div>
@@ -270,9 +345,9 @@ function WardListItem({
   onClick: () => void;
 }) {
   const statusColors: Record<string, string> = {
-    normal: "#22c55e",
-    warning: "#f59e0b",
-    emergency: "#ef4444",
+    normal: '#22c55e',
+    warning: '#f59e0b',
+    emergency: '#ef4444',
   };
 
   const timeAgo = getTimeAgo(new Date(location.lastUpdated));
@@ -281,33 +356,37 @@ function WardListItem({
     <button
       onClick={onClick}
       style={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        gap: "14px",
-        padding: "14px 20px",
-        border: "none",
-        borderBottom: "1px solid #f1f5f9",
-        backgroundColor: isSelected ? "#eff6ff" : "transparent",
-        cursor: "pointer",
-        textAlign: "left",
-        transition: "background 150ms ease",
+        width: '100%',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '14px',
+        padding: '14px 20px',
+        border: 'none',
+        borderBottom: '1px solid #f1f5f9',
+        backgroundColor: isSelected ? '#eff6ff' : 'transparent',
+        cursor: 'pointer',
+        textAlign: 'left',
+        transition: 'background 150ms ease',
       }}
-      onMouseEnter={(e) => !isSelected && (e.currentTarget.style.backgroundColor = "#f8fafc")}
-      onMouseLeave={(e) => !isSelected && (e.currentTarget.style.backgroundColor = "transparent")}
+      onMouseEnter={e =>
+        !isSelected && (e.currentTarget.style.backgroundColor = '#f8fafc')
+      }
+      onMouseLeave={e =>
+        !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')
+      }
     >
       <div
         style={{
-          width: "42px",
-          height: "42px",
-          borderRadius: "50%",
+          width: '42px',
+          height: '42px',
+          borderRadius: '50%',
           backgroundColor: statusColors[location.status],
-          color: "white",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           fontWeight: 700,
-          fontSize: "14px",
+          fontSize: '14px',
           flexShrink: 0,
         }}
       >
@@ -317,20 +396,20 @@ function WardListItem({
         <div
           style={{
             fontWeight: isSelected ? 600 : 500,
-            fontSize: "14px",
-            color: "#1e293b",
-            marginBottom: "4px",
+            fontSize: '14px',
+            color: '#1e293b',
+            marginBottom: '4px',
           }}
         >
           {location.wardName}
         </div>
-        <div style={{ fontSize: "12px", color: "#64748b" }}>{timeAgo}</div>
+        <div style={{ fontSize: '12px', color: '#64748b' }}>{timeAgo}</div>
       </div>
       <div
         style={{
-          width: "10px",
-          height: "10px",
-          borderRadius: "50%",
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
           backgroundColor: statusColors[location.status],
           flexShrink: 0,
         }}
@@ -347,9 +426,9 @@ function getTimeAgo(date: Date): string {
   const diffHour = Math.floor(diffMin / 60);
   const diffDay = Math.floor(diffHour / 24);
 
-  if (diffSec < 60) return "방금 전";
+  if (diffSec < 60) return '방금 전';
   if (diffMin < 60) return `${diffMin}분 전`;
   if (diffHour < 24) return `${diffHour}시간 전`;
   if (diffDay < 7) return `${diffDay}일 전`;
-  return date.toLocaleDateString("ko-KR");
+  return date.toLocaleDateString('ko-KR');
 }
