@@ -2,26 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const IDENTITY_STORAGE_KEY = "damso.identity";
-const NAME_STORAGE_KEY = "damso.name";
-
-const generateIdentity = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `host-${crypto.randomUUID()}`;
-  }
-  return `host-${Date.now()}`;
-};
-
-// Lazy initializer that checks localStorage first (runs only once)
-const getOrCreateIdentity = () => {
-  if (typeof window === "undefined") return generateIdentity();
-  const stored = window.localStorage.getItem(IDENTITY_STORAGE_KEY);
-  if (stored) return stored;
-  const newId = generateIdentity();
-  window.localStorage.setItem(IDENTITY_STORAGE_KEY, newId);
-  return newId;
-};
-
 type Role = "host" | "viewer" | "observer";
 
 export type UseLiveKitSessionOptions = {
@@ -59,12 +39,6 @@ export function useLiveKitSession({
   defaultRoomName,
   autoJoin = false,
 }: UseLiveKitSessionOptions): UseLiveKitSessionReturn {
-  // Use lazy initializer to get identity from localStorage or create new one
-  const [identity] = useState(getOrCreateIdentity);
-  const [name, setName] = useState(() => {
-    if (typeof window === "undefined") return "Host";
-    return window.localStorage.getItem(NAME_STORAGE_KEY) || "Host";
-  });
   const [roomName] = useState(defaultRoomName);
   const [token, setToken] = useState<string>("");
   const [serverUrl, setServerUrl] = useState<string>(livekitUrl);
@@ -77,8 +51,44 @@ export function useLiveKitSession({
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(true);
 
+  // Admin identity and name (fetched from admin/me endpoint or derived from token)
+  const [adminIdentity, setAdminIdentity] = useState<string>("");
+  const [adminName, setAdminName] = useState<string>("");
+
   // Track if auto-join has been attempted to prevent duplicates
   const autoJoinAttempted = useRef(false);
+
+  // Fetch admin info on mount
+  useEffect(() => {
+    const fetchAdminInfo = async () => {
+      try {
+        const adminAccessToken = typeof window !== "undefined"
+          ? window.localStorage.getItem("admin_access_token")
+          : null;
+
+        if (!adminAccessToken) return;
+
+        const apiBaseResolved = apiBase || (typeof window !== "undefined" ? window.location.origin : "");
+        const res = await fetch(`${apiBaseResolved}/admin/me`, {
+          headers: {
+            Authorization: `Bearer ${adminAccessToken}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const adminId = data.admin?.id || "";
+          const adminNameValue = data.admin?.name || data.admin?.email || "Admin";
+          setAdminIdentity(`admin_${adminId}`);
+          setAdminName(adminNameValue);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin info:", err);
+      }
+    };
+
+    fetchAdminInfo();
+  }, [apiBase]);
 
   const joinRoom = useCallback(async () => {
     if (connecting || connected) return;
@@ -86,26 +96,26 @@ export function useLiveKitSession({
     setError(null);
     try {
       const apiBaseResolved = apiBase || window.location.origin;
-      const authRes = await fetch(`${apiBaseResolved}/v1/auth/anonymous`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identity, displayName: name }),
-      });
-      if (!authRes.ok) {
-        throw new Error(`Auth failed (${authRes.status})`);
-      }
-      const authData = await authRes.json();
 
+      // Use admin access token from localStorage instead of anonymous auth
+      const adminAccessToken = typeof window !== "undefined"
+        ? window.localStorage.getItem("admin_access_token")
+        : null;
+
+      if (!adminAccessToken) {
+        throw new Error("Admin not authenticated. Please log in.");
+      }
+
+      // Request RTC token using admin credentials
       const rtcRes = await fetch(`${apiBaseResolved}/v1/rtc/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${authData.accessToken || ""}`,
+          Authorization: `Bearer ${adminAccessToken}`,
         },
         body: JSON.stringify({
           roomName,
-          identity,
-          name,
+          // identity and name will be set by server based on admin token
           role: "host" as Role,
         }),
       });
@@ -125,7 +135,7 @@ export function useLiveKitSession({
     } finally {
       setConnecting(false);
     }
-  }, [connecting, connected, apiBase, identity, name, roomName, livekitUrl]);
+  }, [connecting, connected, apiBase, roomName, livekitUrl]);
 
   // Auto-join when enabled (only once)
   useEffect(() => {
@@ -149,7 +159,7 @@ export function useLiveKitSession({
       setInviteStatus("목록에서 참가자를 선택하세요");
       return;
     }
-    if (target === identity) {
+    if (target === adminIdentity) {
       setInviteStatus("자기 자신에게는 호출할 수 없습니다");
       return;
     }
@@ -161,8 +171,8 @@ export function useLiveKitSession({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          callerIdentity: identity,
-          callerName: name,
+          callerIdentity: adminIdentity,
+          callerName: adminName,
           calleeIdentity: target,
           roomName,
         }),
@@ -179,11 +189,11 @@ export function useLiveKitSession({
     } finally {
       setInviteBusy(false);
     }
-  }, [inviteBusy, identity, name, apiBase, roomName]);
+  }, [inviteBusy, adminIdentity, adminName, apiBase, roomName]);
 
   return {
-    identity,
-    name,
+    identity: adminIdentity,
+    name: adminName,
     roomName,
     token,
     serverUrl,
