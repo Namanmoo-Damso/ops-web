@@ -671,6 +671,7 @@ export default function Home() {
     apiBase,
     livekitUrl: livekitEnv,
     defaultRoomName: defaultRoom,
+    autoJoin: true,
   });
 
   return (

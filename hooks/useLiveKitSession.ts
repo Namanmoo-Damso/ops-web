@@ -18,6 +18,7 @@ export type UseLiveKitSessionOptions = {
   apiBase: string;
   livekitUrl: string;
   defaultRoomName: string;
+  autoJoin?: boolean;
 };
 
 export type UseLiveKitSessionReturn = {
@@ -46,6 +47,7 @@ export function useLiveKitSession({
   apiBase,
   livekitUrl,
   defaultRoomName,
+  autoJoin = false,
 }: UseLiveKitSessionOptions): UseLiveKitSessionReturn {
   const [identity, setIdentity] = useState(generateIdentity);
   const [name, setName] = useState("Host");
@@ -60,6 +62,8 @@ export function useLiveKitSession({
   const [inviteBusy, setInviteBusy] = useState(false);
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(true);
+
+  const [identityLoaded, setIdentityLoaded] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -76,6 +80,7 @@ export function useLiveKitSession({
     if (storedName) {
       setName(storedName);
     }
+    setIdentityLoaded(true);
   }, []);
 
   const joinRoom = useCallback(async () => {
@@ -124,6 +129,13 @@ export function useLiveKitSession({
       setConnecting(false);
     }
   }, [connecting, connected, apiBase, identity, name, roomName, livekitUrl]);
+
+  // Auto-join when enabled and identity is loaded
+  useEffect(() => {
+    if (autoJoin && identityLoaded && apiBase && !connected && !connecting) {
+      joinRoom();
+    }
+  }, [autoJoin, identityLoaded, apiBase, connected, connecting, joinRoom]);
 
   const leaveRoom = useCallback(() => {
     setConnected(false);
