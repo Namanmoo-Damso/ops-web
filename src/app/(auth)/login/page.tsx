@@ -207,16 +207,36 @@ function LoginContent() {
             </Button>
           </form>
 
-          {/* Social Login */}
-          <div className="mt-8 space-y-3">
-             <div className="text-center text-sm text-[#AAB59B] mb-4">또는 소셜 계정으로 로그인</div>
-             <button onClick={handleKakaoLogin} className="w-full h-14 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-bold rounded-xl flex items-center justify-center gap-2">
-                <KakaoIcon /> 카카오 로그인
-             </button>
-             <button onClick={handleGoogleLogin} className="w-full h-14 bg-white border border-[#DDD] hover:bg-[#F9FAFB] text-[#333] font-bold rounded-xl flex items-center justify-center gap-2">
-                <GoogleIcon /> 구글 로그인
-             </button>
+          {/* Demo Login Button */}
+          <div className="mt-8 text-center space-y-4">
+             <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-[#E1EAD3]" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-[#AAB59B]">체험하기</span>
+                </div>
+             </div>
+             
+             <Button
+               type="button"
+               onClick={() => {
+                 localStorage.setItem("admin_access_token", "demo_token")
+                 localStorage.setItem("admin_info", JSON.stringify({ 
+                   id: "demo", 
+                   name: "데모 관리자", 
+                   role: "MANAGER",
+                   organizationId: "demo-org" 
+                 }))
+                 router.push("/")
+               }}
+               variant="outline"
+               className="w-full h-14 text-lg font-bold rounded-xl border-2 border-dashed border-[#8FA963] text-[#6E7F4F] hover:bg-[#F7F9F2] hover:text-[#4A5D23]"
+             >
+               로그인 없이 둘러보기 (Demo)
+             </Button>
           </div>
+
 
         </div>
         

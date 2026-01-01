@@ -44,13 +44,25 @@ export default function DashboardPage() {
       const token = localStorage.getItem("admin_access_token")
       if (!token) return // AuthGuard handles redirect
 
+      // DEMO MODE CHECK
+      if (token === "demo_token") {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 500))
+        setStats({
+            overview: { totalWards: 120, activeWards: 118, totalGuardians: 85, totalCalls: 45, totalCallMinutes: 240 },
+            todayStats: { calls: 12, emergencies: 0 },
+            healthAlerts: { warning: 0, info: 2 }
+        })
+        setIsLoading(false)
+        return
+      }
+
       const response = await fetch(`${API_BASE}/v1/admin/dashboard/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
       if (!response.ok) {
         if (response.status === 401) {
-             // Let AuthGuard or next fetch handle it, or force reload/logout
              localStorage.removeItem("admin_access_token")
              router.replace("/login")
              return
