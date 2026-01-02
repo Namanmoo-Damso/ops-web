@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { ReactNode, useState } from 'react';
 import AuthGuard from './AuthGuard';
 import { useSessionMonitor } from '../hooks/useSessionMonitor';
+import CsvUploadModal from './CsvUploadModal';
 
 const IconMenu = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -175,7 +176,6 @@ const navItems = [
   { href: '/', label: '모니터링', icon: IconMonitor },
   { href: '/dashboard', label: '대시보드', icon: IconDashboard },
   { href: '/my-wards', label: '내 담당 고객', icon: IconMyWards },
-  { href: '/wards/bulk-upload', label: '피보호자 등록', icon: IconUpload },
   { href: '/locations', label: '위치정보', icon: IconLocation },
   { href: '/emergencies', label: '비상연락', icon: IconEmergency },
 ];
@@ -192,8 +192,8 @@ export default function SidebarLayout({
   noPadding,
 }: SidebarLayoutProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
 
   // 세션 모니터링 (토큰 만료 시점에 정확히 발동, 5분 전 경고)
   const { handleLogout } = useSessionMonitor({
@@ -383,16 +383,59 @@ export default function SidebarLayout({
         <div
           style={{
             padding: '16px 12px',
-            borderTop: '1px solid #e2e8f0',
           }}
         >
+          <button
+            onClick={() => {
+              console.log(
+                '[DEBUG] Register CSV button clicked - opening modal',
+              );
+              setIsCsvModalOpen(true);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '12px 14px',
+              marginBottom: '8px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              background: '#f8fafc',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: '#1f2937',
+              cursor: 'pointer',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#e2e8f0';
+              e.currentTarget.style.color = '#1e293b';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.color = '#1f2937';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <IconUpload />
+            <span>피보호자 등록</span>
+          </button>
+          <div
+            style={{
+              height: '1px',
+              backgroundColor: '#e2e8f0',
+              marginBottom: '10px',
+              marginTop: '6px',
+            }}
+          />
           <button
             onClick={handleLogout}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '12px',
-              width: '100%',
               padding: '12px 14px',
               borderRadius: '10px',
               border: 'none',
@@ -471,6 +514,12 @@ export default function SidebarLayout({
           {children}
         </div>
       </main>
+
+      {/* CSV Upload Modal */}
+      <CsvUploadModal
+        open={isCsvModalOpen}
+        onClose={() => setIsCsvModalOpen(false)}
+      />
     </AuthGuard>
   );
 }

@@ -316,8 +316,8 @@ const RoomShell = ({
             next[id] = {
               id,
               name,
-              status: online ? (existing?.status ?? '') : 'Offline',
-              speaking: online ? (existing?.speaking ?? false) : false,
+              status: online ? existing?.status ?? '' : 'Offline',
+              speaking: online ? existing?.speaking ?? false : false,
               muted: existing?.muted ?? true,
               cameraOff: existing?.cameraOff ?? true,
               you: id === selfIdentity ? true : existing?.you,
