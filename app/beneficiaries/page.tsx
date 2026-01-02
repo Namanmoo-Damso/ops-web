@@ -1,106 +1,47 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../components/SidebarLayout';
 
 type Beneficiary = {
-  id: number;
+  id: string;
   name: string;
-  age: number;
-  gender: string;
-  type: string;
-  address: string;
-  manager: string;
+  age: number | null;
+  gender: string | null;
+  type: string | null;
+  address: string | null;
+  manager: string | null;
   status: 'WARNING' | 'NORMAL' | 'CAUTION';
-  lastCall: string;
+  lastCall: string | null;
 };
 
-// 임시 목업 데이터 (API 연동 전)
-const BENEFICIARIES: Beneficiary[] = [
-  {
-    id: 1,
-    name: '이말순',
-    age: 82,
-    gender: '여',
-    type: '독거',
-    address: '서울시 종로구 평창동 12-3',
-    manager: '김복지',
-    status: 'WARNING',
-    lastCall: '오늘 14:30',
-  },
-  {
-    id: 2,
-    name: '박철수',
-    age: 79,
-    gender: '남',
-    type: '부부',
-    address: '서울시 종로구 구기동 88',
-    manager: '이성실',
-    status: 'NORMAL',
-    lastCall: '어제 10:00',
-  },
-  {
-    id: 3,
-    name: '최정자',
-    age: 88,
-    gender: '여',
-    type: '독거',
-    address: '서울시 성북구 정릉동 33',
-    manager: '최열정',
-    status: 'CAUTION',
-    lastCall: '5/05 11:00',
-  },
-  {
-    id: 4,
-    name: '김영희',
-    age: 75,
-    gender: '여',
-    type: '독거',
-    address: '서대문구 홍제동',
-    manager: '김복지',
-    status: 'NORMAL',
-    lastCall: '오늘 09:30',
-  },
-  {
-    id: 5,
-    name: '정민수',
-    age: 72,
-    gender: '남',
-    type: '독거',
-    address: '은평구 불광동',
-    manager: '박관리',
-    status: 'NORMAL',
-    lastCall: '오늘 10:00',
-  },
-  {
-    id: 6,
-    name: '강동원',
-    age: 81,
-    gender: '남',
-    type: '부부',
-    address: '종로구 신영동',
-    manager: '김복지',
-    status: 'NORMAL',
-    lastCall: '오늘 11:00',
-  },
-  {
-    id: 7,
-    name: '윤여정',
-    age: 74,
-    gender: '여',
-    type: '독거',
-    address: '종로구 혜화동',
-    manager: '최열정',
-    status: 'NORMAL',
-    lastCall: '어제 15:00',
-  },
-];
+type ApiBeneficiary = {
+  id: number | string;
+  name?: string | null;
+  age?: number | null;
+  gender?: string | null;
+  type?: string | null;
+  address?: string | null;
+  manager?: string | null;
+  status?: string | null;
+  lastCall?: string | null;
+};
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function BeneficiariesPage() {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'risk'>('all');
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [items, setItems] = useState<Beneficiary[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
   useEffect(() => {
@@ -108,18 +49,117 @@ export default function BeneficiariesPage() {
     return () => window.clearTimeout(handle);
   }, [search]);
 
-  // 검색어 기준 1차 필터링
+  // 쿼리 변경 시 페이지를 첫 페이지로 리셋
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, filter]);
+
+  // 서버에서 목록 가져오기
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
+      if (!API_BASE) {
+        setError(
+          'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
+        );
+        setLoading(false);
+        return;
+      }
+
+      const token = localStorage.getItem('admin_access_token');
+      if (!token) {
+        setError('로그인이 필요합니다.');
+        setLoading(false);
+        return;
+      }
+
+      const params = new URLSearchParams();
+      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+      if (filter === 'risk') params.set('riskOnly', 'true');
+      params.set('page', String(page));
+      params.set('pageSize', String(pageSize));
+
+      try {
+        const response = await fetch(
+          `${API_BASE}/v1/admin/beneficiaries?${params.toString()}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            signal: controller.signal,
+          },
+        );
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem('admin_access_token');
+          localStorage.removeItem('admin_refresh_token');
+          localStorage.removeItem('admin_info');
+          setLoading(false);
+          router.replace('/login');
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            `목록 불러오기에 실패했습니다. (HTTP ${response.status})`,
+          );
+        }
+
+        const data = await response.json();
+        const apiItems: Beneficiary[] = Array.isArray(data?.data)
+          ? data.data.map((item: ApiBeneficiary, index: number) => {
+              const normalizedStatus =
+                item.status === 'WARNING' || item.status === 'CAUTION'
+                  ? item.status
+                  : 'NORMAL';
+              return {
+                // API가 문자열 ID를 반환할 수 있어도 키 충돌이 없도록 문자열로 보관
+                id: String(item.id ?? `row-${index}`),
+                name: item.name || '이름 없음',
+                age: item.age ?? null,
+                gender: item.gender ?? null,
+                type: item.type ?? null,
+                address: item.address ?? null,
+                manager: item.manager ?? null,
+                status: normalizedStatus,
+                lastCall: item.lastCall ?? null,
+              };
+            })
+          : [];
+
+        setItems(apiItems);
+        setTotalCount(
+          typeof data?.total === 'number' ? data.total : apiItems.length,
+        );
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setError((err as Error).message || '알 수 없는 오류가 발생했습니다.');
+        setItems([]);
+        setTotalCount(0);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
+    fetchData();
+    return () => controller.abort();
+  }, [debouncedSearch, filter, page, pageSize, router]);
+
+  // 검색어 기준 1차 필터링 (서버가 검색을 지원하지 않는 경우 대비)
   const searchMatches = useMemo(() => {
     const query = debouncedSearch.trim();
-    return BENEFICIARIES.filter(item => {
+    return items.filter(item => {
       if (!query) return true;
       return (
         item.name.includes(query) ||
-        item.address.includes(query) ||
-        item.manager.includes(query)
+        item.address?.includes(query) ||
+        item.manager?.includes(query)
       );
     });
-  }, [debouncedSearch]);
+  }, [debouncedSearch, items]);
 
   // 검색 결과 내 위험군 수 (UI 표기용)
   const riskCount = useMemo(
@@ -151,9 +191,14 @@ export default function BeneficiariesPage() {
         />
         <BeneficiaryTable
           items={filteredList}
-          totalCount={BENEFICIARIES.length}
+          totalCount={totalCount}
           selectedId={selectedId}
           onSelect={setSelectedId}
+          loading={loading}
+          error={error}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
         />
       </div>
     </SidebarLayout>
@@ -182,9 +227,6 @@ function PageHeader() {
             aria-level={1}
           >
             전체 대상자 관리
-          </div>
-          <div style={{ color: '#64748b', fontSize: '13px' }}>
-            검색·필터만 우선 제공, 상세 패널은 추후 구현 예정입니다.
           </div>
         </div>
       </div>
@@ -322,8 +364,13 @@ function FilterBar({
 type BeneficiaryTableProps = {
   items: Beneficiary[];
   totalCount: number;
-  selectedId: number | null;
-  onSelect: (id: number) => void;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  loading: boolean;
+  error: string | null;
+  page: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
 };
 
 function BeneficiaryTable({
@@ -331,7 +378,14 @@ function BeneficiaryTable({
   totalCount,
   selectedId,
   onSelect,
+  loading,
+  error,
+  page,
+  pageSize,
+  onPageChange,
 }: BeneficiaryTableProps) {
+  const pageTotal = Math.max(1, Math.ceil(totalCount / pageSize));
+
   return (
     <div
       style={{
@@ -371,6 +425,32 @@ function BeneficiaryTable({
           행 클릭 시 상세 패널은 추후 추가 예정입니다.
         </div>
       </div>
+
+      {loading && (
+        <div
+          style={{
+            padding: '32px',
+            textAlign: 'center',
+            color: '#64748b',
+            fontWeight: 700,
+          }}
+        >
+          데이터를 불러오는 중입니다...
+        </div>
+      )}
+
+      {error && !loading && (
+        <div
+          style={{
+            padding: '32px',
+            textAlign: 'center',
+            color: '#dc2626',
+            fontWeight: 700,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <div style={{ overflowX: 'auto' }}>
         <table
@@ -466,7 +546,8 @@ function BeneficiaryTable({
                             fontWeight: 700,
                           }}
                         >
-                          {item.age}세 / {item.gender} / {item.type}
+                          {item.age ?? '-'}세 / {item.gender ?? '-'} /{' '}
+                          {item.type ?? '-'}
                         </div>
                       </div>
                     </div>
@@ -484,9 +565,9 @@ function BeneficiaryTable({
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                     }}
-                    title={item.address}
+                    title={item.address ?? undefined}
                   >
-                    {item.address}
+                    {item.address ?? '-'}
                   </td>
                   <td
                     style={{
@@ -495,7 +576,7 @@ function BeneficiaryTable({
                       fontWeight: 700,
                     }}
                   >
-                    {item.manager}
+                    {item.manager ?? '-'}
                   </td>
                   <td
                     style={{
@@ -504,7 +585,7 @@ function BeneficiaryTable({
                       fontWeight: 600,
                     }}
                   >
-                    {item.lastCall}
+                    {item.lastCall ?? '-'}
                   </td>
                   <td
                     style={{
@@ -539,7 +620,7 @@ function BeneficiaryTable({
         </table>
       </div>
 
-      {items.length === 0 && (
+      {items.length === 0 && !loading && !error && (
         <div
           style={{
             padding: '40px',
@@ -582,6 +663,58 @@ function BeneficiaryTable({
           </div>
         </div>
       )}
+
+      {/* Pagination */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '16px',
+          borderTop: '1px solid #e2e8f0',
+          backgroundColor: '#f8fafc',
+        }}
+      >
+        <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+          페이지 {page} / {pageTotal}
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.max(1, page - 1))}
+            disabled={page <= 1 || loading}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: page <= 1 || loading ? '#cbd5e1' : '#0f172a',
+              fontWeight: 700,
+              cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
+            }}
+            aria-label="이전 페이지"
+          >
+            이전
+          </button>
+          <button
+            type="button"
+            onClick={() => onPageChange(Math.min(pageTotal, page + 1))}
+            disabled={page >= pageTotal || loading}
+            style={{
+              padding: '8px 12px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: page >= pageTotal || loading ? '#cbd5e1' : '#0f172a',
+              fontWeight: 700,
+              cursor: page >= pageTotal || loading ? 'not-allowed' : 'pointer',
+            }}
+            aria-label="다음 페이지"
+          >
+            다음
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

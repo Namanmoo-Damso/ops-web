@@ -85,7 +85,35 @@ export default function MyWardsPage() {
       }
 
       const data = await response.json();
-      const wardsData: Ward[] = data.wards || [];
+      const rawWards = Array.isArray(data?.wards) ? data.wards : [];
+      const wardsData: Ward[] = rawWards.map((item: any, index: number) => {
+        // 키 충돌 방지를 위해 id를 문자열로 강제하고, 없으면 대체 키 부여
+        const idSource =
+          item?.id ??
+          item?.wardId ??
+          item?.email ??
+          item?.phoneNumber ??
+          `ward-${index}`;
+        return {
+          id: String(idSource),
+          organizationId: String(item?.organizationId ?? ''),
+          organizationName: String(item?.organizationName ?? '소속 없음'),
+          email: String(item?.email ?? ''),
+          phoneNumber: String(item?.phoneNumber ?? ''),
+          name: String(item?.name ?? '이름 없음'),
+          birthDate: item?.birthDate ?? null,
+          address: item?.address ?? null,
+          notes: item?.notes ?? null,
+          isRegistered: Boolean(item?.isRegistered),
+          wardId: item?.wardId ?? null,
+          createdAt: String(item?.createdAt ?? ''),
+          lastCallAt: item?.lastCallAt ?? null,
+          totalCalls: Number.isFinite(Number(item?.totalCalls))
+            ? Number(item.totalCalls)
+            : 0,
+          lastMood: item?.lastMood ?? null,
+        };
+      });
       setWards(wardsData);
       const serverStats = data.stats;
       if (
@@ -120,9 +148,12 @@ export default function MyWardsPage() {
   }, [fetchMyWards]);
 
   const filteredWards = useMemo(() => {
-    const byStatus = wards.filter(ward =>
-      filterStatus === 'pending' ? !ward.isRegistered : true,
-    );
+    // 전체 목록은 연동/미연동 모두, 'pending'일 때만 미연동만 노출
+    const byStatus =
+      filterStatus === 'pending'
+        ? wards.filter(ward => !ward.isRegistered)
+        : wards;
+
     if (!debouncedQuery) return byStatus;
     const query = debouncedQuery.toLowerCase();
     return byStatus.filter(
