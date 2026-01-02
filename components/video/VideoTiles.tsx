@@ -1,6 +1,6 @@
-import { VideoTrack, TrackRefContext } from '@livekit/components-react';
-import { IconUser, IconMic, IconCam } from '../Icons';
-import styles from '../../app/page.module.css';
+import { VideoTrack, TrackRefContext } from "@livekit/components-react";
+import { IconUser } from "../Icons";
+import styles from "../../app/page.module.css";
 
 export const getInitials = (name: string) => {
   const parts = name.trim().split(' ');
@@ -57,24 +57,14 @@ export const LiveTile = ({
   displayName,
   focused,
   onFocus,
-  onToggleAudio,
-  onToggleVideo,
-  audioOff,
   videoOff,
-  canControl,
 }: {
   trackRef: any;
   displayName: string;
   focused: boolean;
   onFocus: () => void;
-  onToggleAudio: () => void;
-  onToggleVideo: () => void;
-  audioOff: boolean;
   videoOff: boolean;
-  canControl: boolean;
 }) => {
-  const participant = trackRef.participant;
-  const isLocal = participant?.isLocal;
   const showOverlay = videoOff;
 
   return (
@@ -92,28 +82,6 @@ export const LiveTile = ({
           </div>
         </div>
       ) : null}
-      <div className={styles.tileFooter}>
-        <span className={styles.tileName}>{displayName}</span>
-        <div className={styles.tileIcons}>
-          <TileActionButton
-            onClick={onToggleAudio}
-            disabled={!canControl}
-            off={audioOff}
-            title={audioOff ? 'Unmute Audio' : 'Mute Audio'}
-          >
-            <IconMic muted={audioOff} />
-          </TileActionButton>
-          <TileActionButton
-            onClick={onToggleVideo}
-            disabled={!canControl || isLocal}
-            off={videoOff}
-            title={videoOff ? 'Enable Video' : 'Disable Video'}
-          >
-            <IconCam off={videoOff} />
-          </TileActionButton>
-          <TileSignal />
-        </div>
-      </div>
     </div>
   );
 };

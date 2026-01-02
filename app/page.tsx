@@ -19,14 +19,11 @@ import {
 } from '@livekit/components-react';
 import { RoomEvent, Track, VideoQuality } from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
-import { IconMic, IconCam } from '../components/Icons';
 import {
   JoinBanner,
   ControlBar,
   ParticipantSidebar,
   EmptyTile,
-  TileActionButton,
-  TileSignal,
   getInitials,
 } from '../components/video';
 import type { MockParticipant } from '../components/video';
@@ -54,34 +51,32 @@ const LiveTile = ({
   displayName,
   focused,
   onFocus,
-  onToggleAudio,
-  onToggleVideo,
-  audioOff,
   videoOff,
-  canControl,
+  onOpenDetail,
 }: {
   trackRef: any;
   displayName: string;
   focused: boolean;
   onFocus: () => void;
-  onToggleAudio: () => void;
-  onToggleVideo: () => void;
-  audioOff: boolean;
   videoOff: boolean;
-  canControl: boolean;
+  onOpenDetail?: () => void;
 }) => {
-  const participant = trackRef.participant;
   const name = displayName;
-  const speaking = participant.isSpeaking;
-  const micMuted = audioOff;
   const cameraOff = videoOff;
+
+  const handleClick = () => {
+    if (onOpenDetail) {
+      onOpenDetail();
+    } else {
+      onFocus();
+    }
+  };
 
   return (
     <div
-      className={`${styles.tile} ${focused ? styles.focused : ''} ${
-        speaking ? styles.speaking : ''
-      }`}
-      onClick={onFocus}
+      className={`${styles.tile} ${focused ? styles.focused : ''}`}
+      onClick={handleClick}
+      style={{ position: 'relative', cursor: 'pointer' }}
     >
       <div className={styles.tileMedia}>
         {cameraOff ? (
@@ -91,34 +86,91 @@ const LiveTile = ({
             <VideoTrack className={styles.video} />
           </TrackRefContext.Provider>
         )}
-        <div className={styles.tileOverlay} />
-        <div className={styles.tileActions}>
-          <TileActionButton
-            onClick={onToggleAudio}
-            disabled={!canControl}
-            off={micMuted}
-            title={micMuted ? 'Unmute' : 'Mute'}
-          >
-            <IconMic muted={micMuted} />
-          </TileActionButton>
-          <TileActionButton
-            onClick={onToggleVideo}
-            disabled={!canControl}
-            off={cameraOff}
-            title={cameraOff ? 'Start video' : 'Stop video'}
-          >
-            <IconCam off={cameraOff} />
-          </TileActionButton>
-        </div>
         <div className={styles.tileFooter}>
-          {speaking ? <span className={styles.tileBadge}>Speaking</span> : null}
-          <span className={styles.tileName}>{name}</span>
-          <span className={styles.tileMeta}>
-            <TileSignal />
-            Live
-          </span>
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '6px 12px',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(8px)',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+              }}
+            />
+            <span
+              className={styles.tileName}
+              style={{ color: '#000000', textShadow: 'none' }}
+            >
+              {name}
+            </span>
+          </div>
         </div>
       </div>
+      <div
+        className="hover-overlay"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'rgba(0, 0, 0, 0.2)',
+          opacity: 0,
+          transition: 'opacity 0.2s ease',
+          backdropFilter: 'blur(1px)',
+        }}
+      >
+        <div
+          style={{
+            background: 'white',
+            color: '#1e293b',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            padding: '6px 12px',
+            borderRadius: '9999px',
+            border: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            transform: 'scale(0.95)',
+            transition: 'transform 0.2s ease',
+          }}
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+          </svg>
+          상세보기
+        </div>
+      </div>
+      <style jsx>{`
+        .hover-overlay {
+          pointer-events: none;
+        }
+        div:hover > .hover-overlay {
+          opacity: 1 !important;
+        }
+        div:hover > .hover-overlay > div {
+          transform: scale(1) !important;
+        }
+      `}</style>
     </div>
   );
 };
@@ -162,10 +214,16 @@ const RoomShell = ({
   showParticipantList: boolean;
   onToggleParticipantList: () => void;
 }) => {
-  const tracks = useTracks(
+  const allTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },
   );
+
+  // Filter out admin participants from grid (admins are audio-only and invisible)
+  const tracks = allTracks.filter(
+    track => !track.participant.identity.startsWith('admin_'),
+  );
+
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } =
     useLocalParticipant();
   const room = useRoomContext();
@@ -185,6 +243,9 @@ const RoomShell = ({
   const [selectedParticipantId, setSelectedParticipantId] = useState<
     string | null
   >(null);
+  const [detailParticipantId, setDetailParticipantId] = useState<string | null>(
+    null,
+  );
   const deletedIdentitiesRef = useRef<Set<string>>(new Set());
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -394,26 +455,26 @@ const RoomShell = ({
   };
 
   const allAudioOff = useMemo(() => {
-    return tracks.every(track => {
+    return allTracks.every(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return true;
       const identity = getParticipantId(participant);
       return audioOverrides[identity] === true;
     });
-  }, [tracks, audioOverrides]);
+  }, [allTracks, audioOverrides]);
 
   const allVideoOff = useMemo(() => {
-    return tracks.every(track => {
+    return allTracks.every(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return true;
       const identity = getParticipantId(participant);
       return videoOverrides[identity] === true;
     });
-  }, [tracks, videoOverrides]);
+  }, [allTracks, videoOverrides]);
 
   const toggleAllAudio = () => {
     const newState = !allAudioOff;
-    tracks.forEach(track => {
+    allTracks.forEach(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
@@ -424,7 +485,7 @@ const RoomShell = ({
 
   const toggleAllVideo = () => {
     const newState = !allVideoOff;
-    tracks.forEach(track => {
+    allTracks.forEach(track => {
       const participant = track.participant;
       if (!participant || participant.isLocal) return;
       const identity = getParticipantId(participant);
@@ -629,7 +690,9 @@ const RoomShell = ({
 
   return (
     <div
-      className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}
+      className={`${styles.content} ${
+        !showParticipantList ? styles.contentFullWidth : ''
+      }`}
     >
       <div className={`${styles.stage} ${ending ? styles.stageEnding : ''}`}>
         {showJoin ? (
@@ -642,7 +705,9 @@ const RoomShell = ({
         ) : null}
         <RoomAudioRenderer />
         <div
-          className={`${styles.grid} ${showOnlyFocused ? styles.gridFocused : ''}`}
+          className={`${styles.grid} ${
+            showOnlyFocused ? styles.gridFocused : ''
+          }`}
           style={{
             gridTemplateColumns: showOnlyFocused
               ? '1fr'
@@ -662,15 +727,8 @@ const RoomShell = ({
                 onFocus={() =>
                   onFocus(focusedId === slot.tile.key ? null : slot.tile.key)
                 }
-                onToggleAudio={() =>
-                  toggleParticipantAudio(slot.tile.ref.participant)
-                }
-                onToggleVideo={() =>
-                  toggleParticipantVideo(slot.tile.ref.participant)
-                }
-                audioOff={isAudioOff(slot.tile.ref.participant)}
                 videoOff={isVideoOff(slot.tile.ref.participant)}
-                canControl={canControl}
+                onOpenDetail={() => setDetailParticipantId(slot.tile.key)}
               />
             ) : (
               <EmptyTile key={slot.key} />
@@ -710,6 +768,224 @@ const RoomShell = ({
           canControl={canControl}
         />
       )}
+
+      {/* Detail Sidebar */}
+      {detailParticipantId &&
+        (() => {
+          const tile = liveTiles.find(t => t.key === detailParticipantId);
+          if (!tile) return null;
+
+          return (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                width: '420px',
+                height: '100vh',
+                background: 'white',
+                borderLeft: '1px solid #e2e8f0',
+                boxShadow: '-4px 0 20px rgba(0, 0, 0, 0.1)',
+                zIndex: 50,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  padding: '20px',
+                  borderBottom: '1px solid #f1f5f9',
+                  background: 'rgba(248, 250, 252, 0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    color: '#1e293b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  세부 모니터링
+                </h3>
+                <button
+                  onClick={() => setDetailParticipantId(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '8px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div
+                style={{
+                  flex: 1,
+                  padding: '20px',
+                  overflowY: 'auto',
+                }}
+              >
+                {/* Participant Name */}
+                <div
+                  style={{
+                    background: 'white',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      background: '#f1f5f9',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                      color: '#94a3b8',
+                    }}
+                  >
+                    {getInitials(tile.displayName)}
+                  </div>
+                  <div>
+                    <h4
+                      style={{
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        color: '#1e293b',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      {tile.displayName}
+                    </h4>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        background: '#10b981',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                      }}
+                    >
+                      온라인
+                    </span>
+                  </div>
+                </div>
+
+                {/* Video Preview */}
+                <div
+                  style={{
+                    marginBottom: '20px',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    background: '#0f172a',
+                    aspectRatio: '16/9',
+                    position: 'relative',
+                  }}
+                >
+                  <TrackRefContext.Provider value={tile.ref}>
+                    <VideoTrack
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                    />
+                  </TrackRefContext.Provider>
+                </div>
+
+                {/* Info Section */}
+                <div style={{ marginTop: '20px' }}>
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      color: '#64748b',
+                      textTransform: 'uppercase',
+                      marginBottom: '12px',
+                      letterSpacing: '0.5px',
+                    }}
+                  >
+                    참가자 정보
+                  </p>
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      padding: '12px',
+                    }}
+                  >
+                    <div style={{ marginBottom: '8px' }}>
+                      <span
+                        style={{
+                          fontSize: '12px',
+                          color: '#64748b',
+                          fontWeight: '600',
+                        }}
+                      >
+                        참가자 ID:
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '14px',
+                          color: '#1e293b',
+                          marginLeft: '8px',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {tile.key}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 };
