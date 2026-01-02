@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef } from 'react';
 
 type SessionMonitorOptions = {
   warningBeforeExpiryMs?: number; // 만료 전 경고 시간 (기본: 5분)
@@ -11,13 +11,13 @@ type SessionMonitorOptions = {
 // JWT 토큰에서 payload 추출
 function parseJwt(token: string): { exp?: number; iat?: number } | null {
   try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
     );
     return JSON.parse(jsonPayload);
   } catch {
@@ -46,10 +46,10 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
   const mountedRef = useRef(true);
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem("admin_access_token");
-    localStorage.removeItem("admin_refresh_token");
-    localStorage.removeItem("admin_info");
-    window.location.href = "/login";
+    localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_info');
+    window.location.href = '/login';
   }, []);
 
   const clearTimers = useCallback(() => {
@@ -66,7 +66,7 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
   const setupTimers = useCallback(() => {
     clearTimers();
 
-    const token = localStorage.getItem("admin_access_token");
+    const token = localStorage.getItem('admin_access_token');
     if (!token) {
       // 토큰 없으면 바로 로그인으로
       handleLogout();
@@ -83,14 +83,16 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
     const now = Date.now();
     const remainingMs = expiry - now;
 
-    console.log(`[SessionMonitor] Token expires in ${Math.round(remainingMs / 1000)}s`);
+    console.log(
+      `[SessionMonitor] Token expires in ${Math.round(remainingMs / 1000)}s`,
+    );
 
     if (remainingMs <= 0) {
       // 이미 만료됨
       if (onExpired) {
         onExpired();
       } else {
-        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
         handleLogout();
       }
       return;
@@ -99,11 +101,11 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
     // 만료 타이머 설정 (정확히 만료 시점에 발동)
     expiryTimerRef.current = setTimeout(() => {
       if (!mountedRef.current) return;
-      console.log("[SessionMonitor] Session expired!");
+      console.log('[SessionMonitor] Session expired!');
       if (onExpired) {
         onExpired();
       } else {
-        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
         handleLogout();
       }
     }, remainingMs);
@@ -114,13 +116,15 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
       warningTimerRef.current = setTimeout(() => {
         if (!mountedRef.current) return;
         const timeLeft = warningBeforeExpiryMs;
-        console.log(`[SessionMonitor] Warning: ${Math.round(timeLeft / 60000)}min left`);
+        console.log(
+          `[SessionMonitor] Warning: ${Math.round(timeLeft / 60000)}min left`,
+        );
         if (onWarning) {
           onWarning(timeLeft);
         } else {
           const minutes = Math.ceil(timeLeft / 60000);
           const shouldLogout = confirm(
-            `세션이 ${minutes}분 후 만료됩니다.\n\n계속 사용하시려면 '취소'를 누르세요.\n지금 로그아웃하시려면 '확인'을 누르세요.`
+            `세션이 ${minutes}분 후 만료됩니다.\n\n계속 사용하시려면 '취소'를 누르세요.\n지금 로그아웃하시려면 '확인'을 누르세요.`,
           );
           if (shouldLogout) {
             handleLogout();
@@ -138,15 +142,15 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
 
     // 탭 활성화 시 타이머 재설정 (다른 탭에서 로그아웃했을 수 있음)
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === 'visible') {
         setupTimers();
       }
     };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // storage 이벤트 (다른 탭에서 토큰 변경 감지)
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "admin_access_token") {
+      if (e.key === 'admin_access_token') {
         if (!e.newValue) {
           // 다른 탭에서 로그아웃함
           handleLogout();
@@ -156,13 +160,13 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
         }
       }
     };
-    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener('storage', handleStorageChange);
 
     return () => {
       mountedRef.current = false;
       clearTimers();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("storage", handleStorageChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [setupTimers, clearTimers, handleLogout]);
 

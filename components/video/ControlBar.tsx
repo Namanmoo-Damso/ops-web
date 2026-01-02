@@ -10,8 +10,8 @@ import {
   IconMinus,
   IconPlus,
   IconEnd,
-} from "../Icons";
-import styles from "../../app/page.module.css";
+} from '../Icons';
+import styles from '../../app/page.module.css';
 
 type ControlBarProps = {
   isMicrophoneEnabled: boolean;

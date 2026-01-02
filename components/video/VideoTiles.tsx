@@ -3,7 +3,7 @@ import { IconUser } from "../Icons";
 import styles from "../../app/page.module.css";
 
 export const getInitials = (name: string) => {
-  const parts = name.trim().split(" ");
+  const parts = name.trim().split(' ');
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
@@ -39,8 +39,8 @@ export const TileActionButton = ({
   children: React.ReactNode;
 }) => (
   <button
-    className={`${styles.tileAction} ${off ? styles.tileActionOff : ""}`}
-    onClick={(event) => {
+    className={`${styles.tileAction} ${off ? styles.tileActionOff : ''}`}
+    onClick={event => {
       event.stopPropagation();
       onClick();
     }}
@@ -69,7 +69,7 @@ export const LiveTile = ({
 
   return (
     <div
-      className={`${styles.tile} ${focused ? styles.tileFocused : ""}`}
+      className={`${styles.tile} ${focused ? styles.tileFocused : ''}`}
       onClick={onFocus}
     >
       <TrackRefContext.Provider value={trackRef}>
