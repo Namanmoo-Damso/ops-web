@@ -35,8 +35,9 @@ export default function ManualWardForm({
     birth_date: '',
     address: '',
   });
-  const [errors, setErrors] =
-    useState<Partial<Record<FieldKey | 'global', string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<FieldKey | 'global', string>>
+  >({});
   const [submitting, setSubmitting] = useState(false);
 
   const fields: Array<{
@@ -115,7 +116,11 @@ export default function ManualWardForm({
 
     if (phone) {
       const normalized = phone.replace(/-/g, '');
-      if (normalized.length < 7 || normalized.length > 15 || !/^[\d-]+$/.test(phone)) {
+      if (
+        normalized.length < 7 ||
+        normalized.length > 15 ||
+        !/^[\d-]+$/.test(phone)
+      ) {
         nextErrors.phone_number = '전화번호는 숫자/하이픈 7~15자리여야 합니다.';
       }
     }
@@ -123,7 +128,8 @@ export default function ManualWardForm({
     if (birth) {
       const date = new Date(birth);
       if (Number.isNaN(date.getTime())) {
-        nextErrors.birth_date = '생년월일 형식을 확인해주세요. (예: 1990-01-01)';
+        nextErrors.birth_date =
+          '생년월일 형식을 확인해주세요. (예: 1990-01-01)';
       }
     }
 
@@ -157,7 +163,8 @@ export default function ManualWardForm({
     } catch (error) {
       setErrors(prev => ({
         ...prev,
-        global: (error as Error).message || '등록에 실패했습니다. 다시 시도해주세요.',
+        global:
+          (error as Error).message || '등록에 실패했습니다. 다시 시도해주세요.',
       }));
     } finally {
       setSubmitting(false);

@@ -35,6 +35,8 @@ type ParsedRow = CleanRow & { errors: string[] };
 type CsvUploadPanelProps = {
   onConfirm: (file: File, rows: CleanRow[]) => void;
   onCancel: () => void;
+  uploading?: boolean;
+  uploadProgress?: { processed: number; total: number } | null;
 };
 
 function normalizeHeader(header: string) {
@@ -99,7 +101,8 @@ function parseCsvText(text: string): { rows: CleanRow[] } {
       const value = cols[hIdx]?.trim() ?? '';
       if (header === 'name') row.name = value;
       if (header === 'email') row.email = value;
-      if (header === 'phone_number' || header === 'phone') row.phone_number = value;
+      if (header === 'phone_number' || header === 'phone')
+        row.phone_number = value;
       if (header === 'birth_date' || header === 'birth') row.birth_date = value;
       if (header === 'address') row.address = value;
       if (header === 'notes' || header === 'note') row.notes = value;
@@ -132,10 +135,14 @@ function validateRow(row: CleanRow): string[] {
 export default function CsvUploadPanel({
   onConfirm,
   onCancel,
+  uploading = false,
+  uploadProgress,
 }: CsvUploadPanelProps) {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
-  const [uploadStage, setUploadStage] = useState<'select' | 'preview'>('select');
+  const [uploadStage, setUploadStage] = useState<'select' | 'preview'>(
+    'select',
+  );
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
 
@@ -166,6 +173,7 @@ export default function CsvUploadPanel({
   };
 
   const handleConfirm = () => {
+    if (uploading) return;
     const revalidated = parsedRows.map(row => ({
       ...row,
       errors: validateRow(row),
@@ -240,7 +248,9 @@ export default function CsvUploadPanel({
             >
               <IconUpload />
             </div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>
+            <div
+              style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}
+            >
               {csvFile
                 ? csvFile.name
                 : '여기에 파일을 끌어다 놓거나 클릭해서 선택'}
@@ -371,7 +381,14 @@ export default function CsvUploadPanel({
                 }}
               >
                 {(
-                  ['name', 'email', 'phone_number', 'birth_date', 'address', 'notes'] as const
+                  [
+                    'name',
+                    'email',
+                    'phone_number',
+                    'birth_date',
+                    'address',
+                    'notes',
+                  ] as const
                 ).map(field => (
                   <input
                     key={field}
@@ -408,8 +425,8 @@ export default function CsvUploadPanel({
                       field === 'birth_date'
                         ? 'YYYY-MM-DD'
                         : field === 'notes'
-                          ? '비고'
-                          : ''
+                        ? '비고'
+                        : ''
                     }
                   />
                 ))}
@@ -431,6 +448,52 @@ export default function CsvUploadPanel({
         </div>
       )}
 
+      {uploadProgress && uploadProgress.total > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            marginTop: '4px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              color: '#475569',
+            }}
+          >
+            <span>업로드 진행 중...</span>
+            <span>
+              {uploadProgress.processed} / {uploadProgress.total}
+            </span>
+          </div>
+          <div
+            style={{
+              width: '100%',
+              height: '8px',
+              borderRadius: '999px',
+              backgroundColor: '#e2e8f0',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${Math.min(
+                  (uploadProgress.processed / uploadProgress.total) * 100,
+                  100,
+                ).toFixed(1)}%`,
+                height: '100%',
+                backgroundColor: '#2563eb',
+                transition: 'width 150ms ease',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <div
         style={{
           display: 'flex',
@@ -440,6 +503,7 @@ export default function CsvUploadPanel({
         }}
       >
         <button
+          disabled={uploading}
           onClick={onCancel}
           style={{
             padding: '10px 14px',
@@ -449,7 +513,7 @@ export default function CsvUploadPanel({
             color: '#475569',
             fontSize: '14px',
             fontWeight: 600,
-            cursor: 'pointer',
+            cursor: uploading ? 'not-allowed' : 'pointer',
             transition: 'all 150ms ease',
           }}
           onMouseEnter={e => {
@@ -467,6 +531,7 @@ export default function CsvUploadPanel({
         </button>
         {uploadStage === 'preview' && (
           <button
+            disabled={uploading}
             onClick={() => {
               setUploadStage('select');
               setParsedRows([]);
@@ -480,7 +545,7 @@ export default function CsvUploadPanel({
               color: '#475569',
               fontSize: '14px',
               fontWeight: 600,
-              cursor: 'pointer',
+              cursor: uploading ? 'not-allowed' : 'pointer',
               transition: 'all 150ms ease',
             }}
           >
@@ -488,32 +553,38 @@ export default function CsvUploadPanel({
           </button>
         )}
         <button
-          disabled={uploadDisabled}
+          disabled={uploadDisabled || uploading}
           onClick={uploadStage === 'select' ? handlePreview : handleConfirm}
           style={{
             padding: '10px 14px',
             borderRadius: '10px',
             border: 'none',
-            backgroundColor: uploadDisabled ? '#93c5fd' : '#2563eb',
+            backgroundColor:
+              uploadDisabled || uploading ? '#93c5fd' : '#2563eb',
             color: '#ffffff',
             fontSize: '14px',
             fontWeight: 700,
-            cursor: uploadDisabled ? 'not-allowed' : 'pointer',
+            cursor: uploadDisabled || uploading ? 'not-allowed' : 'pointer',
             transition: 'all 150ms ease',
-            boxShadow: uploadDisabled
-              ? 'none'
-              : '0 10px 30px rgba(37,99,235,0.15)',
+            boxShadow:
+              uploadDisabled || uploading
+                ? 'none'
+                : '0 10px 30px rgba(37,99,235,0.15)',
           }}
           onMouseEnter={e => {
-            if (uploadDisabled) return;
+            if (uploadDisabled || uploading) return;
             e.currentTarget.style.backgroundColor = '#1d4ed8';
           }}
           onMouseLeave={e => {
-            if (uploadDisabled) return;
+            if (uploadDisabled || uploading) return;
             e.currentTarget.style.backgroundColor = '#2563eb';
           }}
         >
-          {uploadStage === 'select' ? '미리보기' : '확인 후 업로드'}
+          {uploading
+            ? '업로드 중...'
+            : uploadStage === 'select'
+            ? '미리보기'
+            : '확인 후 업로드'}
         </button>
       </div>
     </div>

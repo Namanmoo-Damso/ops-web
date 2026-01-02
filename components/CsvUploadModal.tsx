@@ -18,8 +18,10 @@ const IconClose = () => (
 type CsvUploadModalProps = {
   open: boolean;
   onClose: () => void;
-  onUpload?: (file: File, rows: CleanRow[]) => void;
+  onUpload?: (file: File, rows: CleanRow[]) => Promise<void> | void;
   onManualSubmit?: (payload: ManualWardPayload) => Promise<void> | void;
+  uploading?: boolean;
+  uploadProgress?: { processed: number; total: number } | null;
 };
 
 export default function CsvUploadModal({
@@ -27,19 +29,26 @@ export default function CsvUploadModal({
   onClose,
   onUpload,
   onManualSubmit,
+  uploading = false,
+  uploadProgress,
 }: CsvUploadModalProps) {
   const [mode, setMode] = useState<'upload' | 'manual'>('upload');
 
   if (!open) return null;
 
   const handleClose = () => {
+    if (uploading) return;
     setMode('upload');
     onClose();
   };
 
-  const handleCsvConfirm = (file: File, rows: CleanRow[]) => {
-    onUpload?.(file, rows);
-    handleClose();
+  const handleCsvConfirm = async (file: File, rows: CleanRow[]) => {
+    try {
+      await onUpload?.(file, rows);
+      handleClose();
+    } catch {
+      // 부모에서 에러를 처리(알림 등)하므로 모달은 그대로 둠
+    }
   };
 
   const handleManualSubmit = async (payload: ManualWardPayload) => {
@@ -58,10 +67,10 @@ export default function CsvUploadModal({
         inset: 0,
         backgroundColor: 'rgba(15, 23, 42, 0.4)',
         display: 'grid',
-      placeItems: 'center',
-      zIndex: 10000,
-      padding: '16px',
-    }}
+        placeItems: 'center',
+        zIndex: 10000,
+        padding: '16px',
+      }}
       onClick={handleClose}
     >
       <div
@@ -105,7 +114,7 @@ export default function CsvUploadModal({
               display: 'grid',
               placeItems: 'center',
               color: '#94a3b8',
-              cursor: 'pointer',
+              cursor: uploading ? 'not-allowed' : 'pointer',
               transition: 'all 150ms ease',
             }}
             onMouseEnter={e => {
@@ -137,6 +146,7 @@ export default function CsvUploadModal({
             return (
               <button
                 key={option.key}
+                disabled={uploading}
                 onClick={() => setMode(option.key as typeof mode)}
                 style={{
                   padding: '10px 12px',
@@ -146,7 +156,7 @@ export default function CsvUploadModal({
                   color: isActive ? '#1d4ed8' : '#475569',
                   fontSize: '14px',
                   fontWeight: 600,
-                  cursor: 'pointer',
+                  cursor: uploading ? 'not-allowed' : 'pointer',
                   transition: 'all 150ms ease',
                 }}
               >
@@ -157,7 +167,12 @@ export default function CsvUploadModal({
         </div>
 
         {mode === 'upload' ? (
-          <CsvUploadPanel onConfirm={handleCsvConfirm} onCancel={onClose} />
+          <CsvUploadPanel
+            onConfirm={handleCsvConfirm}
+            onCancel={handleClose}
+            uploading={uploading}
+            uploadProgress={uploadProgress}
+          />
         ) : (
           <ManualWardForm onSubmit={handleManualSubmit} onCancel={onClose} />
         )}

@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useCallback, useState } from 'react';
 import AuthGuard from './AuthGuard';
 import { useSessionMonitor } from '../hooks/useSessionMonitor';
 import CsvUploadModal from './CsvUploadModal';
 import { CleanRow } from './CsvUploadPanel';
 import { ManualWardPayload } from './ManualWardForm';
+import { AdminInfo } from '../types/admin';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -190,32 +191,32 @@ type SidebarLayoutProps = {
   noPadding?: boolean;
 };
 
-type AdminInfo = {
-  organizationId?: string;
-  organizationName?: string;
-};
-
 export default function SidebarLayout({
   children,
   title,
   noPadding,
 }: SidebarLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    processed: number;
+    total: number;
+  } | null>(null);
 
   // 세션 모니터링 (토큰 만료 시점에 정확히 발동, 5분 전 경고)
   const { handleLogout } = useSessionMonitor({
     warningBeforeExpiryMs: 5 * 60 * 1000,
   });
 
-  const handleAuthError = () => {
+  const handleAuthError = useCallback(() => {
     localStorage.removeItem('admin_access_token');
     localStorage.removeItem('admin_refresh_token');
     localStorage.removeItem('admin_info');
-    window.location.href = '/login';
-  };
+    router.replace('/login');
+  }, [router]);
 
   const createWard = useCallback(
     async (payload: {
@@ -260,7 +261,7 @@ export default function SidebarLayout({
 
       return response.json();
     },
-    [],
+    [handleAuthError],
   );
 
   const handleCsvUpload = useCallback(
@@ -278,31 +279,55 @@ export default function SidebarLayout({
       }
 
       setUploading(true);
+      setUploadProgress({ processed: 0, total: rows.length });
       let success = 0;
       const failures: string[] = [];
+      const markProcessed = () =>
+        setUploadProgress(prev =>
+          prev
+            ? {
+                ...prev,
+                processed: Math.min(prev.processed + 1, prev.total),
+              }
+            : prev,
+        );
 
-      for (const row of rows) {
-        try {
-          await createWard({
-            organizationId,
-            name: row.name,
-            email: row.email,
-            phone_number: row.phone_number,
-            birth_date: row.birth_date || null,
-            address: row.address || null,
-            notes: row.notes || null,
-          });
-          success += 1;
-        } catch (error) {
-          failures.push(
-            `${row.email || row.name || '알 수 없음'}: ${
-              (error as Error).message
-            }`,
-          );
+      const concurrency = 5;
+      let currentIndex = 0;
+
+      const workers = Array.from({ length: concurrency }, async () => {
+        while (true) {
+          const index = currentIndex;
+          currentIndex += 1;
+          const row = rows[index];
+          if (!row) break;
+
+          try {
+            await createWard({
+              organizationId,
+              name: row.name,
+              email: row.email,
+              phone_number: row.phone_number,
+              birth_date: row.birth_date || null,
+              address: row.address || null,
+              notes: row.notes || null,
+            });
+            success += 1;
+          } catch (error) {
+            failures.push(
+              `${row.email || row.name || '알 수 없음'}: ${
+                (error as Error).message
+              }`,
+            );
+          }
+          markProcessed();
         }
-      }
+      });
+
+      await Promise.all(workers);
 
       setUploading(false);
+      setUploadProgress(null);
 
       if (failures.length === 0) {
         alert(`CSV 업로드 완료: ${success}건 등록되었습니다.`);
@@ -334,7 +359,9 @@ export default function SidebarLayout({
       const organizationId = adminInfo?.organizationId;
 
       if (!organizationId) {
-        throw new Error('조직을 먼저 선택해주세요. (조직 등록/선택 후 다시 시도)');
+        throw new Error(
+          '조직을 먼저 선택해주세요. (조직 등록/선택 후 다시 시도)',
+        );
       }
 
       setUploading(true);
@@ -351,9 +378,7 @@ export default function SidebarLayout({
         alert('피보호자가 등록되었습니다.');
         window.location.reload();
       } catch (error) {
-        throw new Error(
-          (error as Error).message || '등록에 실패했습니다.',
-        );
+        throw new Error((error as Error).message || '등록에 실패했습니다.');
       } finally {
         setUploading(false);
       }
@@ -499,7 +524,7 @@ export default function SidebarLayout({
                     '[DEBUG] Nav button clicked, navigating to:',
                     item.href,
                   );
-                  window.location.href = item.href;
+                  router.push(item.href);
                 }}
                 style={{
                   display: 'flex',
@@ -682,6 +707,8 @@ export default function SidebarLayout({
         onClose={() => setIsCsvModalOpen(false)}
         onUpload={handleCsvUpload}
         onManualSubmit={handleManualSubmit}
+        uploading={uploading}
+        uploadProgress={uploadProgress}
       />
     </AuthGuard>
   );

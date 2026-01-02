@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../components/SidebarLayout';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -44,6 +45,7 @@ const MOOD_COLORS: Record<string, string> = {
 };
 
 export default function MyWardsPage() {
+  const router = useRouter();
   const [wards, setWards] = useState<Ward[]>([]);
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -81,7 +83,7 @@ export default function MyWardsPage() {
           localStorage.removeItem('admin_access_token');
           localStorage.removeItem('admin_refresh_token');
           localStorage.removeItem('admin_info');
-          window.location.href = '/login';
+          router.replace('/login');
           return;
         }
         throw new Error(`HTTP ${response.status}`);
@@ -104,7 +106,7 @@ export default function MyWardsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetchMyWards();
