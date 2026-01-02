@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../components/SidebarLayout';
 import { StatCard } from './StatCard';
 import {
@@ -12,8 +11,38 @@ import {
   SearchIcon,
   UsersIcon,
 } from './icons';
+import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const SEARCH_DEBOUNCE_MS = 400;
+const RESEND_ALL_DELAY_MS = 400;
+const RESEND_ONE_DELAY_MS = 300;
+
+type ApiWard = {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  email: string;
+  phoneNumber: string;
+  name: string;
+  birthDate: string | null;
+  address: string | null;
+  notes: string | null;
+  isRegistered: boolean;
+  wardId: string | null;
+  createdAt: string;
+  lastCallAt: string | null;
+  totalCalls: number;
+  lastMood: string | null;
+};
+
+type MyWardsApiResponse = {
+  wards: ApiWard[];
+  stats?: {
+    total: number;
+    registered: number;
+  };
+};
 
 type Ward = {
   id: string;
@@ -34,118 +63,103 @@ type Ward = {
 };
 
 export default function MyWardsPage() {
-  const router = useRouter();
   const [wards, setWards] = useState<Ward[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending'>('all');
   const [resendingAll, setResendingAll] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [totals, setTotals] = useState({
     total: 0,
     linked: 0,
     pending: 0,
     rate: 0,
   });
+  const [hasLoaded, setHasLoaded] = useState(false);
 
-  const computeTotals = (items: Ward[]) => {
+  const computeTotals = useCallback((items: Ward[]) => {
     const total = items.length;
     const linked = items.filter(w => w.isRegistered).length;
     const pending = total - linked;
     const rate = total > 0 ? Math.round((linked / total) * 100) : 0;
     return { total, linked, pending, rate };
-  };
+  }, []);
 
-  const fetchMyWards = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        setError('로그인이 필요합니다');
-        setIsLoading(false);
-        return;
-      }
-
+  const { data, loading, error } = useAuthedFetch<MyWardsApiResponse>({
+    deps: [refreshKey],
+    fetcher: async ({ token, signal }) => {
       const response = await fetch(`${API_BASE}/v1/admin/my-wards`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal,
       });
 
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          router.replace('/login');
-          return;
-        }
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const data = await response.json();
-      const rawWards = Array.isArray(data?.wards) ? data.wards : [];
-      const wardsData: Ward[] = rawWards.map((item: any, index: number) => {
-        // 키 충돌 방지를 위해 id를 문자열로 강제하고, 없으면 대체 키 부여
-        const idSource =
-          item?.id ??
-          item?.wardId ??
-          item?.email ??
-          item?.phoneNumber ??
-          `ward-${index}`;
-        return {
-          id: String(idSource),
-          organizationId: String(item?.organizationId ?? ''),
-          organizationName: String(item?.organizationName ?? '소속 없음'),
-          email: String(item?.email ?? ''),
-          phoneNumber: String(item?.phoneNumber ?? ''),
-          name: String(item?.name ?? '이름 없음'),
-          birthDate: item?.birthDate ?? null,
-          address: item?.address ?? null,
-          notes: item?.notes ?? null,
-          isRegistered: Boolean(item?.isRegistered),
-          wardId: item?.wardId ?? null,
-          createdAt: String(item?.createdAt ?? ''),
-          lastCallAt: item?.lastCallAt ?? null,
-          totalCalls: Number.isFinite(Number(item?.totalCalls))
-            ? Number(item.totalCalls)
-            : 0,
-          lastMood: item?.lastMood ?? null,
-        };
-      });
-      setWards(wardsData);
-      const serverStats = data.stats;
-      if (
-        serverStats &&
-        typeof serverStats.total === 'number' &&
-        typeof serverStats.registered === 'number'
-      ) {
-        const pending = serverStats.total - serverStats.registered;
-        const rate =
-          serverStats.total > 0
-            ? Math.round((serverStats.registered / serverStats.total) * 100)
-            : 0;
-        setTotals({
-          total: serverStats.total,
-          linked: serverStats.registered,
-          pending,
-          rate,
-        });
-      } else {
-        setTotals(computeTotals(wardsData));
-      }
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [router]);
+      return (await response.json()) as MyWardsApiResponse;
+    },
+  });
 
   useEffect(() => {
-    fetchMyWards();
-  }, [fetchMyWards]);
+    if (!data) return;
+    const rawWards = Array.isArray(data?.wards) ? data.wards : [];
+    const wardsData: Ward[] = rawWards.map((item: ApiWard, index: number) => {
+      const idSource =
+        item?.id ??
+        item?.wardId ??
+        item?.email ??
+        item?.phoneNumber ??
+        `ward-${index}`;
+      return {
+        id: String(idSource),
+        organizationId: String(item?.organizationId ?? ''),
+        organizationName: String(item?.organizationName ?? '소속 없음'),
+        email: String(item?.email ?? ''),
+        phoneNumber: String(item?.phoneNumber ?? ''),
+        name: String(item?.name ?? '이름 없음'),
+        birthDate: item?.birthDate ?? null,
+        address: item?.address ?? null,
+        notes: item?.notes ?? null,
+        isRegistered: Boolean(item?.isRegistered),
+        wardId: item?.wardId ?? null,
+        createdAt: String(item?.createdAt ?? ''),
+        lastCallAt: item?.lastCallAt ?? null,
+        totalCalls: Number.isFinite(Number(item?.totalCalls))
+          ? Number(item.totalCalls)
+          : 0,
+        lastMood: item?.lastMood ?? null,
+      };
+    });
+    setWards(wardsData);
+    const serverStats = data.stats;
+    if (
+      serverStats &&
+      typeof serverStats.total === 'number' &&
+      typeof serverStats.registered === 'number'
+    ) {
+      const pending = serverStats.total - serverStats.registered;
+      const rate =
+        serverStats.total > 0
+          ? Math.round((serverStats.registered / serverStats.total) * 100)
+          : 0;
+      setTotals({
+        total: serverStats.total,
+        linked: serverStats.registered,
+        pending,
+        rate,
+      });
+    } else {
+      setTotals(computeTotals(wardsData));
+    }
+    setHasLoaded(true);
+  }, [computeTotals, data]);
 
   const filteredWards = useMemo(() => {
     // 전체 목록은 연동/미연동 모두, 'pending'일 때만 미연동만 노출
@@ -167,7 +181,7 @@ export default function MyWardsPage() {
   useEffect(() => {
     const handle = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 400);
+    }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(handle);
   }, [searchQuery]);
 
@@ -185,7 +199,7 @@ export default function MyWardsPage() {
         `${totals.pending}명의 미연동 대상자에게 앱 설치 링크를 재발송했습니다.`,
       );
       setResendingAll(false);
-    }, 400);
+    }, RESEND_ALL_DELAY_MS);
   };
 
   const handleResendOne = (ward: Ward) => {
@@ -195,12 +209,15 @@ export default function MyWardsPage() {
     setTimeout(() => {
       alert(`${ward.name}님에게 앱 설치 링크를 재발송했습니다.`);
       setResendingId(null);
-    }, 300);
+    }, RESEND_ONE_DELAY_MS);
   };
+
+  const isInitialLoading = loading && !hasLoaded;
+  const isRefreshing = loading && hasLoaded;
 
   return (
     <SidebarLayout>
-      {isLoading && (
+      {isInitialLoading && (
         <div
           style={{
             minHeight: '60vh',
@@ -213,7 +230,7 @@ export default function MyWardsPage() {
           데이터를 불러오는 중입니다...
         </div>
       )}
-      {!isLoading && error && (
+      {!isInitialLoading && error && (
         <div
           style={{
             minHeight: '60vh',
@@ -227,11 +244,7 @@ export default function MyWardsPage() {
         >
           <div>{error}</div>
           <button
-            onClick={() => {
-              setIsLoading(true);
-              setError(null);
-              fetchMyWards();
-            }}
+            onClick={() => setRefreshKey(k => k + 1)}
             style={{
               padding: '10px 14px',
               borderRadius: '10px',
@@ -245,7 +258,7 @@ export default function MyWardsPage() {
           </button>
         </div>
       )}
-      {isLoading || error ? null : (
+      {(hasLoaded || (!isInitialLoading && !error)) && (
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           <style>{`
           @keyframes pulse {
@@ -254,6 +267,21 @@ export default function MyWardsPage() {
             100% { opacity: 1; }
           }
         `}</style>
+          {isRefreshing && (
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                backgroundColor: '#f8fafc',
+                color: '#475569',
+                fontSize: '13px',
+                fontWeight: 700,
+                marginBottom: '12px',
+              }}
+            >
+              최신 데이터를 불러오는 중입니다...
+            </div>
+          )}
           <div style={{ marginBottom: '20px' }}>
             <h1
               style={{

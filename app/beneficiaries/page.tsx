@@ -1,8 +1,11 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../components/SidebarLayout';
+import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+
+const SEARCH_DEBOUNCE_MS = 250;
+const DEFAULT_PAGE_SIZE = 20;
 
 type Beneficiary = {
   id: string;
@@ -18,34 +21,37 @@ type Beneficiary = {
 
 type ApiBeneficiary = {
   id: number | string;
-  name?: string | null;
+  name: string;
+  address: string | null;
+  manager: string | null;
+  status: 'WARNING' | 'NORMAL' | 'CAUTION';
+  lastCall: string | null;
   age?: number | null;
   gender?: string | null;
   type?: string | null;
-  address?: string | null;
-  manager?: string | null;
-  status?: string | null;
-  lastCall?: string | null;
+};
+
+type BeneficiariesApiResponse = {
+  data: ApiBeneficiary[];
+  total?: number;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
 export default function BeneficiariesPage() {
-  const router = useRouter();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'risk'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [items, setItems] = useState<Beneficiary[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
   useEffect(() => {
-    const handle = window.setTimeout(() => setDebouncedSearch(search), 250);
+    const handle = window.setTimeout(
+      () => setDebouncedSearch(search),
+      SEARCH_DEBOUNCE_MS,
+    );
     return () => window.clearTimeout(handle);
   }, [search]);
 
@@ -54,26 +60,13 @@ export default function BeneficiariesPage() {
     setPage(1);
   }, [debouncedSearch, filter]);
 
-  // 서버에서 목록 가져오기
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-
+  const { data, loading, error } = useAuthedFetch<BeneficiariesApiResponse>({
+    deps: [debouncedSearch, filter, page, pageSize],
+    fetcher: async ({ token, signal }) => {
       if (!API_BASE) {
-        setError(
+        throw new Error(
           'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
         );
-        setLoading(false);
-        return;
-      }
-
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        setError('로그인이 필요합니다.');
-        setLoading(false);
-        return;
       }
 
       const params = new URLSearchParams();
@@ -82,71 +75,58 @@ export default function BeneficiariesPage() {
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
 
-      try {
-        const response = await fetch(
-          `${API_BASE}/v1/admin/beneficiaries?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            signal: controller.signal,
+      const response = await fetch(
+        `${API_BASE}/v1/admin/beneficiaries?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
           },
-        );
+          signal,
+        },
+      );
 
-        if (response.status === 401 || response.status === 403) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          setLoading(false);
-          router.replace('/login');
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(
-            `목록 불러오기에 실패했습니다. (HTTP ${response.status})`,
-          );
-        }
-
-        const data = await response.json();
-        const apiItems: Beneficiary[] = Array.isArray(data?.data)
-          ? data.data.map((item: ApiBeneficiary, index: number) => {
-              const normalizedStatus =
-                item.status === 'WARNING' || item.status === 'CAUTION'
-                  ? item.status
-                  : 'NORMAL';
-              return {
-                // API가 문자열 ID를 반환할 수 있어도 키 충돌이 없도록 문자열로 보관
-                id: String(item.id ?? `row-${index}`),
-                name: item.name || '이름 없음',
-                age: item.age ?? null,
-                gender: item.gender ?? null,
-                type: item.type ?? null,
-                address: item.address ?? null,
-                manager: item.manager ?? null,
-                status: normalizedStatus,
-                lastCall: item.lastCall ?? null,
-              };
-            })
-          : [];
-
-        setItems(apiItems);
-        setTotalCount(
-          typeof data?.total === 'number' ? data.total : apiItems.length,
-        );
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setError((err as Error).message || '알 수 없는 오류가 발생했습니다.');
-        setItems([]);
-        setTotalCount(0);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
       }
-    };
 
-    fetchData();
-    return () => controller.abort();
-  }, [debouncedSearch, filter, page, pageSize, router]);
+      if (!response.ok) {
+        throw new Error(
+          `목록 불러오기에 실패했습니다. (HTTP ${response.status})`,
+        );
+      }
+
+      return (await response.json()) as BeneficiariesApiResponse;
+    },
+  });
+
+  const items = useMemo<Beneficiary[]>(() => {
+    const apiItems = Array.isArray(data?.data) ? data?.data : [];
+    return apiItems.map((item: ApiBeneficiary, index: number) => {
+      const normalizedStatus =
+        item.status === 'WARNING' || item.status === 'CAUTION'
+          ? item.status
+          : 'NORMAL';
+      return {
+        id: String(item.id ?? `row-${index}`),
+        name: item.name || '이름 없음',
+        age: item.age ?? null,
+        gender: item.gender ?? null,
+        type: item.type ?? null,
+        address: item.address ?? null,
+        manager: item.manager ?? null,
+        status: normalizedStatus,
+        lastCall: item.lastCall ?? null,
+      };
+    });
+  }, [data?.data]);
+
+  const totalCount = useMemo(() => {
+    return typeof data?.total === 'number'
+      ? data.total
+      : Array.isArray(data?.data)
+        ? data.data.length
+        : 0;
+  }, [data?.data, data?.total]);
 
   // 검색어 기준 1차 필터링 (서버가 검색을 지원하지 않는 경우 대비)
   const searchMatches = useMemo(() => {
@@ -178,6 +158,11 @@ export default function BeneficiariesPage() {
     );
   }, [searchMatches, filter]);
 
+  const pageTotal = useMemo(() => {
+    const base = totalCount || items.length || 0;
+    return Math.max(1, Math.ceil(base / pageSize));
+  }, [items.length, pageSize, totalCount]);
+
   return (
     <SidebarLayout>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -197,8 +182,8 @@ export default function BeneficiariesPage() {
           loading={loading}
           error={error}
           page={page}
-          pageSize={pageSize}
           onPageChange={setPage}
+          pageTotal={pageTotal}
         />
       </div>
     </SidebarLayout>
@@ -369,8 +354,8 @@ type BeneficiaryTableProps = {
   loading: boolean;
   error: string | null;
   page: number;
-  pageSize: number;
   onPageChange: (page: number) => void;
+  pageTotal: number;
 };
 
 function BeneficiaryTable({
@@ -381,11 +366,9 @@ function BeneficiaryTable({
   loading,
   error,
   page,
-  pageSize,
   onPageChange,
+  pageTotal,
 }: BeneficiaryTableProps) {
-  const pageTotal = Math.max(1, Math.ceil(totalCount / pageSize));
-
   return (
     <div
       style={{
@@ -664,62 +647,79 @@ function BeneficiaryTable({
         </div>
       )}
 
-      {/* Pagination */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '16px',
-          borderTop: '1px solid #e2e8f0',
-          backgroundColor: '#f8fafc',
-        }}
-      >
-        <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
-          페이지 {page} / {pageTotal}
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page <= 1 || loading}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '10px',
-              border: '1px solid #e2e8f0',
-              backgroundColor: '#ffffff',
-              color: page <= 1 || loading ? '#cbd5e1' : '#0f172a',
-              fontWeight: 700,
-              cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
-            }}
-            aria-label="이전 페이지"
-          >
-            이전
-          </button>
-          <button
-            type="button"
-            onClick={() => onPageChange(Math.min(pageTotal, page + 1))}
-            disabled={page >= pageTotal || loading}
-            style={{
-              padding: '8px 12px',
-              borderRadius: '10px',
-              border: '1px solid #e2e8f0',
-              backgroundColor: '#ffffff',
-              color: page >= pageTotal || loading ? '#cbd5e1' : '#0f172a',
-              fontWeight: 700,
-              cursor: page >= pageTotal || loading ? 'not-allowed' : 'pointer',
-            }}
-            aria-label="다음 페이지"
-          >
-            다음
-          </button>
-        </div>
-      </div>
+      <Pagination
+        page={page}
+        pageTotal={pageTotal}
+        loading={loading}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }
 
 type StatusBadgeProps = { status: Beneficiary['status'] };
+
+type PaginationProps = {
+  page: number;
+  pageTotal: number;
+  loading: boolean;
+  onPageChange: (page: number) => void;
+};
+
+function Pagination({ page, pageTotal, loading, onPageChange }: PaginationProps) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '16px',
+        borderTop: '1px solid #e2e8f0',
+        backgroundColor: '#f8fafc',
+      }}
+    >
+      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+        페이지 {page} / {pageTotal}
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page <= 1 || loading}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            backgroundColor: '#ffffff',
+            color: page <= 1 || loading ? '#cbd5e1' : '#0f172a',
+            fontWeight: 700,
+            cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
+          }}
+          aria-label="이전 페이지"
+        >
+          이전
+        </button>
+        <button
+          type="button"
+          onClick={() => onPageChange(Math.min(pageTotal, page + 1))}
+          disabled={page >= pageTotal || loading}
+          style={{
+            padding: '8px 12px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            backgroundColor: '#ffffff',
+            color: page >= pageTotal || loading ? '#cbd5e1' : '#0f172a',
+            fontWeight: 700,
+            cursor: page >= pageTotal || loading ? 'not-allowed' : 'pointer',
+          }}
+          aria-label="다음 페이지"
+        >
+          다음
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function StatusBadge({ status }: StatusBadgeProps) {
   const baseStyle: CSSProperties = {
