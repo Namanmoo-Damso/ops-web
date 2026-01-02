@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../components/SidebarLayout';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -44,6 +45,7 @@ const MOOD_COLORS: Record<string, string> = {
 };
 
 export default function MyWardsPage() {
+  const router = useRouter();
   const [wards, setWards] = useState<Ward[]>([]);
   const [stats, setStats] = useState<Stats>({
     total: 0,
@@ -81,7 +83,7 @@ export default function MyWardsPage() {
           localStorage.removeItem('admin_access_token');
           localStorage.removeItem('admin_refresh_token');
           localStorage.removeItem('admin_info');
-          window.location.href = '/login';
+          router.replace('/login');
           return;
         }
         throw new Error(`HTTP ${response.status}`);
@@ -104,7 +106,7 @@ export default function MyWardsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetchMyWards();
@@ -159,11 +161,8 @@ export default function MyWardsPage() {
               color: '#1e293b',
             }}
           >
-            내 담당 고객
+            대상자 연동 현황
           </h1>
-          <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#64748b' }}>
-            CSV로 등록한 피보호자 목록을 관리하세요
-          </p>
         </div>
 
         {/* Stats Cards */}
@@ -315,8 +314,8 @@ export default function MyWardsPage() {
                 {status === 'all'
                   ? '전체'
                   : status === 'registered'
-                    ? '가입 완료'
-                    : '대기 중'}
+                  ? '가입 완료'
+                  : '대기 중'}
               </button>
             ))}
           </div>
@@ -601,7 +600,9 @@ export default function MyWardsPage() {
                         gap: '6px',
                         padding: '6px 12px',
                         borderRadius: '20px',
-                        backgroundColor: `${MOOD_COLORS[selectedWard.lastMood]}15`,
+                        backgroundColor: `${
+                          MOOD_COLORS[selectedWard.lastMood]
+                        }15`,
                         color: MOOD_COLORS[selectedWard.lastMood],
                         fontSize: '13px',
                         fontWeight: 600,
