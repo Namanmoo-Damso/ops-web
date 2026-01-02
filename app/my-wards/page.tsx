@@ -43,6 +43,20 @@ export default function MyWardsPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending'>('all');
   const [resendingAll, setResendingAll] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [totals, setTotals] = useState({
+    total: 0,
+    linked: 0,
+    pending: 0,
+    rate: 0,
+  });
+
+  const computeTotals = (items: Ward[]) => {
+    const total = items.length;
+    const linked = items.filter(w => w.isRegistered).length;
+    const pending = total - linked;
+    const rate = total > 0 ? Math.round((linked / total) * 100) : 0;
+    return { total, linked, pending, rate };
+  };
 
   const fetchMyWards = useCallback(async () => {
     try {
@@ -71,7 +85,28 @@ export default function MyWardsPage() {
       }
 
       const data = await response.json();
-      setWards(data.wards || []);
+      const wardsData: Ward[] = data.wards || [];
+      setWards(wardsData);
+      const serverStats = data.stats;
+      if (
+        serverStats &&
+        typeof serverStats.total === 'number' &&
+        typeof serverStats.registered === 'number'
+      ) {
+        const pending = serverStats.total - serverStats.registered;
+        const rate =
+          serverStats.total > 0
+            ? Math.round((serverStats.registered / serverStats.total) * 100)
+            : 0;
+        setTotals({
+          total: serverStats.total,
+          linked: serverStats.registered,
+          pending,
+          rate,
+        });
+      } else {
+        setTotals(computeTotals(wardsData));
+      }
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -83,14 +118,6 @@ export default function MyWardsPage() {
   useEffect(() => {
     fetchMyWards();
   }, [fetchMyWards]);
-
-  const totals = useMemo(() => {
-    const total = wards.length;
-    const linked = wards.filter(w => w.isRegistered).length;
-    const pending = total - linked;
-    const rate = total > 0 ? Math.round((linked / total) * 100) : 0;
-    return { total, linked, pending, rate };
-  }, [wards]);
 
   const filteredWards = useMemo(() => {
     const byStatus = wards.filter(ward =>
@@ -109,7 +136,7 @@ export default function MyWardsPage() {
   useEffect(() => {
     const handle = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-    }, 250);
+    }, 400);
     return () => clearTimeout(handle);
   }, [searchQuery]);
 
@@ -161,12 +188,30 @@ export default function MyWardsPage() {
             minHeight: '60vh',
             display: 'grid',
             placeItems: 'center',
+            gap: '12px',
             color: '#dc2626',
             fontSize: '14px',
             fontWeight: 700,
           }}
         >
-          {error}
+          <div>{error}</div>
+          <button
+            onClick={() => {
+              setIsLoading(true);
+              setError(null);
+              fetchMyWards();
+            }}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#1e293b',
+              cursor: 'pointer',
+            }}
+          >
+            다시 시도
+          </button>
         </div>
       )}
       {isLoading || error ? null : (
@@ -232,7 +277,7 @@ export default function MyWardsPage() {
                     flexShrink: 0,
                   }}
                 >
-                  <AlertTriangleIcon size={18} strokeWidth={2} />
+                  <AlertTriangleIcon size={18} strokeWidth={2} color="#dc2626" />
                 </div>
                 <div
                   style={{
@@ -255,6 +300,7 @@ export default function MyWardsPage() {
               <button
                 onClick={handleResendAllPending}
                 disabled={totals.pending === 0 || resendingAll}
+                aria-label="미연동 인원 전체 재초대"
                 style={{
                   padding: '10px 14px',
                   borderRadius: '12px',
@@ -382,6 +428,8 @@ export default function MyWardsPage() {
               >
                 <button
                   onClick={() => setFilterStatus('all')}
+                  aria-pressed={filterStatus === 'all'}
+                  aria-label="전체 목록 보기"
                   style={{
                     padding: '10px 14px',
                     borderRadius: '10px',
@@ -402,6 +450,8 @@ export default function MyWardsPage() {
                 </button>
                 <button
                   onClick={() => setFilterStatus('pending')}
+                  aria-pressed={filterStatus === 'pending'}
+                  aria-label="미연동 대상자만 보기"
                   style={{
                     padding: '10px 14px',
                     borderRadius: '10px',
@@ -448,15 +498,16 @@ export default function MyWardsPage() {
                     pointerEvents: 'none',
                   }}
                 >
-                  <SearchIcon size={18} />
-                </div>
-                <input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="이름 · 이메일 · 전화번호 검색"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px 10px 36px',
+              <SearchIcon size={18} />
+            </div>
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="이름 · 이메일 · 전화번호 검색"
+              aria-label="이름, 이메일 또는 전화번호 검색"
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 36px',
                     borderRadius: '10px',
                     border: '1px solid #e2e8f0',
                     backgroundColor: '#f8fafc',
@@ -469,7 +520,10 @@ export default function MyWardsPage() {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table
+              style={{ width: '100%', borderCollapse: 'collapse' }}
+              aria-label="대상자 연동 테이블"
+            >
                 <thead>
                   <tr
                     style={{
@@ -581,11 +635,12 @@ export default function MyWardsPage() {
                       </td>
                       <td style={{ padding: '14px 12px', textAlign: 'center' }}>
                         {!ward.isRegistered ? (
-                          <button
-                            onClick={() => handleResendOne(ward)}
-                            disabled={resendingId !== null || resendingAll}
-                            style={{
-                              padding: '8px 12px',
+                        <button
+                          onClick={() => handleResendOne(ward)}
+                          disabled={resendingId !== null || resendingAll}
+                          aria-label={`${ward.name} 재발송`}
+                          style={{
+                            padding: '8px 12px',
                               borderRadius: '10px',
                               border: 'none',
                               backgroundColor:
@@ -646,7 +701,7 @@ export default function MyWardsPage() {
                     backgroundColor: '#f1f5f9',
                     display: 'grid',
                     placeItems: 'center',
-                    color: '#4A5D23',
+                    color: totals.total === 0 ? '#cbd5e1' : '#4A5D23',
                     margin: '0 auto 12px',
                   }}
                 >
@@ -659,7 +714,9 @@ export default function MyWardsPage() {
                     color: '#0f172a',
                   }}
                 >
-                  모든 대상자가 연동되었습니다
+                  {totals.total === 0
+                    ? '등록된 대상자가 없습니다'
+                    : '모든 대상자가 연동되었습니다'}
                 </div>
                 <div
                   style={{
@@ -668,7 +725,9 @@ export default function MyWardsPage() {
                     marginTop: '4px',
                   }}
                 >
-                  현재 조치가 필요한 대상자가 없습니다.
+                  {totals.total === 0
+                    ? '대상자를 등록하고 연동을 시작하세요.'
+                    : '현재 조치가 필요한 대상자가 없습니다.'}
                 </div>
               </div>
             )}
