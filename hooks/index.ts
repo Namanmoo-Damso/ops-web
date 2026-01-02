@@ -3,3 +3,5 @@ export type {
   UseLiveKitSessionOptions,
   UseLiveKitSessionReturn,
 } from './useLiveKitSession';
+export { useRoomSSE } from './useRoomSSE';
+export { useMultiRoomSession } from './useMultiRoomSession';
