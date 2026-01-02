@@ -159,6 +159,37 @@ const IconMyWards = () => (
   </svg>
 );
 
+const IconBeneficiaries = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path
+      d="M8 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M16 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M3 19v-1.5A3.5 3.5 0 0 1 6.5 14h3A3.5 3.5 0 0 1 13 17.5V19"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+    <path
+      d="M13 16a3 3 0 0 1 2.5-1.5h3A3.5 3.5 0 0 1 22 18v1"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 const IconLogout = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path
@@ -180,6 +211,11 @@ const IconLogout = () => (
 const navItems = [
   { href: '/', label: '모니터링', icon: IconMonitor },
   { href: '/dashboard', label: '대시보드', icon: IconDashboard },
+  {
+    href: '/beneficiaries',
+    label: '전체 대상자 관리',
+    icon: IconBeneficiaries,
+  },
   { href: '/my-wards', label: '대상자 연동 현황', icon: IconMyWards },
   { href: '/locations', label: '위치정보', icon: IconLocation },
   { href: '/emergencies', label: '비상연락', icon: IconEmergency },
