@@ -1,8 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SidebarLayout from '../../components/SidebarLayout';
+import { StatCard } from './StatCard';
+import {
+  AlertTriangleIcon,
+  CheckCircleIcon,
+  LinkOffIcon,
+  RefreshIcon,
+  SearchIcon,
+  UsersIcon,
+} from './icons';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -24,43 +33,30 @@ type Ward = {
   lastMood: string | null;
 };
 
-type Stats = {
-  total: number;
-  registered: number;
-  pending: number;
-  positiveMood: number;
-  negativeMood: number;
-};
-
-const MOOD_LABELS: Record<string, string> = {
-  positive: '긍정',
-  neutral: '보통',
-  negative: '부정',
-};
-
-const MOOD_COLORS: Record<string, string> = {
-  positive: '#22c55e',
-  neutral: '#64748b',
-  negative: '#ef4444',
-};
-
 export default function MyWardsPage() {
   const router = useRouter();
   const [wards, setWards] = useState<Ward[]>([]);
-  const [stats, setStats] = useState<Stats>({
-    total: 0,
-    registered: 0,
-    pending: 0,
-    positiveMood: 0,
-    negativeMood: 0,
-  });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState<
-    'all' | 'registered' | 'pending'
-  >('all');
-  const [selectedWard, setSelectedWard] = useState<Ward | null>(null);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending'>('all');
+  const [resendingAll, setResendingAll] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [totals, setTotals] = useState({
+    total: 0,
+    linked: 0,
+    pending: 0,
+    rate: 0,
+  });
+
+  const computeTotals = (items: Ward[]) => {
+    const total = items.length;
+    const linked = items.filter(w => w.isRegistered).length;
+    const pending = total - linked;
+    const rate = total > 0 ? Math.round((linked / total) * 100) : 0;
+    return { total, linked, pending, rate };
+  };
 
   const fetchMyWards = useCallback(async () => {
     try {
@@ -79,7 +75,6 @@ export default function MyWardsPage() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // 토큰 만료 - 자동 로그아웃
           localStorage.removeItem('admin_access_token');
           localStorage.removeItem('admin_refresh_token');
           localStorage.removeItem('admin_info');
@@ -90,16 +85,28 @@ export default function MyWardsPage() {
       }
 
       const data = await response.json();
-      setWards(data.wards || []);
-      setStats(
-        data.stats || {
-          total: 0,
-          registered: 0,
-          pending: 0,
-          positiveMood: 0,
-          negativeMood: 0,
-        },
-      );
+      const wardsData: Ward[] = data.wards || [];
+      setWards(wardsData);
+      const serverStats = data.stats;
+      if (
+        serverStats &&
+        typeof serverStats.total === 'number' &&
+        typeof serverStats.registered === 'number'
+      ) {
+        const pending = serverStats.total - serverStats.registered;
+        const rate =
+          serverStats.total > 0
+            ? Math.round((serverStats.registered / serverStats.total) * 100)
+            : 0;
+        setTotals({
+          total: serverStats.total,
+          linked: serverStats.registered,
+          pending,
+          rate,
+        });
+      } else {
+        setTotals(computeTotals(wardsData));
+      }
       setError(null);
     } catch (err) {
       setError((err as Error).message);
@@ -112,741 +119,621 @@ export default function MyWardsPage() {
     fetchMyWards();
   }, [fetchMyWards]);
 
-  const filteredWards = wards.filter(ward => {
-    // Filter by status
-    if (filterStatus === 'registered' && !ward.isRegistered) return false;
-    if (filterStatus === 'pending' && ward.isRegistered) return false;
-
-    // Filter by search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      return (
+  const filteredWards = useMemo(() => {
+    const byStatus = wards.filter(ward =>
+      filterStatus === 'pending' ? !ward.isRegistered : true,
+    );
+    if (!debouncedQuery) return byStatus;
+    const query = debouncedQuery.toLowerCase();
+    return byStatus.filter(
+      ward =>
         ward.name.toLowerCase().includes(query) ||
         ward.email.toLowerCase().includes(query) ||
-        ward.phoneNumber.includes(query)
-      );
-    }
-    return true;
-  });
+        ward.phoneNumber.includes(query),
+    );
+  }, [wards, filterStatus, debouncedQuery]);
 
-  const getTimeAgo = (dateStr: string | null) => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return '오늘';
-    if (diffDays === 1) return '어제';
-    if (diffDays < 7) return `${diffDays}일 전`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)}주 전`;
-    return date.toLocaleDateString('ko-KR');
-  };
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
 
   const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-';
+    if (!dateStr) return '발송 전';
     return new Date(dateStr).toLocaleDateString('ko-KR');
+  };
+
+  const handleResendAllPending = () => {
+    if (totals.pending === 0 || resendingAll) return;
+    setResendingAll(true);
+    // TODO: 연동 API 연결
+    setTimeout(() => {
+      alert(
+        `${totals.pending}명의 미연동 대상자에게 앱 설치 링크를 재발송했습니다.`,
+      );
+      setResendingAll(false);
+    }, 400);
+  };
+
+  const handleResendOne = (ward: Ward) => {
+    if (resendingId || resendingAll) return;
+    setResendingId(ward.id);
+    // TODO: 연동 API 연결
+    setTimeout(() => {
+      alert(`${ward.name}님에게 앱 설치 링크를 재발송했습니다.`);
+      setResendingId(null);
+    }, 300);
   };
 
   return (
     <SidebarLayout>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '28px' }}>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: '24px',
-              fontWeight: 700,
-              color: '#1e293b',
-            }}
-          >
-            대상자 연동 현황
-          </h1>
-        </div>
-
-        {/* Stats Cards */}
+      {isLoading && (
         <div
           style={{
+            minHeight: '60vh',
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '16px',
-            marginBottom: '28px',
+            placeItems: 'center',
+            color: '#64748b',
+            fontSize: '14px',
           }}
         >
-          <StatCard
-            label="전체 고객"
-            value={stats.total}
-            color="#3b82f6"
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="9"
-                  cy="7"
-                  r="4"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-                <path
-                  d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            label="앱 가입 완료"
-            value={stats.registered}
-            color="#22c55e"
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M20 6L9 17l-5-5"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            label="가입 대기"
-            value={stats.pending}
-            color="#f59e0b"
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-                <path
-                  d="M12 6v6l4 2"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
-            }
-          />
-          <StatCard
-            label="긍정 감정"
-            value={stats.positiveMood}
-            color="#22c55e"
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-                <path
-                  d="M8 14s1.5 2 4 2 4-2 4-2"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-                <circle cx="9" cy="10" r="1" fill="currentColor" />
-                <circle cx="15" cy="10" r="1" fill="currentColor" />
-              </svg>
-            }
-          />
-          <StatCard
-            label="부정 감정"
-            value={stats.negativeMood}
-            color="#ef4444"
-            icon={
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                />
-                <path
-                  d="M16 16s-1.5-2-4-2-4 2-4 2"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-                <circle cx="9" cy="10" r="1" fill="currentColor" />
-                <circle cx="15" cy="10" r="1" fill="currentColor" />
-              </svg>
-            }
-          />
+          데이터를 불러오는 중입니다...
         </div>
-
-        {/* Filters & Search */}
+      )}
+      {!isLoading && error && (
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            marginBottom: '20px',
-            flexWrap: 'wrap',
+            minHeight: '60vh',
+            display: 'grid',
+            placeItems: 'center',
+            gap: '12px',
+            color: '#dc2626',
+            fontSize: '14px',
+            fontWeight: 700,
           }}
         >
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {(['all', 'registered', 'pending'] as const).map(status => (
-              <button
-                key={status}
-                onClick={() => setFilterStatus(status)}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  backgroundColor:
-                    filterStatus === status ? '#3b82f6' : '#f1f5f9',
-                  color: filterStatus === status ? 'white' : '#475569',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                {status === 'all'
-                  ? '전체'
-                  : status === 'registered'
-                  ? '가입 완료'
-                  : '대기 중'}
-              </button>
-            ))}
-          </div>
-          <input
-            type="text"
-            placeholder="이름, 이메일, 전화번호 검색..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{
-              flex: 1,
-              minWidth: '200px',
-              maxWidth: '400px',
-              padding: '10px 14px',
-              fontSize: '14px',
-              border: '1px solid #e2e8f0',
-              borderRadius: '10px',
-              backgroundColor: 'white',
-              color: '#1e293b',
-            }}
-          />
+          <div>{error}</div>
           <button
-            onClick={fetchMyWards}
+            onClick={() => {
+              setIsLoading(true);
+              setError(null);
+              fetchMyWards();
+            }}
             style={{
-              padding: '10px 18px',
-              fontSize: '13px',
-              fontWeight: 600,
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
+              padding: '10px 14px',
               borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              backgroundColor: '#ffffff',
+              color: '#1e293b',
               cursor: 'pointer',
             }}
           >
-            새로고침
+            다시 시도
           </button>
         </div>
-
-        {/* Content */}
-        <div style={{ display: 'flex', gap: '24px' }}>
-          {/* Ward List */}
-          <div
-            style={{
-              flex: 1,
-              backgroundColor: 'white',
-              borderRadius: '16px',
-              border: '1px solid #e2e8f0',
-              overflow: 'hidden',
-            }}
-          >
-            {isLoading ? (
-              <div
-                style={{
-                  padding: '48px',
-                  textAlign: 'center',
-                  color: '#64748b',
-                }}
-              >
-                로딩 중...
-              </div>
-            ) : error ? (
-              <div
-                style={{
-                  padding: '48px',
-                  textAlign: 'center',
-                  color: '#dc2626',
-                }}
-              >
-                {error}
-              </div>
-            ) : filteredWards.length === 0 ? (
-              <div
-                style={{
-                  padding: '48px',
-                  textAlign: 'center',
-                  color: '#64748b',
-                }}
-              >
-                {wards.length === 0
-                  ? '등록된 담당 고객이 없습니다. CSV로 피보호자를 등록해주세요.'
-                  : '검색 결과가 없습니다.'}
-              </div>
-            ) : (
-              <div>
-                {/* Table Header */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 2fr 1.5fr 1fr 1fr 80px',
-                    gap: '12px',
-                    padding: '14px 20px',
-                    backgroundColor: '#f8fafc',
-                    borderBottom: '1px solid #e2e8f0',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#64748b',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  <span>이름</span>
-                  <span>연락처</span>
-                  <span>기관</span>
-                  <span>상태</span>
-                  <span>마지막 통화</span>
-                  <span>감정</span>
-                </div>
-
-                {/* Table Body */}
-                {filteredWards.map(ward => (
-                  <WardRow
-                    key={ward.id}
-                    ward={ward}
-                    isSelected={selectedWard?.id === ward.id}
-                    onClick={() => setSelectedWard(ward)}
-                    getTimeAgo={getTimeAgo}
-                  />
-                ))}
-              </div>
-            )}
+      )}
+      {isLoading || error ? null : (
+        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          <style>{`
+          @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+          }
+        `}</style>
+          <div style={{ marginBottom: '20px' }}>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: '24px',
+                fontWeight: 700,
+                color: '#1e293b',
+              }}
+            >
+              대상자 연동 현황
+            </h1>
+            <p
+              style={{ margin: '6px 0 0', color: '#64748b', fontSize: '14px' }}
+            >
+              등록된 대상자의 앱 설치 및 기기 연동 상태를 관리합니다.
+            </p>
           </div>
 
-          {/* Detail Panel */}
-          {selectedWard && (
+          {totals.pending > 0 && (
             <div
               style={{
-                width: '360px',
-                backgroundColor: 'white',
+                background: '#fff4f4',
+                border: '1px solid #fecdd3',
                 borderRadius: '16px',
-                border: '1px solid #e2e8f0',
-                padding: '24px',
-                flexShrink: 0,
-                position: 'sticky',
-                top: '24px',
-                height: 'fit-content',
+                padding: '18px 20px',
+                display: 'flex',
+                gap: '12px',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                marginBottom: '20px',
               }}
             >
               <div
                 style={{
                   display: 'flex',
+                  gap: '12px',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '20px',
+                  flex: 1,
+                  minWidth: 0,
                 }}
               >
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    color: '#1e293b',
-                  }}
-                >
-                  상세 정보
-                </h3>
-                <button
-                  onClick={() => setSelectedWard(null)}
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: '#f1f5f9',
-                    cursor: 'pointer',
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: '#64748b',
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M18 6L6 18M6 6l12 12"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Profile */}
-              <div style={{ textAlign: 'center', marginBottom: '24px' }}>
                 <div
                   style={{
-                    width: '72px',
-                    height: '72px',
-                    borderRadius: '50%',
-                    background: selectedWard.isRegistered
-                      ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                      : 'linear-gradient(135deg, #f59e0b, #d97706)',
-                    color: 'white',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '12px',
+                    backgroundColor: '#fef2f2',
                     display: 'grid',
                     placeItems: 'center',
-                    fontSize: '28px',
-                    fontWeight: 700,
-                    margin: '0 auto 12px',
+                    color: '#2563eb',
+                    flexShrink: 0,
                   }}
                 >
-                  {selectedWard.name.charAt(0)}
+                  <AlertTriangleIcon size={18} strokeWidth={2} color="#dc2626" />
                 </div>
-                <h4
+                <div
                   style={{
-                    margin: '0 0 4px',
-                    fontSize: '18px',
-                    fontWeight: 700,
-                    color: '#1e293b',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
                   }}
                 >
-                  {selectedWard.name}
-                </h4>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    padding: '4px 10px',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    borderRadius: '20px',
-                    backgroundColor: selectedWard.isRegistered
-                      ? '#dcfce7'
-                      : '#fef3c7',
-                    color: selectedWard.isRegistered ? '#16a34a' : '#d97706',
-                  }}
-                >
-                  {selectedWard.isRegistered ? '앱 가입 완료' : '가입 대기'}
-                </span>
+                  <div
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: 700,
+                      color: '#991b1b',
+                    }}
+                  >
+                    아직 연동되지 않은 대상자가 {totals.pending}명 있습니다.
+                  </div>
+                </div>
               </div>
+              <button
+                onClick={handleResendAllPending}
+                disabled={totals.pending === 0 || resendingAll}
+                aria-label="미연동 인원 전체 재초대"
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  backgroundColor:
+                    totals.pending === 0 || resendingAll
+                      ? '#fca5a5'
+                      : '#dc2626',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor:
+                    totals.pending === 0 || resendingAll
+                      ? 'not-allowed'
+                      : 'pointer',
+                  display: 'inline-flex',
+                  gap: '8px',
+                  alignItems: 'center',
+                  boxShadow:
+                    totals.pending === 0 || resendingAll
+                      ? 'none'
+                      : '0 10px 30px rgba(220,38,38,0.18)',
+                  transition: 'all 150ms ease',
+                  whiteSpace: 'nowrap',
+                }}
+                onMouseEnter={e => {
+                  if (totals.pending === 0 || resendingAll) return;
+                  e.currentTarget.style.backgroundColor = '#b91c1c';
+                }}
+                onMouseLeave={e => {
+                  if (totals.pending === 0 || resendingAll) return;
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                }}
+              >
+                <RefreshIcon size={16} />
+                {resendingAll ? '재초대 중...' : '미연동 인원 전체 재초대'}
+              </button>
+            </div>
+          )}
 
-              {/* Info List */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '16px',
+              marginBottom: '20px',
+            }}
+          >
+            <StatCard
+              label="총 등록 인원 (청구 기준)"
+              value={totals.total}
+              color="#3b82f6"
+              icon={<UsersIcon size={32} />}
+            />
+            <StatCard
+              label="정상 연동됨"
+              value={totals.linked}
+              color="#4A5D23"
+              icon={<CheckCircleIcon size={32} />}
+              extra={
+                <div
+                  style={{
+                    width: '100%',
+                    height: '8px',
+                    borderRadius: '999px',
+                    backgroundColor: '#e2e8f0',
+                    overflow: 'hidden',
+                    marginTop: '10px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${totals.rate}%`,
+                      height: '100%',
+                      backgroundColor: '#93c5fd',
+                      transition: 'width 150ms ease',
+                    }}
+                  />
+                </div>
+              }
+              footer={`연동률 ${totals.rate}%`}
+            />
+            <StatCard
+              label="연동 대기 (조치 필요)"
+              value={totals.pending}
+              color="#dc2626"
+              icon={<LinkOffIcon size={32} />}
+              highlight={totals.pending > 0}
+              footer={
+                totals.pending > 0
+                  ? '서비스 이용이 지연되고 있습니다'
+                  : undefined
+              }
+            />
+          </div>
+
+          <section
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '16px',
+              boxShadow: '0 6px 18px rgba(15, 23, 42, 0.08)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: '16px 20px',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '12px',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
               <div
                 style={{
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
+                  gap: '8px',
+                  background: '#f1f5f9',
+                  padding: '6px',
+                  borderRadius: '12px',
                 }}
               >
-                <DetailItem label="이메일" value={selectedWard.email} />
-                <DetailItem label="전화번호" value={selectedWard.phoneNumber} />
-                <DetailItem
-                  label="생년월일"
-                  value={formatDate(selectedWard.birthDate)}
-                />
-                <DetailItem label="주소" value={selectedWard.address || '-'} />
-                <DetailItem
-                  label="소속 기관"
-                  value={selectedWard.organizationName}
-                />
-                <DetailItem
-                  label="등록일"
-                  value={formatDate(selectedWard.createdAt)}
-                />
+                <button
+                  onClick={() => setFilterStatus('all')}
+                  aria-pressed={filterStatus === 'all'}
+                  aria-label="전체 목록 보기"
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor:
+                      filterStatus === 'all' ? '#ffffff' : 'transparent',
+                    color: filterStatus === 'all' ? '#1e293b' : '#64748b',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    boxShadow:
+                      filterStatus === 'all'
+                        ? '0 6px 16px rgba(15,23,42,0.08)'
+                        : 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  전체 목록
+                </button>
+                <button
+                  onClick={() => setFilterStatus('pending')}
+                  aria-pressed={filterStatus === 'pending'}
+                  aria-label="미연동 대상자만 보기"
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor:
+                      filterStatus === 'pending' ? '#ffffff' : 'transparent',
+                    color: filterStatus === 'pending' ? '#dc2626' : '#64748b',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    boxShadow:
+                      filterStatus === 'pending'
+                        ? '0 6px 16px rgba(15,23,42,0.08)'
+                        : 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  미연동 대상자
+                  <span
+                    style={{
+                      backgroundColor: '#fef2f2',
+                      color: '#dc2626',
+                      borderRadius: '999px',
+                      padding: '2px 8px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {totals.pending}
+                  </span>
+                </button>
+              </div>
 
+              <div style={{ position: 'relative', minWidth: '260px' }}>
                 <div
                   style={{
-                    height: '1px',
-                    backgroundColor: '#e2e8f0',
-                    margin: '8px 0',
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: '#94a3b8',
+                    pointerEvents: 'none',
+                  }}
+                >
+              <SearchIcon size={18} />
+            </div>
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="이름 · 이메일 · 전화번호 검색"
+              aria-label="이름, 이메일 또는 전화번호 검색"
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 36px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: '#f8fafc',
+                    fontSize: '14px',
+                    color: '#1e293b',
+                    outline: 'none',
                   }}
                 />
-
-                <DetailItem
-                  label="총 통화"
-                  value={`${selectedWard.totalCalls}회`}
-                />
-                <DetailItem
-                  label="마지막 통화"
-                  value={getTimeAgo(selectedWard.lastCallAt)}
-                />
-                {selectedWard.lastMood && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: '12px',
-                        color: '#64748b',
-                        marginBottom: '6px',
-                      }}
-                    >
-                      마지막 감정
-                    </div>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        backgroundColor: `${
-                          MOOD_COLORS[selectedWard.lastMood]
-                        }15`,
-                        color: MOOD_COLORS[selectedWard.lastMood],
-                        fontSize: '13px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: MOOD_COLORS[selectedWard.lastMood],
-                        }}
-                      />
-                      {MOOD_LABELS[selectedWard.lastMood]}
-                    </span>
-                  </div>
-                )}
-
-                {selectedWard.notes && (
-                  <>
-                    <div
-                      style={{
-                        height: '1px',
-                        backgroundColor: '#e2e8f0',
-                        margin: '8px 0',
-                      }}
-                    />
-                    <div>
-                      <div
-                        style={{
-                          fontSize: '12px',
-                          color: '#64748b',
-                          marginBottom: '6px',
-                        }}
-                      >
-                        메모
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '14px',
-                          color: '#475569',
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {selectedWard.notes}
-                      </div>
-                    </div>
-                  </>
-                )}
               </div>
             </div>
-          )}
+
+            <div style={{ overflowX: 'auto' }}>
+            <table
+              style={{ width: '100%', borderCollapse: 'collapse' }}
+              aria-label="대상자 연동 테이블"
+            >
+                <thead>
+                  <tr
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      color: '#475569',
+                      fontSize: '12px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <th style={{ padding: '14px 16px', textAlign: 'left' }}>
+                      대상자 이름
+                    </th>
+                    <th style={{ padding: '14px 12px', textAlign: 'left' }}>
+                      연락처
+                    </th>
+                    <th style={{ padding: '14px 12px', textAlign: 'center' }}>
+                      연동 상태
+                    </th>
+                    <th style={{ padding: '14px 12px', textAlign: 'center' }}>
+                      최근 안내 발송
+                    </th>
+                    <th style={{ padding: '14px 12px', textAlign: 'center' }}>
+                      관리
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredWards.map(ward => (
+                    <tr
+                      key={ward.id}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        backgroundColor: '#ffffff',
+                        transition: 'background-color 150ms ease',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.backgroundColor = '#f7f9fb';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                      }}
+                    >
+                      <td
+                        style={{
+                          padding: '14px 16px',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                        }}
+                      >
+                        {ward.name}
+                      </td>
+                      <td style={{ padding: '14px 12px' }}>
+                        <div style={{ color: '#475569', fontSize: '14px' }}>
+                          {ward.phoneNumber}
+                        </div>
+                        <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+                          {ward.email}
+                        </div>
+                      </td>
+                      <td style={{ padding: '14px 12px', textAlign: 'center' }}>
+                        {ward.isRegistered ? (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              borderRadius: '999px',
+                              backgroundColor: '#e9f0df',
+                              color: '#4A5D23',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                            }}
+                          >
+                            <CheckCircleIcon size={14} />
+                            연동 완료
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '6px 10px',
+                              borderRadius: '999px',
+                              backgroundColor: '#fef2f2',
+                              color: '#dc2626',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              animation: 'pulse 1.6s ease-in-out infinite',
+                            }}
+                          >
+                            <LinkOffIcon size={14} />
+                            연동 대기
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          padding: '14px 12px',
+                          textAlign: 'center',
+                          fontSize: '12px',
+                          color: '#475569',
+                        }}
+                      >
+                        {formatDate(ward.lastCallAt)}
+                      </td>
+                      <td style={{ padding: '14px 12px', textAlign: 'center' }}>
+                        {!ward.isRegistered ? (
+                        <button
+                          onClick={() => handleResendOne(ward)}
+                          disabled={resendingId !== null || resendingAll}
+                          aria-label={`${ward.name} 재발송`}
+                          style={{
+                            padding: '8px 12px',
+                              borderRadius: '10px',
+                              border: 'none',
+                              backgroundColor:
+                                resendingId !== null || resendingAll
+                                  ? '#bfdbfe'
+                                  : '#2563eb',
+                              color: '#ffffff',
+                              fontWeight: 700,
+                              fontSize: '12px',
+                              cursor:
+                                resendingId !== null || resendingAll
+                                  ? 'not-allowed'
+                                  : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 150ms ease',
+                            }}
+                            onMouseEnter={e => {
+                              if (resendingId !== null || resendingAll) return;
+                              e.currentTarget.style.backgroundColor = '#1d4ed8';
+                            }}
+                            onMouseLeave={e => {
+                              if (resendingId !== null || resendingAll) return;
+                              e.currentTarget.style.backgroundColor = '#2563eb';
+                            }}
+                          >
+                            <RefreshIcon size={14} />
+                            {resendingId === ward.id
+                              ? '재발송 중...'
+                              : '재발송'}
+                          </button>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontSize: '12px' }}>
+                            -
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredWards.length === 0 && (
+              <div
+                style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: '#475569',
+                }}
+              >
+                <div
+                  style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '14px',
+                    backgroundColor: '#f1f5f9',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: totals.total === 0 ? '#cbd5e1' : '#4A5D23',
+                    margin: '0 auto 12px',
+                  }}
+                >
+                  <CheckCircleIcon size={26} />
+                </div>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '16px',
+                    color: '#0f172a',
+                  }}
+                >
+                  {totals.total === 0
+                    ? '등록된 대상자가 없습니다'
+                    : '모든 대상자가 연동되었습니다'}
+                </div>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    color: '#94a3b8',
+                    marginTop: '4px',
+                  }}
+                >
+                  {totals.total === 0
+                    ? '대상자를 등록하고 연동을 시작하세요.'
+                    : '현재 조치가 필요한 대상자가 없습니다.'}
+                </div>
+              </div>
+            )}
+          </section>
         </div>
-      </div>
+      )}
     </SidebarLayout>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  color,
-  icon,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  icon: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        padding: '20px',
-        backgroundColor: 'white',
-        borderRadius: '14px',
-        border: '1px solid #e2e8f0',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            backgroundColor: `${color}15`,
-            color: color,
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
-          {icon}
-        </div>
-        <div>
-          <div
-            style={{ fontSize: '12px', color: '#64748b', marginBottom: '2px' }}
-          >
-            {label}
-          </div>
-          <div style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b' }}>
-            {value}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function WardRow({
-  ward,
-  isSelected,
-  onClick,
-  getTimeAgo,
-}: {
-  ward: Ward;
-  isSelected: boolean;
-  onClick: () => void;
-  getTimeAgo: (date: string | null) => string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        display: 'grid',
-        gridTemplateColumns: '2fr 2fr 1.5fr 1fr 1fr 80px',
-        gap: '12px',
-        padding: '16px 20px',
-        border: 'none',
-        borderBottom: '1px solid #f1f5f9',
-        backgroundColor: isSelected ? '#eff6ff' : 'transparent',
-        cursor: 'pointer',
-        textAlign: 'left',
-        transition: 'background 150ms ease',
-      }}
-    >
-      {/* Name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div
-          style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '50%',
-            background: ward.isRegistered
-              ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-              : 'linear-gradient(135deg, #f59e0b, #d97706)',
-            color: 'white',
-            display: 'grid',
-            placeItems: 'center',
-            fontSize: '14px',
-            fontWeight: 700,
-            flexShrink: 0,
-          }}
-        >
-          {ward.name.charAt(0)}
-        </div>
-        <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1e293b' }}>
-            {ward.name}
-          </div>
-          <div style={{ fontSize: '12px', color: '#64748b' }}>{ward.email}</div>
-        </div>
-      </div>
-
-      {/* Contact */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          fontSize: '14px',
-          color: '#475569',
-        }}
-      >
-        {ward.phoneNumber}
-      </div>
-
-      {/* Organization */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          fontSize: '13px',
-          color: '#64748b',
-        }}
-      >
-        {ward.organizationName}
-      </div>
-
-      {/* Status */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <span
-          style={{
-            padding: '4px 10px',
-            fontSize: '11px',
-            fontWeight: 600,
-            borderRadius: '20px',
-            backgroundColor: ward.isRegistered ? '#dcfce7' : '#fef3c7',
-            color: ward.isRegistered ? '#16a34a' : '#d97706',
-          }}
-        >
-          {ward.isRegistered ? '가입' : '대기'}
-        </span>
-      </div>
-
-      {/* Last Call */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          fontSize: '13px',
-          color: '#64748b',
-        }}
-      >
-        {getTimeAgo(ward.lastCallAt)}
-      </div>
-
-      {/* Mood */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        {ward.lastMood ? (
-          <span
-            style={{
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              backgroundColor: MOOD_COLORS[ward.lastMood],
-            }}
-            title={MOOD_LABELS[ward.lastMood]}
-          />
-        ) : (
-          <span style={{ fontSize: '12px', color: '#94a3b8' }}>-</span>
-        )}
-      </div>
-    </button>
-  );
-}
-
-function DetailItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 500 }}>
-        {value}
-      </div>
-    </div>
   );
 }
