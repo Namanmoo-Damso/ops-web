@@ -19,7 +19,7 @@ type CsvUploadModalProps = {
   open: boolean;
   onClose: () => void;
   onUpload?: (file: File, rows: CleanRow[]) => void;
-  onManualSubmit?: (payload: ManualWardPayload) => void;
+  onManualSubmit?: (payload: ManualWardPayload) => Promise<void> | void;
 };
 
 export default function CsvUploadModal({
@@ -42,9 +42,13 @@ export default function CsvUploadModal({
     handleClose();
   };
 
-  const handleManualSubmit = (payload: ManualWardPayload) => {
-    onManualSubmit?.(payload);
-    handleClose();
+  const handleManualSubmit = async (payload: ManualWardPayload) => {
+    try {
+      await onManualSubmit?.(payload);
+      handleClose();
+    } catch {
+      // ManualWardForm에서 에러 메시지를 처리하도록 둠 (모달 닫지 않음)
+    }
   };
 
   return (

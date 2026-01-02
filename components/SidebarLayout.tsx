@@ -324,7 +324,9 @@ export default function SidebarLayout({
 
   const handleManualSubmit = useCallback(
     async (payload: ManualWardPayload) => {
-      if (uploading) return;
+      if (uploading) {
+        throw new Error('이미 등록 작업이 진행 중입니다.');
+      }
       const adminInfoRaw = localStorage.getItem('admin_info');
       const adminInfo: AdminInfo | null = adminInfoRaw
         ? JSON.parse(adminInfoRaw)
@@ -332,8 +334,7 @@ export default function SidebarLayout({
       const organizationId = adminInfo?.organizationId;
 
       if (!organizationId) {
-        alert('조직을 먼저 선택해주세요. (조직 등록/선택 후 다시 시도)');
-        return;
+        throw new Error('조직을 먼저 선택해주세요. (조직 등록/선택 후 다시 시도)');
       }
 
       setUploading(true);
@@ -350,7 +351,9 @@ export default function SidebarLayout({
         alert('피보호자가 등록되었습니다.');
         window.location.reload();
       } catch (error) {
-        alert((error as Error).message || '등록에 실패했습니다.');
+        throw new Error(
+          (error as Error).message || '등록에 실패했습니다.',
+        );
       } finally {
         setUploading(false);
       }
