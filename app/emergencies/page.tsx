@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
+import { palette } from '../theme';
 import { LocationMap, type WardLocation } from '../../components/LocationMap';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const borderStyle = `1px solid ${palette.border}`;
 
 type Emergency = {
   id: string;
@@ -36,8 +38,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#ef4444',
-  resolved: '#22c55e',
-  false_alarm: '#64748b',
+  resolved: palette.success,
+  false_alarm: palette.textMuted,
 };
 
 export default function EmergenciesPage() {
@@ -172,7 +174,7 @@ export default function EmergenciesPage() {
             width: '420px',
             backgroundColor: 'white',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: borderStyle,
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
@@ -183,8 +185,8 @@ export default function EmergenciesPage() {
           <div
             style={{
               padding: '20px',
-              borderBottom: '1px solid #e2e8f0',
-              backgroundColor: activeCount > 0 ? '#fef2f2' : 'white',
+              borderBottom: borderStyle,
+              backgroundColor: activeCount > 0 ? palette.dangerSoft : 'white',
             }}
           >
             <h2
@@ -192,7 +194,7 @@ export default function EmergenciesPage() {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: palette.primaryDark,
               }}
             >
               비상 상황 관리
@@ -201,7 +203,7 @@ export default function EmergenciesPage() {
               style={{
                 margin: '6px 0 0',
                 fontSize: '14px',
-                color: activeCount > 0 ? '#dc2626' : '#64748b',
+                color: activeCount > 0 ? palette.danger : palette.textMuted,
                 fontWeight: activeCount > 0 ? 600 : 400,
               }}
             >
@@ -217,7 +219,7 @@ export default function EmergenciesPage() {
               display: 'flex',
               gap: '8px',
               padding: '14px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: borderStyle,
             }}
           >
             {['active', 'resolved', 'false_alarm', ''].map(status => (
@@ -229,8 +231,8 @@ export default function EmergenciesPage() {
                   fontSize: '13px',
                   fontWeight: 500,
                   backgroundColor:
-                    filterStatus === status ? '#3b82f6' : '#f1f5f9',
-                  color: filterStatus === status ? 'white' : '#475569',
+                    filterStatus === status ? palette.primary : palette.soft,
+                  color: filterStatus === status ? 'white' : palette.primaryDark,
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -249,7 +251,7 @@ export default function EmergenciesPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: borderStyle,
             }}
           >
             <label
@@ -262,11 +264,11 @@ export default function EmergenciesPage() {
                 style={{
                   width: '16px',
                   height: '16px',
-                  accentColor: '#3b82f6',
+                  accentColor: palette.primary,
                 }}
               />
               <span
-                style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}
+                style={{ fontSize: '14px', color: palette.primaryDark, fontWeight: 500 }}
               >
                 자동 새로고침 (10초)
               </span>
@@ -276,7 +278,7 @@ export default function EmergenciesPage() {
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: '#3b82f6',
+                backgroundColor: palette.primary,
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -295,7 +297,7 @@ export default function EmergenciesPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: palette.textMuted,
                 }}
               >
                 로딩 중...
@@ -305,7 +307,7 @@ export default function EmergenciesPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: '#dc2626',
+                  color: palette.danger,
                 }}
               >
                 오류: {error}
@@ -315,7 +317,7 @@ export default function EmergenciesPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: '#64748b',
+                  color: palette.textMuted,
                 }}
               >
                 비상 상황이 없습니다.
@@ -337,8 +339,8 @@ export default function EmergenciesPage() {
             <div
               style={{
                 padding: '20px',
-                borderTop: '1px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
+                borderTop: borderStyle,
+                backgroundColor: palette.background,
               }}
             >
               <h3
@@ -346,7 +348,7 @@ export default function EmergenciesPage() {
                   margin: '0 0 14px',
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: '#1e293b',
+                  color: palette.primaryDark,
                 }}
               >
                 {selectedEmergency.wardName}
@@ -354,34 +356,34 @@ export default function EmergenciesPage() {
               <div
                 style={{
                   fontSize: '13px',
-                  color: '#475569',
+                  color: palette.primaryDark,
                   lineHeight: '1.9',
                 }}
               >
                 <div>
-                  <strong style={{ color: '#1e293b' }}>유형:</strong>{' '}
+                  <strong style={{ color: palette.primaryDark }}>유형:</strong>{' '}
                   {TYPE_LABELS[selectedEmergency.type]}
                 </div>
                 <div>
-                  <strong style={{ color: '#1e293b' }}>발생시각:</strong>{' '}
+                  <strong style={{ color: palette.primaryDark }}>발생시각:</strong>{' '}
                   {new Date(selectedEmergency.createdAt).toLocaleString(
                     'ko-KR',
                   )}
                 </div>
                 {selectedEmergency.message && (
                   <div>
-                    <strong style={{ color: '#1e293b' }}>메시지:</strong>{' '}
+                    <strong style={{ color: palette.primaryDark }}>메시지:</strong>{' '}
                     {selectedEmergency.message}
                   </div>
                 )}
                 {selectedEmergency.respondedAgencies.length > 0 && (
                   <div>
-                    <strong style={{ color: '#1e293b' }}>연락기관:</strong>{' '}
+                    <strong style={{ color: palette.primaryDark }}>연락기관:</strong>{' '}
                     {selectedEmergency.respondedAgencies.join(', ')}
                   </div>
                 )}
                 <div>
-                  <strong style={{ color: '#1e293b' }}>보호자 알림:</strong>{' '}
+                  <strong style={{ color: palette.primaryDark }}>보호자 알림:</strong>{' '}
                   {selectedEmergency.guardianNotified ? '완료' : '미발송'}
                 </div>
               </div>
@@ -400,7 +402,7 @@ export default function EmergenciesPage() {
                       padding: '12px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: '#22c55e',
+                      backgroundColor: palette.success,
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -420,7 +422,7 @@ export default function EmergenciesPage() {
                       padding: '12px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: '#64748b',
+                      backgroundColor: palette.textMuted,
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -442,7 +444,7 @@ export default function EmergenciesPage() {
             flex: 1,
             borderRadius: '12px',
             overflow: 'hidden',
-            border: '1px solid #e2e8f0',
+            border: borderStyle,
           }}
         >
           <LocationMap
@@ -485,11 +487,11 @@ function EmergencyCard({
         gap: '14px',
         padding: '16px 20px',
         border: 'none',
-        borderBottom: '1px solid #f1f5f9',
+        borderBottom: '1px solid #F0F5E8',
         backgroundColor: isSelected
-          ? '#eff6ff'
+          ? palette.soft
           : isActive
-            ? '#fef2f2'
+            ? palette.dangerSoft
             : 'transparent',
         cursor: 'pointer',
         textAlign: 'left',
@@ -520,21 +522,21 @@ function EmergencyCard({
             style={{
               fontWeight: isActive ? 600 : 500,
               fontSize: '14px',
-              color: isActive ? '#dc2626' : '#1e293b',
+              color: isActive ? palette.danger : palette.primaryDark,
             }}
           >
             {emergency.wardName}
           </span>
-          <span style={{ fontSize: '12px', color: '#64748b' }}>{timeAgo}</span>
+          <span style={{ fontSize: '12px', color: palette.textMuted }}>{timeAgo}</span>
         </div>
-        <div style={{ fontSize: '12px', color: '#64748b' }}>
+        <div style={{ fontSize: '12px', color: palette.textMuted }}>
           {TYPE_LABELS[emergency.type]} | {STATUS_LABELS[emergency.status]}
         </div>
         {emergency.respondedAgencies.length > 0 && (
           <div
             style={{
               fontSize: '11px',
-              color: '#94a3b8',
+              color: palette.textSoft,
               marginTop: '6px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

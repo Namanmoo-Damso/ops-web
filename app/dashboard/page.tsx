@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
+import { palette, shadows } from '../theme';
 
 // 차트 컴포넌트들을 동적으로 import (SSR 비활성화)
 const WeeklyTrendChart = dynamic(
@@ -33,7 +34,7 @@ function ChartLoading() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: '#64748b',
+        color: palette.textMuted,
       }}
     >
       차트 로딩 중...
@@ -106,17 +107,18 @@ type RealtimeStats = {
 };
 
 const MOOD_COLORS = {
-  positive: '#22c55e',
-  neutral: '#f59e0b',
-  negative: '#ef4444',
+  positive: palette.success,
+  neutral: palette.warning,
+  negative: palette.danger,
 };
+const borderStyle = `1px solid ${palette.border}`;
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [realtime, setRealtime] = useState<RealtimeStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -190,25 +192,34 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchStats();
     fetchRealtime();
+  }, [fetchStats, fetchRealtime]);
 
-    let statsInterval: NodeJS.Timeout | null = null;
-    let realtimeInterval: NodeJS.Timeout | null = null;
-
-    if (autoRefresh) {
-      statsInterval = setInterval(fetchStats, 60000); // 1분마다 전체 통계
-      realtimeInterval = setInterval(fetchRealtime, 10000); // 10초마다 실시간
+  useEffect(() => {
+    if (!stats) return;
+    if (stats.overview.totalWards > 0) {
+      setCsvModalOpen(false);
+      return;
     }
+    const storageKey = 'damso_csv_autoshow';
+    if (sessionStorage.getItem(storageKey) === '1') return;
+    setCsvModalOpen(true);
+    sessionStorage.setItem(storageKey, '1');
+  }, [stats]);
+
+  useEffect(() => {
+    const statsInterval = setInterval(fetchStats, 60000);
+    const realtimeInterval = setInterval(fetchRealtime, 10000);
 
     return () => {
-      if (statsInterval) clearInterval(statsInterval);
-      if (realtimeInterval) clearInterval(realtimeInterval);
+      clearInterval(statsInterval);
+      clearInterval(realtimeInterval);
     };
-  }, [fetchStats, fetchRealtime, autoRefresh]);
+  }, [fetchStats, fetchRealtime]);
 
   if (isLoading) {
     return (
       <SidebarLayout title="대시보드">
-        <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
+        <div style={{ padding: '48px', textAlign: 'center', color: palette.textMuted }}>
           대시보드 로딩 중...
         </div>
       </SidebarLayout>
@@ -218,14 +229,14 @@ export default function DashboardPage() {
   if (error) {
     return (
       <SidebarLayout title="대시보드">
-        <div style={{ padding: '48px', textAlign: 'center', color: '#dc2626' }}>
+        <div style={{ padding: '48px', textAlign: 'center', color: palette.danger }}>
           오류: {error}
           <button
             onClick={fetchStats}
             style={{
               marginLeft: '12px',
               padding: '8px 16px',
-              backgroundColor: '#3b82f6',
+              backgroundColor: palette.primary,
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -273,72 +284,21 @@ export default function DashboardPage() {
   }));
 
   return (
-    <SidebarLayout>
-      {/* Custom Header with Controls */}
+    <SidebarLayout
+      title="대시보드"
+      csvModalOpen={csvModalOpen}
+      onCsvModalOpenChange={setCsvModalOpen}
+    >
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
+          flexDirection: 'column',
+          gap: '24px',
+          backgroundColor: palette.background,
+          padding: '20px',
+          borderRadius: '16px',
         }}
       >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: '22px',
-              fontWeight: 700,
-              color: '#1e293b',
-            }}
-          >
-            관제 대시보드
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-            마지막 업데이트: {new Date(stats.fetchedAt).toLocaleString('ko-KR')}
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={e => setAutoRefresh(e.target.checked)}
-              style={{ width: '16px', height: '16px', accentColor: '#3b82f6' }}
-            />
-            <span
-              style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}
-            >
-              자동 새로고침
-            </span>
-          </label>
-          <button
-            onClick={() => {
-              fetchStats();
-              fetchRealtime();
-            }}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-              transition: 'background 150ms ease',
-            }}
-            onMouseEnter={e =>
-              (e.currentTarget.style.backgroundColor = '#2563eb')
-            }
-            onMouseLeave={e =>
-              (e.currentTarget.style.backgroundColor = '#3b82f6')
-            }
-          >
-            새로고침
-          </button>
-        </div>
-      </div>
 
       {/* Realtime Stats Banner */}
       {realtime && (
@@ -353,7 +313,7 @@ export default function DashboardPage() {
           <RealtimeCard
             label="진행 중인 통화"
             value={realtime.activeCalls}
-            color="#3b82f6"
+            color="#8FA963"
             icon="📞"
           />
           <RealtimeCard
@@ -365,7 +325,7 @@ export default function DashboardPage() {
           <RealtimeCard
             label="대기 중인 비상상황"
             value={realtime.pendingEmergencies}
-            color={realtime.pendingEmergencies > 0 ? '#dc2626' : '#64748b'}
+            color={realtime.pendingEmergencies > 0 ? palette.danger : palette.textMuted}
             icon="🚨"
             highlight={realtime.pendingEmergencies > 0}
           />
@@ -440,11 +400,11 @@ export default function DashboardPage() {
         {/* Weekly Trend Chart */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            boxShadow: shadows.card,
+            border: borderStyle,
           }}
         >
           <h3
@@ -452,7 +412,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: palette.primaryDark,
             }}
           >
             주간 추이
@@ -463,11 +423,11 @@ export default function DashboardPage() {
         {/* Mood Distribution */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            boxShadow: shadows.card,
+            border: borderStyle,
           }}
         >
           <h3
@@ -475,7 +435,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: palette.primaryDark,
             }}
           >
             감정 분포 (총 {moodTotal}건)
@@ -496,11 +456,11 @@ export default function DashboardPage() {
         {/* Health Alerts */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            boxShadow: shadows.card,
+            border: borderStyle,
           }}
         >
           <h3
@@ -508,7 +468,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: palette.primaryDark,
             }}
           >
             건강 알림
@@ -524,7 +484,7 @@ export default function DashboardPage() {
             <AlertRow
               label="정보 알림"
               value={stats.healthAlerts.info}
-              color="#3b82f6"
+              color="#8FA963"
             />
             <AlertRow
               label="미확인 알림"
@@ -538,11 +498,11 @@ export default function DashboardPage() {
         {/* Top Keywords */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            boxShadow: shadows.card,
+            border: borderStyle,
           }}
         >
           <h3
@@ -550,7 +510,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: palette.primaryDark,
             }}
           >
             주요 건강 키워드
@@ -564,7 +524,7 @@ export default function DashboardPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#64748b',
+                color: palette.textMuted,
               }}
             >
               키워드 데이터 없음
@@ -575,11 +535,11 @@ export default function DashboardPage() {
         {/* Organization Stats */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            boxShadow: shadows.card,
+            border: borderStyle,
           }}
         >
           <h3
@@ -587,7 +547,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: palette.primaryDark,
             }}
           >
             기관별 현황
@@ -602,12 +562,12 @@ export default function DashboardPage() {
                 }}
               >
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <tr style={{ borderBottom: borderStyle }}>
                     <th
                       style={{
                         textAlign: 'left',
                         padding: '10px 4px',
-                        color: '#475569',
+                        color: palette.primaryDark,
                         fontWeight: 600,
                       }}
                     >
@@ -617,7 +577,7 @@ export default function DashboardPage() {
                       style={{
                         textAlign: 'right',
                         padding: '10px 4px',
-                        color: '#475569',
+                        color: palette.primaryDark,
                         fontWeight: 600,
                       }}
                     >
@@ -627,7 +587,7 @@ export default function DashboardPage() {
                       style={{
                         textAlign: 'right',
                         padding: '10px 4px',
-                        color: '#475569',
+                        color: palette.primaryDark,
                         fontWeight: 600,
                       }}
                     >
@@ -639,16 +599,16 @@ export default function DashboardPage() {
                   {stats.organizationStats.map(org => (
                     <tr
                       key={org.id}
-                      style={{ borderBottom: '1px solid #f1f5f9' }}
+                      style={{ borderBottom: '1px solid #F0F5E8' }}
                     >
-                      <td style={{ padding: '10px 4px', color: '#1e293b' }}>
+                      <td style={{ padding: '10px 4px', color: palette.primaryDark }}>
                         {org.name}
                       </td>
                       <td
                         style={{
                           textAlign: 'right',
                           padding: '10px 4px',
-                          color: '#475569',
+                          color: palette.primaryDark,
                         }}
                       >
                         {org.wardCount}
@@ -657,7 +617,7 @@ export default function DashboardPage() {
                         style={{
                           textAlign: 'right',
                           padding: '10px 4px',
-                          color: '#475569',
+                          color: palette.primaryDark,
                         }}
                       >
                         {org.callCount}
@@ -674,7 +634,7 @@ export default function DashboardPage() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#64748b',
+                color: palette.textMuted,
               }}
             >
               등록된 기관 없음
@@ -686,11 +646,11 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       <div
         style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
+          backgroundColor: palette.panel,
+          borderRadius: '16px',
           padding: '20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          border: '1px solid #e2e8f0',
+            boxShadow: shadows.card,
+          border: borderStyle,
         }}
       >
         <h3
@@ -698,7 +658,7 @@ export default function DashboardPage() {
             margin: '0 0 16px',
             fontSize: '16px',
             fontWeight: 600,
-            color: '#1e293b',
+            color: palette.primaryDark,
           }}
         >
           최근 활동
@@ -711,11 +671,12 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div
-            style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}
+            style={{ padding: '24px', textAlign: 'center', color: palette.textMuted }}
           >
             최근 활동 없음
           </div>
         )}
+      </div>
       </div>
     </SidebarLayout>
   );
@@ -737,21 +698,23 @@ function RealtimeCard({
   return (
     <div
       style={{
-        backgroundColor: highlight ? '#fef2f2' : 'white',
-        borderRadius: '12px',
+        backgroundColor: highlight ? palette.dangerSoft : palette.panel,
+        borderRadius: '16px',
         padding: '18px 22px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        boxShadow: shadows.card,
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
-        border: highlight ? '2px solid #fca5a5' : '1px solid #e2e8f0',
+        border: highlight
+          ? `2px solid ${palette.dangerBorder}`
+          : borderStyle,
         animation: highlight ? 'pulse 2s infinite' : 'none',
       }}
     >
       <span style={{ fontSize: '28px' }}>{icon}</span>
       <div>
         <div style={{ fontSize: '26px', fontWeight: 700, color }}>{value}</div>
-        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
+        <div style={{ fontSize: '13px', color: palette.textMuted, fontWeight: 500 }}>
           {label}
         </div>
       </div>
@@ -771,21 +734,21 @@ function StatCard({
   return (
     <div
       style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
+        backgroundColor: palette.panel,
+        borderRadius: '16px',
         padding: '18px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        boxShadow: shadows.card,
         textAlign: 'center',
-        border: '1px solid #e2e8f0',
+        border: borderStyle,
       }}
     >
-      <div style={{ fontSize: '26px', fontWeight: 700, color: '#1e293b' }}>
+      <div style={{ fontSize: '26px', fontWeight: 700, color: palette.primaryDark }}>
         {value}
       </div>
       <div
         style={{
           fontSize: '13px',
-          color: '#64748b',
+          color: palette.textMuted,
           marginTop: '6px',
           fontWeight: 500,
         }}
@@ -793,7 +756,7 @@ function StatCard({
         {label}
       </div>
       {subtext && (
-        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+        <div style={{ fontSize: '11px', color: palette.textSoft, marginTop: '4px' }}>
           {subtext}
         </div>
       )}
@@ -815,14 +778,16 @@ function TodayCard({
   return (
     <div
       style={{
-        backgroundColor: highlight ? '#fef2f2' : 'white',
-        borderRadius: '12px',
+        backgroundColor: highlight ? palette.dangerSoft : palette.panel,
+        borderRadius: '16px',
         padding: '18px 22px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        boxShadow: shadows.card,
         display: 'flex',
         alignItems: 'center',
         gap: '14px',
-        border: highlight ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+        border: highlight
+          ? `1px solid ${palette.dangerBorder}`
+          : borderStyle,
       }}
     >
       <span style={{ fontSize: '26px' }}>{icon}</span>
@@ -831,12 +796,12 @@ function TodayCard({
           style={{
             fontSize: '22px',
             fontWeight: 700,
-            color: highlight ? '#dc2626' : '#1e293b',
+            color: highlight ? palette.danger : palette.primaryDark,
           }}
         >
           {value}
         </div>
-        <div style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>
+        <div style={{ fontSize: '13px', color: palette.textMuted, fontWeight: 500 }}>
           {label}
         </div>
       </div>
@@ -862,12 +827,14 @@ function AlertRow({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '14px 18px',
-        backgroundColor: highlight ? '#fef2f2' : '#f8fafc',
-        borderRadius: '10px',
-        border: highlight ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+        backgroundColor: highlight ? palette.dangerSoft : palette.background,
+        borderRadius: '16px',
+        border: highlight
+          ? `1px solid ${palette.dangerBorder}`
+          : borderStyle,
       }}
     >
-      <span style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}>
+      <span style={{ fontSize: '14px', color: palette.primaryDark, fontWeight: 500 }}>
         {label}
       </span>
       <span
@@ -900,9 +867,9 @@ function ActivityItem({
   };
 
   const typeColors: Record<string, string> = {
-    call_started: '#3b82f6',
-    call_ended: '#64748b',
-    emergency: '#dc2626',
+    call_started: palette.primary,
+    call_ended: palette.textMuted,
+    emergency: palette.danger,
   };
 
   const timeAgo = getTimeAgo(new Date(activity.timestamp));
@@ -914,12 +881,12 @@ function ActivityItem({
         alignItems: 'center',
         gap: '14px',
         padding: '12px 16px',
-        backgroundColor: activity.type === 'emergency' ? '#fef2f2' : '#f8fafc',
-        borderRadius: '10px',
+        backgroundColor: activity.type === 'emergency' ? palette.dangerSoft : palette.background,
+        borderRadius: '16px',
         border:
           activity.type === 'emergency'
-            ? '1px solid #fca5a5'
-            : '1px solid #e2e8f0',
+            ? `1px solid ${palette.dangerBorder}`
+            : borderStyle,
       }}
     >
       <span style={{ fontSize: '22px' }}>
@@ -930,13 +897,13 @@ function ActivityItem({
           style={{
             fontSize: '14px',
             fontWeight: 500,
-            color: typeColors[activity.type] || '#475569',
+            color: typeColors[activity.type] || palette.primaryDark,
           }}
         >
           {activity.description}
         </div>
       </div>
-      <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
+      <div style={{ fontSize: '12px', color: palette.textSoft, fontWeight: 500 }}>
         {timeAgo}
       </div>
     </div>

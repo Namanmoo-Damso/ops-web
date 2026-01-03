@@ -2,9 +2,9 @@
   --beneficiary-modal-overlay-z: 2000;
   --beneficiary-modal-max-width: 1300px;
   --beneficiary-modal-padding: 12px;
-  --beneficiary-border-color: #e2e8f0;
+  --beneficiary-border-color: #E9F0DF;
   --beneficiary-muted: #94a3b8;
-  --beneficiary-heading: #0f172a;
+  --beneficiary-heading: #4A5D23;
   --beneficiary-card-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
   --beneficiary-dialog-shadow: 0 24px 80px rgba(15, 23, 42, 0.32);
 }
@@ -47,7 +47,7 @@
   justify-content: space-between;
   padding: 18px 22px;
   border-bottom: 1px solid var(--beneficiary-border-color);
-  background: #f8fafc;
+  background: #F7F9F2;
 }
 
 .headerWarning {
@@ -140,11 +140,11 @@
 }
 
 .metaSeparator {
-  color: #cbd5e1;
+  color: #C2D5A8;
 }
 
 .metaValue {
-  color: #475569;
+  color: #4A5D23;
   font-weight: 700;
 }
 
@@ -157,9 +157,9 @@
 .ghostButton {
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E9F0DF;
   background-color: #ffffff;
-  color: #475569;
+  color: #4A5D23;
   font-weight: 800;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
   cursor: pointer;
@@ -169,7 +169,7 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #E9F0DF;
   background-color: #ffffff;
   color: #64748b;
   font-weight: 800;
@@ -182,7 +182,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  background-color: #f8fafc;
+  background-color: #F7F9F2;
 }
 
 .column {
@@ -254,7 +254,7 @@
   padding: 10px 12px;
   font-size: 14px;
   color: var(--beneficiary-heading);
-  background-color: #f8fafc;
+  background-color: #F7F9F2;
 }
 
 .editTextarea {
@@ -286,8 +286,8 @@
 }
 
 .editCancel {
-  background: #f1f5f9;
-  color: #475569;
+  background: #F0F5E8;
+  color: #4A5D23;
   border: none;
   padding: 10px 14px;
   border-radius: 12px;
@@ -374,7 +374,7 @@
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  background-color: #f8fafc;
+  background-color: #F7F9F2;
 }
 
 .logList {
@@ -408,11 +408,11 @@
 }
 
 .logBadgeAi {
-  background-color: #2563eb;
+  background-color: #8FA963;
 }
 
 .logBadgeDefault {
-  background-color: #334155;
+  background-color: #4A5D23;
 }
 
 .logMeta {
@@ -423,7 +423,7 @@
 }
 
 .logContent {
-  color: #334155;
+  color: #4A5D23;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -433,7 +433,7 @@
   gap: 8px;
   align-items: center;
   font-weight: 800;
-  color: #0f172a;
+  color: #4A5D23;
 }
 
 .logBody {
@@ -443,8 +443,8 @@
 .emptyLogs {
   padding: 14px;
   border-radius: 10px;
-  background-color: #f8fafc;
-  color: #475569;
+  background-color: #F7F9F2;
+  color: #4A5D23;
   font-weight: 700;
 }
 
@@ -452,7 +452,7 @@
   padding: 10px 14px;
   border-radius: 12px;
   border: none;
-  background-color: #f1f5f9;
+  background-color: #F0F5E8;
   color: #ef4444;
   font-weight: 800;
   cursor: pointer;
@@ -513,7 +513,7 @@
 
 .confirmDescription {
   font-size: 13px;
-  color: #475569;
+  color: #4A5D23;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -526,8 +526,8 @@
 }
 
 .confirmCancel {
-  background: #f1f5f9;
-  color: #475569;
+  background: #F0F5E8;
+  color: #4A5D23;
   border: none;
   padding: 9px 14px;
   border-radius: 10px;
@@ -580,7 +580,7 @@
 }
 
 .sentimentNeutral {
-  background-color: #f8fafc;
-  color: #475569;
+  background-color: #F7F9F2;
+  color: #4A5D23;
   border-color: var(--beneficiary-border-color);
 }

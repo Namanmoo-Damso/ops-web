@@ -25,10 +25,10 @@ function LoadingScreen() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#F7F9F2',
       }}
     >
-      <p style={{ color: '#6b7280' }}>로딩 중...</p>
+      <p style={{ color: '#64748b' }}>로딩 중...</p>
     </div>
   );
 }
@@ -222,7 +222,7 @@ function LoginContent() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#F7F9F2',
         fontFamily: 'sans-serif',
       }}
     >
@@ -243,7 +243,7 @@ function LoginContent() {
               margin: 0,
               fontSize: '28px',
               fontWeight: 'bold',
-              color: '#1f2937',
+              color: '#4A5D23',
             }}
           >
             담소 관제센터
@@ -252,7 +252,7 @@ function LoginContent() {
             style={{
               margin: '8px 0 0',
               fontSize: '14px',
-              color: '#6b7280',
+              color: '#64748b',
             }}
           >
             관리자 로그인
@@ -282,7 +282,7 @@ function LoginContent() {
             style={{
               textAlign: 'center',
               padding: '24px',
-              color: '#6b7280',
+              color: '#64748b',
             }}
           >
             로그인 처리 중...
@@ -328,8 +328,8 @@ function LoginContent() {
                 width: '100%',
                 padding: '14px 20px',
                 backgroundColor: 'white',
-                color: '#374151',
-                border: '1px solid #d1d5db',
+                color: '#4A5D23',
+                border: '1px solid #E9F0DF',
                 borderRadius: '12px',
                 fontSize: '16px',
                 fontWeight: '600',
@@ -337,7 +337,7 @@ function LoginContent() {
                 transition: 'background-color 0.2s',
               }}
               onMouseOver={e =>
-                (e.currentTarget.style.backgroundColor = '#f9fafb')
+                (e.currentTarget.style.backgroundColor = '#F7F9F2')
               }
               onMouseOut={e =>
                 (e.currentTarget.style.backgroundColor = 'white')

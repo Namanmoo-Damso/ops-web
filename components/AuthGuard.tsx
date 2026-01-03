@@ -45,7 +45,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f8fafc',
+          backgroundColor: '#F7F9F2',
         }}
       >
         <div
@@ -60,8 +60,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             style={{
               width: '40px',
               height: '40px',
-              border: '3px solid #e2e8f0',
-              borderTopColor: '#3b82f6',
+              border: '3px solid #E9F0DF',
+              borderTopColor: '#8FA963',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }}

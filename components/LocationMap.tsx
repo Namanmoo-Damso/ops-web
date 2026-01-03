@@ -143,8 +143,8 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
       infoWindowRef.current = new window.naver.maps.InfoWindow({
         content: '',
         maxWidth: 300,
-        backgroundColor: '#fff',
-        borderColor: '#ddd',
+        backgroundColor: '#ffffff',
+        borderColor: '#E9F0DF',
         borderWidth: 1,
         anchorSkew: true,
       });
@@ -241,12 +241,12 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
               <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">
                 ${loc.wardName}
               </div>
-              <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">
                 상태: <span style="color: ${STATUS_COLORS[loc.status]}; font-weight: bold;">
                   ${STATUS_LABELS[loc.status]}
                 </span>
               </div>
-              <div style="font-size: 12px; color: #666;">
+              <div style="font-size: 12px; color: #64748b;">
                 마지막 업데이트: ${new Date(loc.lastUpdated).toLocaleString('ko-KR')}
               </div>
             </div>
@@ -304,7 +304,7 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f3f4f6',
+          backgroundColor: '#F7F9F2',
           color: '#ef4444',
         }}
       >
@@ -320,7 +320,7 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
         width: '100%',
         height: '100%',
         minHeight: '400px',
-        backgroundColor: '#e5e7eb',
+        backgroundColor: '#E9F0DF',
       }}
     >
       {!isMapReady && (

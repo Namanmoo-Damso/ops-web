@@ -1,18 +1,18 @@
 :root {
   /* Light theme (default) */
-  --bg: #ffffff;
-  --bg-elev-1: #f8fafc;
-  --bg-elev-2: #f1f5f9;
+  --bg: #f7f9f2;
+  --bg-elev-1: #f0f5e8;
+  --bg-elev-2: #e9f0df;
   --panel: rgba(255, 255, 255, 0.95);
   --panel-strong: #ffffff;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.15);
-  --text-primary: #1f2937;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
-  --accent: #3b82f6;
-  --accent-strong: #2563eb;
-  --accent-soft: rgba(59, 130, 246, 0.12);
+  --border: #e9f0df;
+  --border-strong: #c2d5a8;
+  --text-primary: #4a5d23;
+  --text-secondary: #4a5d23;
+  --text-muted: #64748b;
+  --accent: #8fa963;
+  --accent-strong: #4a5d23;
+  --accent-soft: rgba(143, 169, 99, 0.16);
   --danger: #ef4444;
   --success: #22c55e;
   --warning: #f59e0b;

@@ -85,7 +85,7 @@ const InfoCard = ({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#0f172a',
+                color: '#4A5D23',
               }}
             >
               {icon}
@@ -97,7 +97,7 @@ const InfoCard = ({
               letterSpacing: '0.05em',
               textTransform: 'none',
               fontWeight: 700,
-              color: '#475569',
+              color: '#4A5D23',
             }}
           >
             {label}
@@ -151,10 +151,10 @@ export const ParticipantDetailSidebar = ({
           top: 0,
           bottom: 0,
           width: 'min(520px, 100%)',
-          background: 'linear-gradient(180deg, #f9fbff 0%, #f1f5f9 70%)',
+          background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
           borderLeft: '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
-          color: '#0f172a',
+          color: '#4A5D23',
           boxShadow: '-40px 0 80px rgba(15, 23, 42, 0.15)',
           height: '100vh',
           overflow: 'hidden',
@@ -187,12 +187,12 @@ export const ParticipantDetailSidebar = ({
                 flexShrink: 1,
               }}
             >
-              <MonitorPlay size={26} strokeWidth={2.4} color="#0f172a" />
+              <MonitorPlay size={26} strokeWidth={2.4} color="#4A5D23" />
               <h3
                 style={{
                   fontWeight: 800,
                   fontSize: '20px',
-                  color: '#0f172a',
+                  color: '#4A5D23',
                 }}
               >
                 세부 모니터링
@@ -202,7 +202,7 @@ export const ParticipantDetailSidebar = ({
               onClick={onClose}
               style={{
                 padding: '10px',
-                background: '#f8fafc',
+                background: '#F7F9F2',
                 whiteSpace: 'nowrap',
                 margin: 0,
                 border: '1px solid rgba(203,213,225,1)',
@@ -212,13 +212,13 @@ export const ParticipantDetailSidebar = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s',
-                color: '#0f172a',
+                color: '#4A5D23',
               }}
               onMouseOver={e => {
                 e.currentTarget.style.background = '#ffffff';
               }}
               onMouseOut={e => {
-                e.currentTarget.style.background = '#f8fafc';
+                e.currentTarget.style.background = '#F7F9F2';
               }}
             >
               <X size={18} strokeWidth={2.5} />
@@ -249,7 +249,7 @@ export const ParticipantDetailSidebar = ({
                 style={{
                   fontSize: '16px',
                   fontWeight: 800,
-                  color: '#0f172a',
+                  color: '#4A5D23',
                   whiteSpace: 'nowrap',
                   paddingRight: '12px',
                 }}
@@ -318,7 +318,7 @@ export const ParticipantDetailSidebar = ({
                       border: '1px solid rgba(59,130,246,0.2)',
                       fontSize: '13px',
                       fontWeight: 600,
-                      color: '#1d4ed8',
+                      color: '#8FA963',
                     }}
                   >
                     {disease}
@@ -339,7 +339,7 @@ export const ParticipantDetailSidebar = ({
                 style={{
                   fontSize: '18px',
                   fontWeight: 700,
-                  color: '#0f172a',
+                  color: '#4A5D23',
                 }}
               >
                 아침 8시 · 저녁 8시
@@ -400,7 +400,7 @@ export const ParticipantDetailSidebar = ({
             >
               <div
                 style={{
-                  background: '#f8fafc',
+                  background: '#F7F9F2',
                   borderRadius: '16px',
                   border: '1px solid rgba(226,232,240,1)',
                   padding: '14px',
@@ -432,7 +432,7 @@ export const ParticipantDetailSidebar = ({
                       <div
                         style={{
                           fontSize: '13px',
-                          color: '#475569',
+                          color: '#4A5D23',
                           lineHeight: 1.5,
                           background: '#e0f2fe',
                           padding: '10px 12px',
@@ -467,7 +467,7 @@ export const ParticipantDetailSidebar = ({
                       <div
                         style={{
                           fontSize: '13px',
-                          color: '#0f172a',
+                          color: '#4A5D23',
                           lineHeight: 1.5,
                           fontWeight: 600,
                           background: '#bae6fd',
@@ -486,7 +486,7 @@ export const ParticipantDetailSidebar = ({
                       style={{
                         fontSize: '11px',
                         fontWeight: 800,
-                        color: '#0f172a',
+                        color: '#4A5D23',
                         width: '32px',
                       }}
                     >
@@ -495,11 +495,11 @@ export const ParticipantDetailSidebar = ({
                     <div
                       style={{
                         fontSize: '14px',
-                        color: '#0f172a',
+                        color: '#4A5D23',
                         fontWeight: 600,
                         background: isWarning
                           ? 'linear-gradient(135deg, #fee2e2, #fecaca)'
-                          : '#e2e8f0',
+                          : '#E9F0DF',
                         padding: '12px 14px',
                         borderRadius: '14px',
                         borderTopLeftRadius: '4px',
