@@ -373,8 +373,13 @@ export default function Home() {
               connect={firstConnection.connected}
               audio
               video={false}
-              className={styles.room}
-            >
+              className={styles.room}              options={{
+                audioCaptureDefaults: {
+                  autoGainControl: true,
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                },
+              }}            >
               <div className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}>
                 {/* Error State */}
                 {error && (
@@ -425,6 +430,13 @@ export default function Home() {
                             width: '100%',
                             height: '100%',
                             display: 'contents',
+                          }}
+                          options={{
+                            audioCaptureDefaults: {
+                              autoGainControl: true,
+                              echoCancellation: true,
+                              noiseSuppression: true,
+                            },
                           }}
                         >
                           <RoomTracks

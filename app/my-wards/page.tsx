@@ -77,6 +77,7 @@ export default function MyWardsPage() {
     rate: 0,
   });
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
 
   const computeTotals = useCallback((items: Ward[]) => {
     const total = items.length;
@@ -160,6 +161,17 @@ export default function MyWardsPage() {
     }
     setHasLoaded(true);
   }, [computeTotals, data]);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      setRefreshKey(k => k + 1);
+    }, 30000); // 30초마다 자동 새로고침
+
+    return () => clearInterval(interval);
+  }, [autoRefresh]);
 
   const filteredWards = useMemo(() => {
     // 전체 목록은 연동/미연동 모두, 'pending'일 때만 미연동만 노출
@@ -543,6 +555,55 @@ export default function MyWardsPage() {
                   >
                     {totals.pending}
                   </span>
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  aria-label={autoRefresh ? '자동 새로고침 끄기' : '자동 새로고침 켜기'}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: autoRefresh ? '#ecfdf5' : '#ffffff',
+                    color: autoRefresh ? '#059669' : '#64748b',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  <RefreshIcon size={16} />
+                  {autoRefresh ? '자동 새로고침 ON' : '자동 새로고침 OFF'}
+                </button>
+
+                <button
+                  onClick={() => setRefreshKey(k => k + 1)}
+                  disabled={loading}
+                  aria-label="수동 새로고침"
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: loading ? '#f1f5f9' : '#ffffff',
+                    color: loading ? '#94a3b8' : '#1e293b',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    whiteSpace: 'nowrap',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  <RefreshIcon size={16} />
+                  새로고침
                 </button>
               </div>
 
