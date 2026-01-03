@@ -222,6 +222,97 @@
   line-height: 1.5;
 }
 
+.editSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editLabel {
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.editInput,
+.editTextarea,
+.editSelect {
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--beneficiary-heading);
+  background-color: #f8fafc;
+}
+
+.editTextarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.editHelper {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+.editActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editSave {
+  background: #4a5d23;
+  color: #ffffff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.editCancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.editSave:disabled,
+.editCancel:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.editError {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.editSuccess {
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .sectionTitle {
   font-size: 13px;
   font-weight: 900;
@@ -386,6 +477,10 @@
   color: #ffffff;
   font-weight: 900;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sentiment {

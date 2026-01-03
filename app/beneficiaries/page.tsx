@@ -5,7 +5,7 @@ import SidebarLayout from '../../components/SidebarLayout';
 import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
 import DetailModal, {
   type BeneficiaryDetail,
-  type BeneficiaryLog,
+  type BeneficiaryUpdatePayload,
 } from './DetailModal';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -74,7 +74,13 @@ const clearAdminSession = () => {
 };
 
 const EMPTY_DETAIL: BeneficiaryDetail = {
+  name: null,
+  email: null,
   phoneNumber: null,
+  birthDate: null,
+  address: null,
+  gender: null,
+  type: null,
   guardian: null,
   diseases: [],
   medication: null,
@@ -92,6 +98,8 @@ export default function BeneficiariesPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [detailOverride, setDetailOverride] =
+    useState<BeneficiaryDetailPayload | null>(null);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
   useEffect(() => {
@@ -109,6 +117,7 @@ export default function BeneficiariesPage() {
 
   useEffect(() => {
     setDeleteError(null);
+    setDetailOverride(null);
   }, [selectedId]);
 
   const { data, loading, error } = useAuthedFetch<BeneficiariesApiResponse>({
@@ -223,6 +232,49 @@ export default function BeneficiariesPage() {
     }
   };
 
+  const handleUpdate = async (
+    id: string,
+    payload: BeneficiaryUpdatePayload,
+  ): Promise<BeneficiaryDetailPayload | null> => {
+    try {
+      const apiBase = getApiBase();
+      const token = requireAdminToken();
+      const response = await fetch(
+        `${apiBase}/v1/admin/beneficiaries/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `정보 수정에 실패했습니다. (HTTP ${response.status})`,
+        );
+      }
+
+      const result = (await response.json()) as BeneficiaryDetailResponse;
+      setDetailOverride(result.data);
+      setRefreshKey(prev => prev + 1);
+      return result.data;
+    } catch (err) {
+      if (err instanceof AuthError) {
+        clearAdminSession();
+        window.location.replace('/login');
+        return null;
+      }
+      throw err;
+    }
+  };
+
   const items = useMemo<Beneficiary[]>(() => {
     const apiItems = Array.isArray(data?.data) ? data?.data : [];
     return apiItems.map((item: ApiBeneficiary, index: number) => {
@@ -292,11 +344,20 @@ export default function BeneficiariesPage() {
     const base = items.find(item => item.id === selectedId);
     if (!base) return null;
     const detail =
-      detailResponse?.data.id === selectedId
+      detailOverride?.id === selectedId
+        ? detailOverride
+        : detailResponse?.data.id === selectedId
         ? detailResponse.data
         : EMPTY_DETAIL;
     return { base, detail, detailLoading, detailError };
-  }, [detailError, detailLoading, detailResponse, items, selectedId]);
+  }, [
+    detailError,
+    detailLoading,
+    detailOverride,
+    detailResponse,
+    items,
+    selectedId,
+  ]);
 
   return (
     <SidebarLayout>
@@ -328,6 +389,7 @@ export default function BeneficiariesPage() {
             onDelete={() => handleDelete(selectedData.base.id)}
             deleting={deleteLoading}
             deleteError={deleteError}
+            onUpdate={payload => handleUpdate(selectedData.base.id, payload)}
           />
         )}
       </div>
