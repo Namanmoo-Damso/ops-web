@@ -139,6 +139,32 @@ const RoomTracks = ({
     { onlySubscribed: false },
   );
 
+  // Manually control audio subscriptions - ONLY subscribe to selected participant
+  useEffect(() => {
+    audioTracks.forEach(trackRef => {
+      const participantId =
+        trackRef.participant.identity || trackRef.participant.sid;
+      const isAgent =
+        participantId.startsWith('agent-') ||
+        participantId.startsWith('admin_');
+      const isSelected = participantId === selectedParticipantForAudio;
+
+      // Always unsubscribe from agents/admins
+      if (isAgent) {
+        (trackRef.publication as any)?.setSubscribed?.(false);
+        console.log('[FORCE UNSUBSCRIBE AGENT]', participantId);
+      }
+      // For regular participants, only subscribe if selected
+      else if (selectedParticipantForAudio) {
+        (trackRef.publication as any)?.setSubscribed?.(isSelected);
+        console.log(
+          isSelected ? '[SUBSCRIBE]' : '[UNSUBSCRIBE]',
+          participantId,
+        );
+      }
+    });
+  }, [audioTracks, selectedParticipantForAudio]);
+
   // Filter out admin and agent participants (they are invisible in grid)
   const tracks = allTracks.filter(
     track =>
@@ -146,13 +172,26 @@ const RoomTracks = ({
       !track.participant.identity.startsWith('agent-'),
   );
 
-  // Filter audio tracks to only include selected participant and exclude AI agents
+  // Filter audio tracks to only include selected participant and exclude AI agents and admins
   const filteredAudioTracks = audioTracks.filter(track => {
     if (!selectedParticipantForAudio) return false;
     const participantId = track.participant.identity || track.participant.sid;
-    // Exclude AI agents from audio
-    if (participantId.startsWith('agent-')) return false;
-    return participantId === selectedParticipantForAudio;
+
+    // Exclude AI agents and admin from audio - they should NEVER be heard
+    if (
+      participantId.startsWith('agent-') ||
+      participantId.startsWith('admin_')
+    ) {
+      console.log(`[AUDIO FILTER] Excluding ${participantId} (agent/admin)`);
+      return false;
+    }
+
+    // Only play audio for the selected participant
+    const shouldPlay = participantId === selectedParticipantForAudio;
+    console.log(
+      `[AUDIO FILTER] ${participantId} === ${selectedParticipantForAudio}? ${shouldPlay}`,
+    );
+    return shouldPlay;
   });
 
   const getParticipantId = (participant: any) =>
@@ -195,16 +234,23 @@ const RoomTracks = ({
 
   return (
     <>
-      {filteredAudioTracks.map(audioTrackRef => (
-        <TrackRefContext.Provider
-          key={
-            audioTrackRef.participant.identity || audioTrackRef.participant.sid
-          }
-          value={audioTrackRef}
-        >
-          <RoomAudioRenderer />
-        </TrackRefContext.Provider>
-      ))}
+      {filteredAudioTracks.map(audioTrackRef => {
+        console.log(
+          '[RENDERING AUDIO]',
+          audioTrackRef.participant.identity || audioTrackRef.participant.sid,
+        );
+        return (
+          <TrackRefContext.Provider
+            key={
+              audioTrackRef.participant.identity ||
+              audioTrackRef.participant.sid
+            }
+            value={audioTrackRef}
+          >
+            <RoomAudioRenderer />
+          </TrackRefContext.Provider>
+        );
+      })}
       {tracks.map(trackRef => {
         const participant = trackRef.participant;
         if (!participant) return null;
@@ -493,7 +539,7 @@ export default function Home() {
               serverUrl={firstConnection.serverUrl}
               token={firstConnection.token}
               connect={firstConnection.connected}
-              audio
+              audio={false}
               video={false}
               className={styles.room}
               options={{
@@ -552,7 +598,7 @@ export default function Home() {
                           serverUrl={slot.connection.serverUrl}
                           token={slot.connection.token}
                           connect={slot.connection.connected}
-                          audio
+                          audio={false}
                           video={false}
                           style={{
                             width: '100%',
