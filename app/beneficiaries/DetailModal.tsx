@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, type CSSProperties } from 'react';
+import { useEffect, useRef } from 'react';
+import styles from './DetailModal.module.css';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -100,118 +101,49 @@ export default function DetailModal({
 
   const status = beneficiary.status;
   const isWarning = status === 'WARNING';
-  const isCaution = status === 'CAUTION';
-  const badgeColor = isWarning ? '#dc2626' : isCaution ? '#c2410c' : '#16a34a';
-  const badgeBg = isWarning ? '#fef2f2' : isCaution ? '#fff7ed' : '#ecfdf3';
+  const statusTagClass =
+    status === 'WARNING'
+      ? styles.tagWarning
+      : status === 'CAUTION'
+      ? styles.tagCaution
+      : styles.tagNormal;
+  const headerClassName = `${styles.header} ${
+    isWarning ? styles.headerWarning : ''
+  }`.trim();
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       onClick={handleOverlayClick}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15,23,42,0.45)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '12px',
-        // 사이드바가 열려 있을 때 좌측 공간을 확보해 모달이 가리지 않도록 추가 패딩
-        paddingLeft: 'calc(var(--sidebar-width, 0px) + 12px)',
-        zIndex: 2000,
-      }}
+      className={styles.overlay}
     >
       <div
         ref={dialogRef}
         tabIndex={-1}
         onClick={e => e.stopPropagation()}
-        style={{
-          // 사이드바 폭을 제외한 영역에서 여백을 둔 최대 너비 설정 (sidebar 있을 때 더 좁게 맞춤)
-          width:
-            'min(1300px, calc(100vw - var(--sidebar-width, 0px) - 48px))',
-          maxWidth:
-            'min(1300px, calc(100vw - var(--sidebar-width, 0px) - 48px))',
-          backgroundColor: '#ffffff',
-          borderRadius: '18px',
-          boxShadow: '0 24px 80px rgba(15, 23, 42, 0.32)',
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: '90vh',
-        }}
+        className={styles.dialog}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '18px 22px',
-            borderBottom: '1px solid #e2e8f0',
-            background:
-              status === 'WARNING'
-                ? 'linear-gradient(90deg, #fff5f5 0%, #fff 70%)'
-                : '#f8fafc',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div className={headerClassName}>
+          <div className={styles.userRow}>
             <div
               aria-hidden="true"
-              style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '16px',
-                backgroundColor: isWarning ? '#dc2626' : '#64748b',
-                color: '#ffffff',
-                display: 'grid',
-                placeItems: 'center',
-                fontWeight: 900,
-                fontSize: '18px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-              }}
+              className={`${styles.avatar} ${
+                isWarning ? styles.avatarWarning : styles.avatarDefault
+              }`}
             >
               {beneficiary.name ? beneficiary.name.charAt(0) : '?'}
             </div>
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: 900,
-                    color: '#0f172a',
-                  }}
-                >
-                  {beneficiary.name}
-                </div>
-                <span style={{ color: '#94a3b8', fontWeight: 700 }}>
+            <div className={styles.titleBlock}>
+              <div className={styles.titleRow}>
+                <div className={styles.name}>{beneficiary.name}</div>
+                <span className={styles.age}>
                   ({beneficiary.age ?? '-'}세 / {beneficiary.gender ?? '-'})
                 </span>
               </div>
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
+              <div className={styles.metaRow}>
                 <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    backgroundColor: badgeBg,
-                    color: badgeColor,
-                    padding: '6px 10px',
-                    borderRadius: '999px',
-                    fontWeight: 800,
-                    fontSize: '12px',
-                    border: `1px solid ${badgeColor}1f`,
-                  }}
+                  className={`${styles.tag} ${statusTagClass}`}
                 >
                   ●{' '}
                   {status === 'WARNING'
@@ -220,83 +152,34 @@ export default function DetailModal({
                     ? '주의 필요'
                     : '안정적'}
                 </span>
-                <span style={{ color: '#cbd5e1' }}>|</span>
-                <span style={{ color: '#475569', fontWeight: 700 }}>
+                <span className={styles.metaSeparator}>|</span>
+                <span className={styles.metaValue}>
                   {beneficiary.type ?? '유형 정보 없음'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button
-              type="button"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                color: '#475569',
-                fontWeight: 800,
-                boxShadow: '0 6px 16px rgba(15,23,42,0.08)',
-                cursor: 'pointer',
-              }}
-            >
+          <div className={styles.actions}>
+            <button type="button" className={styles.ghostButton}>
               담소일지 (상담 기록)
             </button>
             <button
               type="button"
               aria-label="닫기"
               onClick={onClose}
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#ffffff',
-                color: '#64748b',
-                fontWeight: 800,
-                cursor: 'pointer',
-              }}
+              className={styles.closeButton}
             >
               ×
             </button>
           </div>
         </div>
 
-        <div
-          style={{
-            padding: '24px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '18px',
-            backgroundColor: '#f8fafc',
-          }}
-        >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '16px',
-            }}
-          >
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-            >
+        <div className={styles.body}>
+          <div className={styles.grid}>
+            <div className={styles.column}>
               <SectionTitle>기본 정보</SectionTitle>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr',
-                  gap: '10px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '14px',
-                  padding: '14px',
-                  boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
-                }}
-              >
+              <div className={styles.card}>
                 <InfoItem label="대상자 전화번호" value={detail.phoneNumber} />
                 <InfoItem label="주소" value={beneficiary.address ?? '-'} />
                 <InfoItem label="보호자" value={detail.guardian ?? '-'} />
@@ -304,22 +187,9 @@ export default function DetailModal({
               </div>
             </div>
 
-            <div
-              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
-            >
+            <div className={styles.column}>
               <SectionTitle>건강 정보</SectionTitle>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr',
-                  gap: '10px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '14px',
-                  padding: '14px',
-                  boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
-                }}
-              >
+              <div className={styles.card}>
                 <InfoItem
                   label="기저질환"
                   value={
@@ -333,129 +203,39 @@ export default function DetailModal({
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: '#fffbeb',
-              border: '1px solid #fef3c7',
-              borderRadius: '14px',
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px',
-              boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
-            }}
-          >
+          <div className={styles.noteCard}>
             <SectionTitle>참고사항 (특이사항)</SectionTitle>
-            <div
-              style={{
-                color: '#92400e',
-                fontWeight: 700,
-                lineHeight: 1.5,
-              }}
-            >
-              {detail.notes || '추가 메모가 없습니다.'}
-            </div>
+            <div className={styles.noteText}>{detail.notes || '추가 메모가 없습니다.'}</div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '14px',
-              padding: '16px',
-              boxShadow: '0 10px 26px rgba(15,23,42,0.06)',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '10px',
-              }}
-            >
+          <div className={styles.card}>
+            <div className={styles.logHeader}>
               <SectionTitle>최근 안부 및 상담 기록</SectionTitle>
-              <div style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 700 }}>
-                총 {detail.recentLogs.length}건
-              </div>
+              <div className={styles.logCount}>총 {detail.recentLogs.length}건</div>
             </div>
             {detail.recentLogs.length === 0 ? (
-              <div
-                style={{
-                  padding: '14px',
-                  borderRadius: '10px',
-                  backgroundColor: '#f8fafc',
-                  color: '#475569',
-                  fontWeight: 700,
-                }}
-              >
-                최근 기록이 없습니다.
-              </div>
+              <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className={styles.logList}>
                 {detail.recentLogs.map(log => (
-                  <div
-                    key={log.id}
-                    style={{
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      padding: '12px',
-                      display: 'flex',
-                      gap: '12px',
-                      alignItems: 'flex-start',
-                      backgroundColor: '#f8fafc',
-                    }}
-                  >
+                  <div key={log.id} className={styles.logCard}>
                     <div
                       aria-hidden="true"
-                      style={{
-                        width: '38px',
-                        height: '38px',
-                        borderRadius: '10px',
-                        backgroundColor: log.type.includes('AI') ? '#2563eb' : '#334155',
-                        color: '#ffffff',
-                        display: 'grid',
-                        placeItems: 'center',
-                        fontWeight: 800,
-                        fontSize: '12px',
-                      }}
+                      className={`${styles.logBadge} ${
+                        log.type.includes('AI') ? styles.logBadgeAi : styles.logBadgeDefault
+                      }`}
                     >
                       {log.type.includes('AI') ? 'AI' : 'LOG'}
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: '6px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            gap: '8px',
-                            alignItems: 'center',
-                            fontWeight: 800,
-                            color: '#0f172a',
-                          }}
-                        >
+                    <div className={styles.logBody}>
+                      <div className={styles.logMeta}>
+                        <div className={styles.logTitle}>
                           <span>{log.type}</span>
                           <SentimentBadge sentiment={log.sentiment} />
                         </div>
-                        <div
-                          style={{
-                            color: '#94a3b8',
-                            fontWeight: 700,
-                            fontSize: '12px',
-                          }}
-                        >
-                          {log.date}
-                        </div>
+                        <div className={styles.textMuted}>{log.date}</div>
                       </div>
-                      <div style={{ color: '#334155', fontWeight: 700, lineHeight: 1.5 }}>
-                        {log.content}
-                      </div>
+                      <div className={styles.logContent}>{log.content}</div>
                     </div>
                   </div>
                 ))}
@@ -464,53 +244,15 @@ export default function DetailModal({
           </div>
         </div>
 
-        <div
-          style={{
-            padding: '16px 22px',
-            borderTop: '1px solid #e2e8f0',
-            backgroundColor: '#ffffff',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <button
-            type="button"
-            style={{
-              padding: '10px 14px',
-              borderRadius: '12px',
-              border: 'none',
-              backgroundColor: '#f1f5f9',
-              color: '#ef4444',
-              fontWeight: 800,
-              cursor: 'pointer',
-            }}
-          >
+        <div className={styles.footer}>
+          <button type="button" className={styles.deleteButton}>
             대상자 삭제
           </button>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#94a3b8',
-                fontWeight: 700,
-              }}
-            >
+          <div className={styles.footerActions}>
+            <div className={styles.textMuted}>
               최근 통화: {beneficiary.lastCall ?? '정보 없음'}
             </div>
-            <button
-              type="button"
-              style={{
-                padding: '10px 14px',
-                borderRadius: '12px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: '#4A5D23',
-                color: '#ffffff',
-                fontWeight: 900,
-                cursor: 'pointer',
-              }}
-            >
+            <button type="button" className={styles.editButton}>
               정보 수정
             </button>
           </div>
@@ -521,30 +263,14 @@ export default function DetailModal({
 }
 
 function SectionTitle({ children }: { children: string }) {
-  return (
-    <div
-      style={{
-        fontSize: '13px',
-        fontWeight: 900,
-        color: '#0f172a',
-        textTransform: 'uppercase',
-        letterSpacing: '0.4px',
-      }}
-    >
-      {children}
-    </div>
-  );
+  return <div className={styles.sectionTitle}>{children}</div>;
 }
 
 function InfoItem({ label, value }: { label: string; value: string | null }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-      <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: 800 }}>
-        {label}
-      </span>
-      <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '14px' }}>
-        {value ?? '-'}
-      </span>
+    <div className={styles.infoRow}>
+      <span className={styles.infoLabel}>{label}</span>
+      <span className={styles.infoValue}>{value ?? '-'}</span>
     </div>
   );
 }
@@ -555,52 +281,18 @@ function SentimentBadge({
   sentiment: BeneficiaryLog['sentiment'];
 }) {
   if (!sentiment) return null;
-  const style: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '4px 8px',
-    borderRadius: '999px',
-    fontWeight: 800,
-    fontSize: '11px',
-  };
+
   if (sentiment === 'negative') {
     return (
-      <span
-        style={{
-          ...style,
-          backgroundColor: '#fef2f2',
-          color: '#dc2626',
-          border: '1px solid #fecdd3',
-        }}
-      >
-        위험 감지
-      </span>
+      <span className={`${styles.sentiment} ${styles.sentimentNegative}`}>위험 감지</span>
     );
   }
   if (sentiment === 'positive') {
     return (
-      <span
-        style={{
-          ...style,
-          backgroundColor: '#ecfdf3',
-          color: '#15803d',
-          border: '1px solid #bbf7d0',
-        }}
-      >
-        기분 좋음
-      </span>
+      <span className={`${styles.sentiment} ${styles.sentimentPositive}`}>기분 좋음</span>
     );
   }
   return (
-    <span
-      style={{
-        ...style,
-        backgroundColor: '#f8fafc',
-        color: '#475569',
-        border: '1px solid #e2e8f0',
-      }}
-    >
-      특이사항 없음
-    </span>
+    <span className={`${styles.sentiment} ${styles.sentimentNeutral}`}>특이사항 없음</span>
   );
 }

@@ -245,6 +245,7 @@ export default function BeneficiariesPage() {
   const selectedData = useMemo(() => {
     if (!selectedId) return null;
     const base = items.find(item => item.id === selectedId);
+    if (!base) return null;
     const detail = BENEFICIARY_DETAIL_MOCKS[selectedId] ?? DEFAULT_DETAIL;
     return { base, detail };
   }, [items, selectedId]);
@@ -271,7 +272,7 @@ export default function BeneficiariesPage() {
           onPageChange={setPage}
           pageTotal={pageTotal}
         />
-        {selectedId && selectedData?.base && (
+        {selectedData && (
           <DetailModal
             beneficiary={selectedData.base}
             detail={selectedData.detail}
