@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+import DetailModal, {
+  type BeneficiaryDetail,
+  type BeneficiaryLog,
+} from './DetailModal';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_PAGE_SIZE = 20;
@@ -37,6 +41,81 @@ type BeneficiariesApiResponse = {
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
+const DEFAULT_DETAIL: BeneficiaryDetail = {
+  phoneNumber: '-',
+  guardian: '-',
+  diseases: [],
+  medication: '-',
+  notes: '특이사항 없음',
+  recentLogs: [],
+};
+
+const BENEFICIARY_DETAIL_MOCKS: Record<string, BeneficiaryDetail> = {
+  '1': {
+    phoneNumber: '010-1234-1111',
+    guardian: '아들 박성훈 (010-1234-5678)',
+    diseases: ['고혈압', '협심증'],
+    medication: '혈압약 (아침/저녁)',
+    notes:
+      '거동이 불편하여 방문 시 초인종을 길게 눌러주세요. 강아지를 키우고 계십니다.',
+    recentLogs: [
+      {
+        id: 1,
+        date: '오늘 14:30',
+        type: 'AI 안부',
+        content: '가슴 통증 호소 (위험 감지)',
+        sentiment: 'negative',
+      },
+      {
+        id: 2,
+        date: '5/07 10:00',
+        type: '정기 방문',
+        content: '반찬 배달 및 청소 지원',
+        sentiment: 'neutral',
+      },
+      {
+        id: 3,
+        date: '5/06 14:00',
+        type: 'AI 안부',
+        content: '식사 잘 하심, 기분 좋음',
+        sentiment: 'positive',
+      },
+    ],
+  },
+  '2': {
+    phoneNumber: '010-9876-2222',
+    guardian: '딸 박지민 (010-9876-5432)',
+    diseases: ['관절염'],
+    medication: '진통제 (필요시)',
+    notes: '난청이 있으셔서 크게 말씀해드려야 합니다.',
+    recentLogs: [
+      {
+        id: 1,
+        date: '어제 10:00',
+        type: 'AI 안부',
+        content: '복지관 다녀오심',
+        sentiment: 'positive',
+      },
+    ],
+  },
+  '3': {
+    phoneNumber: '010-3333-3333',
+    guardian: '손자 이민호 (010-3333-4444)',
+    diseases: ['우울증', '불면증'],
+    medication: '수면제',
+    notes: '외로움 호소, 주 2회 통화 권장.',
+    recentLogs: [
+      {
+        id: 1,
+        date: '5/05 11:00',
+        type: 'AI 안부',
+        content: '외로움 호소',
+        sentiment: 'negative',
+      },
+    ],
+  },
+};
 
 export default function BeneficiariesPage() {
   const [search, setSearch] = useState('');
@@ -124,8 +203,8 @@ export default function BeneficiariesPage() {
     return typeof data?.total === 'number'
       ? data.total
       : Array.isArray(data?.data)
-        ? data.data.length
-        : 0;
+      ? data.data.length
+      : 0;
   }, [data?.data, data?.total]);
 
   // 검색어 기준 1차 필터링 (서버가 검색을 지원하지 않는 경우 대비)
@@ -163,6 +242,13 @@ export default function BeneficiariesPage() {
     return Math.max(1, Math.ceil(base / pageSize));
   }, [items.length, pageSize, totalCount]);
 
+  const selectedData = useMemo(() => {
+    if (!selectedId) return null;
+    const base = items.find(item => item.id === selectedId);
+    const detail = BENEFICIARY_DETAIL_MOCKS[selectedId] ?? DEFAULT_DETAIL;
+    return { base, detail };
+  }, [items, selectedId]);
+
   return (
     <SidebarLayout>
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
@@ -185,6 +271,13 @@ export default function BeneficiariesPage() {
           onPageChange={setPage}
           pageTotal={pageTotal}
         />
+        {selectedId && selectedData?.base && (
+          <DetailModal
+            beneficiary={selectedData.base}
+            detail={selectedData.detail}
+            onClose={() => setSelectedId(null)}
+          />
+        )}
       </div>
     </SidebarLayout>
   );
@@ -405,7 +498,7 @@ function BeneficiaryTable({
           <span style={{ color: '#4A5D23' }}>{items.length}</span>명 표시
         </div>
         <div style={{ color: '#94a3b8', fontSize: '12px' }}>
-          행 클릭 시 상세 패널은 추후 추가 예정입니다.
+          행 또는 관리 버튼 클릭 시 상세 모달을 확인할 수 있습니다.
         </div>
       </div>
 
@@ -581,6 +674,7 @@ function BeneficiaryTable({
                       aria-label={`${item.name} 관리`}
                       onClick={e => {
                         e.stopPropagation();
+                        onSelect(item.id);
                       }}
                       style={{
                         padding: '8px 10px',
@@ -666,7 +760,12 @@ type PaginationProps = {
   onPageChange: (page: number) => void;
 };
 
-function Pagination({ page, pageTotal, loading, onPageChange }: PaginationProps) {
+function Pagination({
+  page,
+  pageTotal,
+  loading,
+  onPageChange,
+}: PaginationProps) {
   return (
     <div
       style={{
