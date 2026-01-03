@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { palette, shadows } from '../theme';
 
 type StatCardProps = {
   label: string;
@@ -10,17 +11,17 @@ type StatCardProps = {
   footer?: string;
 };
 
+const borderStyle = `1px solid ${palette.border}`;
+
 export function StatCard({ label, value, color, icon, extra, highlight, footer }: StatCardProps) {
   return (
     <div
       style={{
-        background: '#ffffff',
-        border: highlight ? `1px solid ${color}33` : '1px solid #E9F0DF',
+        background: palette.panel,
+        border: highlight ? `1px solid ${color}33` : borderStyle,
         borderRadius: '14px',
         padding: '16px',
-        boxShadow: highlight
-          ? '0 10px 30px rgba(220,38,38,0.1)'
-          : '0 6px 18px rgba(15,23,42,0.06)',
+        boxShadow: highlight ? shadows.dangerGlow : shadows.lifted,
         position: 'relative',
         overflow: 'hidden',
       }}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
+import { palette, shadows } from '../theme';
 import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
 import { useAdminApi } from '../../hooks/useAdminApi';
 import DetailModal, {
@@ -11,6 +12,7 @@ import DetailModal, {
 
 const SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_PAGE_SIZE = 20;
+const borderStyle = `1px solid ${palette.border}`;
 
 type Beneficiary = {
   id: string;
@@ -410,7 +412,7 @@ function PageHeader() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div>
           <div
-            style={{ fontSize: '22px', fontWeight: 800, color: '#4A5D23' }}
+            style={{ fontSize: '22px', fontWeight: 800, color: palette.primaryDark }}
             role="heading"
             aria-level={1}
           >
@@ -471,10 +473,10 @@ function FilterBar({
             width: '100%',
             padding: '10px 12px 10px 14px',
             borderRadius: '12px',
-            border: '1px solid #E9F0DF',
-            backgroundColor: '#F7F9F2',
+            border: borderStyle,
+            backgroundColor: palette.background,
             fontSize: '14px',
-            color: '#4A5D23',
+            color: palette.primaryDark,
             outline: 'none',
           }}
         />
@@ -482,7 +484,7 @@ function FilterBar({
       <div
         style={{
           display: 'flex',
-          backgroundColor: '#F0F5E8',
+          backgroundColor: palette.soft,
           padding: '6px',
           borderRadius: '12px',
           gap: '6px',
@@ -498,12 +500,12 @@ function FilterBar({
             padding: '10px 14px',
             borderRadius: '10px',
             border: 'none',
-            backgroundColor: filter === 'all' ? '#ffffff' : 'transparent',
-            color: filter === 'all' ? '#4A5D23' : '#94a3b8',
+            backgroundColor: filter === 'all' ? palette.panel : 'transparent',
+            color: filter === 'all' ? palette.primaryDark : palette.textSoft,
             fontWeight: 700,
             fontSize: '13px',
             boxShadow:
-              filter === 'all' ? '0 6px 16px rgba(15,23,42,0.08)' : 'none',
+              filter === 'all' ? shadows.raised : 'none',
             cursor: 'pointer',
           }}
         >
@@ -517,12 +519,12 @@ function FilterBar({
             padding: '10px 14px',
             borderRadius: '10px',
             border: 'none',
-            backgroundColor: filter === 'risk' ? '#ffffff' : 'transparent',
-            color: filter === 'risk' ? '#dc2626' : '#94a3b8',
+            backgroundColor: filter === 'risk' ? palette.panel : 'transparent',
+            color: filter === 'risk' ? palette.danger : palette.textSoft,
             fontWeight: 700,
             fontSize: '13px',
             boxShadow:
-              filter === 'risk' ? '0 6px 16px rgba(15,23,42,0.08)' : 'none',
+              filter === 'risk' ? shadows.raised : 'none',
             cursor: 'pointer',
             display: 'inline-flex',
             gap: '6px',
@@ -532,8 +534,8 @@ function FilterBar({
           위험군
           <span
             style={{
-              backgroundColor: '#fef2f2',
-              color: '#dc2626',
+              backgroundColor: palette.dangerSoft,
+              color: palette.danger,
               borderRadius: '999px',
               padding: '2px 8px',
               fontSize: '12px',
@@ -575,18 +577,18 @@ function BeneficiaryTable({
   return (
     <div
       style={{
-        background: '#ffffff',
-        border: '1px solid #E9F0DF',
+        background: palette.panel,
+        border: borderStyle,
         borderRadius: '16px',
-        boxShadow: '0 6px 18px rgba(15, 23, 42, 0.08)',
+        boxShadow: shadows.lifted,
         overflow: 'hidden',
       }}
     >
       <div
         style={{
           padding: '14px 16px',
-          borderBottom: '1px solid #E9F0DF',
-          backgroundColor: '#F7F9F2',
+          borderBottom: borderStyle,
+          backgroundColor: palette.background,
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
@@ -599,15 +601,15 @@ function BeneficiaryTable({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            color: '#4A5D23',
+            color: palette.primaryDark,
             fontWeight: 700,
             fontSize: '13px',
           }}
         >
           전체 {totalCount}명 중{' '}
-          <span style={{ color: '#4A5D23' }}>{items.length}</span>명 표시
+          <span style={{ color: palette.primaryDark }}>{items.length}</span>명 표시
         </div>
-        <div style={{ color: '#94a3b8', fontSize: '12px' }}>
+        <div style={{ color: palette.textSoft, fontSize: '12px' }}>
           행 또는 관리 버튼 클릭 시 상세 모달을 확인할 수 있습니다.
         </div>
       </div>
@@ -617,7 +619,7 @@ function BeneficiaryTable({
           style={{
             padding: '32px',
             textAlign: 'center',
-            color: '#64748b',
+            color: palette.textMuted,
             fontWeight: 700,
           }}
         >
@@ -630,7 +632,7 @@ function BeneficiaryTable({
           style={{
             padding: '32px',
             textAlign: 'center',
-            color: '#dc2626',
+            color: palette.danger,
             fontWeight: 700,
           }}
         >
@@ -650,12 +652,12 @@ function BeneficiaryTable({
           <thead>
             <tr
               style={{
-                backgroundColor: '#F7F9F2',
-                color: '#4A5D23',
+                backgroundColor: palette.background,
+                color: palette.primaryDark,
                 fontSize: '12px',
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
-                borderBottom: '1px solid #E9F0DF',
+                borderBottom: borderStyle,
               }}
             >
               <th style={{ textAlign: 'left', padding: '14px 16px' }}>
@@ -685,18 +687,18 @@ function BeneficiaryTable({
                   onClick={() => onSelect(item.id)}
                   style={{
                     borderBottom: '1px solid #F0F5E8',
-                    backgroundColor: isSelected ? '#f7f9fb' : '#ffffff',
+                    backgroundColor: isSelected ? palette.background : palette.panel,
                     transition: 'background-color 120ms ease',
                     cursor: 'pointer',
                   }}
                   onMouseEnter={e => {
                     if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = '#F7F9F2';
+                      e.currentTarget.style.backgroundColor = palette.background;
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
+                      e.currentTarget.style.backgroundColor = palette.panel;
                     }
                   }}
                 >
@@ -720,14 +722,14 @@ function BeneficiaryTable({
                           style={{
                             fontWeight: 800,
                             fontSize: '15px',
-                            color: '#4A5D23',
+                            color: palette.primaryDark,
                           }}
                         >
                           {item.name}
                         </div>
                         <div
                           style={{
-                            color: '#94a3b8',
+                            color: palette.textSoft,
                             fontSize: '12px',
                             fontWeight: 700,
                           }}
@@ -744,7 +746,7 @@ function BeneficiaryTable({
                   <td
                     style={{
                       padding: '14px 12px',
-                      color: '#4A5D23',
+                      color: palette.primaryDark,
                       fontWeight: 600,
                       maxWidth: '240px',
                       whiteSpace: 'nowrap',
@@ -758,7 +760,7 @@ function BeneficiaryTable({
                   <td
                     style={{
                       padding: '14px 12px',
-                      color: '#4A5D23',
+                      color: palette.primaryDark,
                       fontWeight: 700,
                     }}
                   >
@@ -767,7 +769,7 @@ function BeneficiaryTable({
                   <td
                     style={{
                       padding: '14px 12px',
-                      color: '#64748b',
+                      color: palette.textMuted,
                       fontWeight: 600,
                     }}
                   >
@@ -789,9 +791,9 @@ function BeneficiaryTable({
                       style={{
                         padding: '8px 10px',
                         borderRadius: '10px',
-                        border: '1px solid #E9F0DF',
-                        backgroundColor: '#ffffff',
-                        color: '#94a3b8',
+                        border: borderStyle,
+                        backgroundColor: palette.panel,
+                        color: palette.textSoft,
                         fontWeight: 700,
                         fontSize: '12px',
                         cursor: 'pointer',
@@ -812,7 +814,7 @@ function BeneficiaryTable({
           style={{
             padding: '40px',
             textAlign: 'center',
-            color: '#4A5D23',
+            color: palette.primaryDark,
           }}
         >
           <div
@@ -820,11 +822,11 @@ function BeneficiaryTable({
               width: '60px',
               height: '60px',
               borderRadius: '14px',
-              backgroundColor: '#F0F5E8',
+              backgroundColor: palette.soft,
               display: 'grid',
               placeItems: 'center',
               margin: '0 auto 12px',
-              color: '#94a3b8',
+              color: palette.textSoft,
             }}
             aria-hidden="true"
           >
@@ -834,7 +836,7 @@ function BeneficiaryTable({
             style={{
               fontWeight: 800,
               fontSize: '16px',
-              color: '#4A5D23',
+              color: palette.primaryDark,
             }}
           >
             조건에 맞는 대상자가 없습니다
@@ -842,7 +844,7 @@ function BeneficiaryTable({
           <div
             style={{
               fontSize: '13px',
-              color: '#94a3b8',
+              color: palette.textSoft,
               marginTop: '6px',
             }}
           >
@@ -883,11 +885,11 @@ function Pagination({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '16px',
-        borderTop: '1px solid #E9F0DF',
-        backgroundColor: '#F7F9F2',
+        borderTop: borderStyle,
+        backgroundColor: palette.background,
       }}
     >
-      <div style={{ color: '#64748b', fontSize: '12px', fontWeight: 700 }}>
+      <div style={{ color: palette.textMuted, fontSize: '12px', fontWeight: 700 }}>
         페이지 {page} / {pageTotal}
       </div>
       <div style={{ display: 'flex', gap: '8px' }}>
@@ -898,9 +900,9 @@ function Pagination({
           style={{
             padding: '8px 12px',
             borderRadius: '10px',
-            border: '1px solid #E9F0DF',
-            backgroundColor: '#ffffff',
-            color: page <= 1 || loading ? '#C2D5A8' : '#4A5D23',
+            border: borderStyle,
+            backgroundColor: palette.panel,
+            color: page <= 1 || loading ? palette.secondary : palette.primaryDark,
             fontWeight: 700,
             cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
           }}
@@ -915,9 +917,9 @@ function Pagination({
           style={{
             padding: '8px 12px',
             borderRadius: '10px',
-            border: '1px solid #E9F0DF',
-            backgroundColor: '#ffffff',
-            color: page >= pageTotal || loading ? '#C2D5A8' : '#4A5D23',
+            border: borderStyle,
+            backgroundColor: palette.panel,
+            color: page >= pageTotal || loading ? palette.secondary : palette.primaryDark,
             fontWeight: 700,
             cursor: page >= pageTotal || loading ? 'not-allowed' : 'pointer',
           }}
@@ -947,8 +949,8 @@ function StatusBadge({ status }: StatusBadgeProps) {
       <span
         style={{
           ...baseStyle,
-          backgroundColor: '#fef2f2',
-          color: '#dc2626',
+          backgroundColor: palette.dangerSoft,
+          color: palette.danger,
           borderColor: '#fecdd3',
         }}
       >
@@ -961,7 +963,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
       <span
         style={{
           ...baseStyle,
-          backgroundColor: '#fff7ed',
+          backgroundColor: palette.warningSoft,
           color: '#c2410c',
           borderColor: '#fed7aa',
         }}
@@ -975,7 +977,7 @@ function StatusBadge({ status }: StatusBadgeProps) {
       style={{
         ...baseStyle,
         backgroundColor: '#e0ecff',
-        color: '#8FA963',
+        color: palette.primary,
         borderColor: '#cbdafe',
       }}
     >
@@ -998,8 +1000,8 @@ function ProfileCircle({ status, name }: ProfileCircleProps) {
         width: '40px',
         height: '40px',
         borderRadius: '999px',
-        backgroundColor: isWarning ? '#dc2626' : '#94a3b8',
-        color: '#ffffff',
+        backgroundColor: isWarning ? palette.danger : palette.textSoft,
+        color: palette.panel,
         display: 'grid',
         placeItems: 'center',
         fontWeight: 800,

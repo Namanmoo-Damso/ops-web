@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useCallback, useState, type CSSProperties } from 'react';
+import { palette, shadows } from '../app/theme';
 import AuthGuard from './AuthGuard';
 import { useSessionMonitor } from '../hooks/useSessionMonitor';
 import CsvUploadModal from './CsvUploadModal';
@@ -11,17 +12,6 @@ import { ManualWardPayload } from './ManualWardForm';
 import { AdminInfo } from '../types/admin';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const palette = {
-  primary: '#8FA963',
-  primaryDark: '#4A5D23',
-  secondary: '#C2D5A8',
-  background: '#F7F9F2',
-  panel: '#ffffff',
-  border: '#E9F0DF',
-  text: '#4A5D23',
-  textMuted: '#64748b',
-  textSoft: '#94a3b8',
-};
 
 const IconMenu = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -470,7 +460,7 @@ export default function SidebarLayout({
             placeItems: 'center',
             color: palette.textMuted,
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            boxShadow: shadows.floating,
             zIndex: 9999,
           }}
         >

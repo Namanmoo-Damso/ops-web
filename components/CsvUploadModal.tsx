@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { overlays, palette, shadows } from '../app/theme';
 import CsvUploadPanel, { CleanRow } from './CsvUploadPanel';
 import ManualWardForm, { ManualWardPayload } from './ManualWardForm';
 
@@ -65,7 +66,7 @@ export default function CsvUploadModal({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backgroundColor: overlays.scrim,
         display: 'grid',
         placeItems: 'center',
         zIndex: 10000,
@@ -78,10 +79,10 @@ export default function CsvUploadModal({
           width: '100%',
           maxWidth: '720px',
           borderRadius: '16px',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 20px 50px rgba(15,23,42,0.15)',
+          backgroundColor: palette.panel,
+          boxShadow: shadows.deep,
           padding: '28px',
-          border: '1px solid #E9F0DF',
+          border: `1px solid ${palette.border}`,
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -98,7 +99,7 @@ export default function CsvUploadModal({
               margin: 0,
               fontSize: '18px',
               fontWeight: 700,
-              color: '#4A5D23',
+              color: palette.primaryDark,
             }}
           >
             피보호자 등록
@@ -113,17 +114,17 @@ export default function CsvUploadModal({
               background: 'transparent',
               display: 'grid',
               placeItems: 'center',
-              color: '#94a3b8',
+              color: palette.textSoft,
               cursor: uploading ? 'not-allowed' : 'pointer',
               transition: 'all 150ms ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#F0F5E8';
-              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.backgroundColor = palette.soft;
+              e.currentTarget.style.color = palette.textMuted;
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#94a3b8';
+              e.currentTarget.style.color = palette.textSoft;
             }}
           >
             <IconClose />
@@ -151,9 +152,9 @@ export default function CsvUploadModal({
                 style={{
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  border: isActive ? '1px solid #8FA963' : '1px solid #E9F0DF',
-                  backgroundColor: isActive ? '#F0F5E8' : '#ffffff',
-                  color: isActive ? '#4A5D23' : '#4A5D23',
+                  border: `1px solid ${isActive ? palette.primary : palette.border}`,
+                  backgroundColor: isActive ? palette.soft : palette.panel,
+                  color: isActive ? palette.primaryDark : palette.textMuted,
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: uploading ? 'not-allowed' : 'pointer',

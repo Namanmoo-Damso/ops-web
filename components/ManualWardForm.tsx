@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { palette } from '../app/theme';
 
 export type ManualWardPayload = {
   name: string;
@@ -16,6 +17,8 @@ type ManualWardFormProps = {
   onSubmit: (payload: ManualWardPayload) => Promise<void> | void;
   onCancel: () => void;
 };
+
+const borderStyle = `1px solid ${palette.border}`;
 
 export default function ManualWardForm({
   onSubmit,
@@ -189,14 +192,14 @@ export default function ManualWardForm({
               style={{
                 fontSize: '14px',
                 fontWeight: 600,
-                color: '#4A5D23',
+                color: palette.primaryDark,
                 display: 'flex',
                 gap: '6px',
                 alignItems: 'center',
               }}
             >
               <span>{field.label}</span>
-              {field.required && <span style={{ color: '#dc2626' }}>*</span>}
+              {field.required && <span style={{ color: palette.danger }}>*</span>}
             </label>
             <input
               value={manualForm[field.key as FieldKey]}
@@ -217,27 +220,27 @@ export default function ManualWardForm({
                 borderRadius: '10px',
                 border: fieldErrors[field.key]
                   ? '1px solid #ef4444'
-                  : '1px solid #E9F0DF',
-                backgroundColor: '#F7F9F2',
+                  : borderStyle,
+                backgroundColor: palette.background,
                 fontSize: '14px',
-                color: '#4A5D23',
+                color: palette.primaryDark,
               }}
             />
             {fieldErrors[field.key] && (
-              <span style={{ color: '#ef4444', fontSize: '12px' }}>
+              <span style={{ color: palette.danger, fontSize: '12px' }}>
                 {fieldErrors[field.key]}
               </span>
             )}
           </div>
         ))}
-        <div style={{ fontSize: '12px', color: '#64748b' }}>
+        <div style={{ fontSize: '12px', color: palette.textMuted }}>
           이름과 이메일 또는 전화번호 중 하나는 반드시 입력해주세요.
         </div>
         {errors.global && (
           <div
             style={{
-              backgroundColor: '#fef2f2',
-              color: '#b91c1c',
+              backgroundColor: palette.dangerSoft,
+              color: palette.danger,
               border: '1px solid #fecdd3',
               borderRadius: '8px',
               padding: '8px 10px',
@@ -261,23 +264,23 @@ export default function ManualWardForm({
           style={{
             padding: '10px 14px',
             borderRadius: '10px',
-            border: '1px solid #E9F0DF',
-            backgroundColor: '#ffffff',
-            color: '#4A5D23',
+            border: borderStyle,
+            backgroundColor: palette.panel,
+            color: palette.primaryDark,
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 150ms ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = '#F7F9F2';
-            e.currentTarget.style.color = '#4A5D23';
-            e.currentTarget.style.borderColor = '#C2D5A8';
+            e.currentTarget.style.backgroundColor = palette.background;
+            e.currentTarget.style.color = palette.primaryDark;
+            e.currentTarget.style.borderColor = palette.secondary;
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = '#ffffff';
-            e.currentTarget.style.color = '#4A5D23';
-            e.currentTarget.style.borderColor = '#E9F0DF';
+            e.currentTarget.style.backgroundColor = palette.panel;
+            e.currentTarget.style.color = palette.primaryDark;
+            e.currentTarget.style.borderColor = palette.border;
           }}
         >
           Cancel
@@ -290,8 +293,8 @@ export default function ManualWardForm({
             borderRadius: '10px',
             border: 'none',
             backgroundColor:
-              allowManualSubmit && !submitting ? '#8FA963' : '#C2D5A8',
-            color: '#ffffff',
+              allowManualSubmit && !submitting ? palette.primary : palette.secondary,
+            color: palette.panel,
             fontSize: '14px',
             fontWeight: 700,
             cursor:
@@ -303,11 +306,11 @@ export default function ManualWardForm({
           }}
           onMouseEnter={e => {
             if (!allowManualSubmit || submitting) return;
-            e.currentTarget.style.backgroundColor = '#4A5D23';
+            e.currentTarget.style.backgroundColor = palette.primaryDark;
           }}
           onMouseLeave={e => {
             if (!allowManualSubmit || submitting) return;
-            e.currentTarget.style.backgroundColor = '#8FA963';
+            e.currentTarget.style.backgroundColor = palette.primary;
           }}
         >
           {submitting ? '등록 중...' : '추가하기'}
