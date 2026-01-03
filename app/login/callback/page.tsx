@@ -22,10 +22,10 @@ function LoadingSpinner() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#F7F9F2',
       }}
     >
-      <p style={{ color: '#6b7280' }}>처리 중...</p>
+      <p style={{ color: '#64748b' }}>처리 중...</p>
     </div>
   );
 }
@@ -103,7 +103,7 @@ function CallbackContent() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#f3f4f6',
+          backgroundColor: '#F7F9F2',
           fontFamily: 'sans-serif',
         }}
       >
@@ -131,17 +131,17 @@ function CallbackContent() {
           >
             ❌
           </div>
-          <h1 style={{ margin: '0 0 8px', fontSize: '20px', color: '#1f2937' }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: '20px', color: '#4A5D23' }}>
             로그인 실패
           </h1>
-          <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#6b7280' }}>
+          <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b' }}>
             {error}
           </p>
           <button
             onClick={() => router.push('/login')}
             style={{
               padding: '12px 24px',
-              backgroundColor: '#3b82f6',
+              backgroundColor: '#8FA963',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -163,7 +163,7 @@ function CallbackContent() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#F7F9F2',
         fontFamily: 'sans-serif',
       }}
     >
@@ -181,8 +181,8 @@ function CallbackContent() {
             width: '48px',
             height: '48px',
             margin: '0 auto 16px',
-            border: '4px solid #e5e7eb',
-            borderTopColor: '#3b82f6',
+            border: '4px solid #E9F0DF',
+            borderTopColor: '#8FA963',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
           }}
@@ -194,7 +194,7 @@ function CallbackContent() {
             }
           }
         `}</style>
-        <p style={{ margin: 0, fontSize: '16px', color: '#6b7280' }}>
+        <p style={{ margin: 0, fontSize: '16px', color: '#64748b' }}>
           로그인 처리 중...
         </p>
       </div>

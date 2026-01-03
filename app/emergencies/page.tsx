@@ -172,7 +172,7 @@ export default function EmergenciesPage() {
             width: '420px',
             backgroundColor: 'white',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
@@ -183,7 +183,7 @@ export default function EmergenciesPage() {
           <div
             style={{
               padding: '20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #E9F0DF',
               backgroundColor: activeCount > 0 ? '#fef2f2' : 'white',
             }}
           >
@@ -192,7 +192,7 @@ export default function EmergenciesPage() {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: '#4A5D23',
               }}
             >
               비상 상황 관리
@@ -217,7 +217,7 @@ export default function EmergenciesPage() {
               display: 'flex',
               gap: '8px',
               padding: '14px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #E9F0DF',
             }}
           >
             {['active', 'resolved', 'false_alarm', ''].map(status => (
@@ -229,8 +229,8 @@ export default function EmergenciesPage() {
                   fontSize: '13px',
                   fontWeight: 500,
                   backgroundColor:
-                    filterStatus === status ? '#3b82f6' : '#f1f5f9',
-                  color: filterStatus === status ? 'white' : '#475569',
+                    filterStatus === status ? '#8FA963' : '#F0F5E8',
+                  color: filterStatus === status ? 'white' : '#4A5D23',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -249,7 +249,7 @@ export default function EmergenciesPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #E9F0DF',
             }}
           >
             <label
@@ -262,11 +262,11 @@ export default function EmergenciesPage() {
                 style={{
                   width: '16px',
                   height: '16px',
-                  accentColor: '#3b82f6',
+                  accentColor: '#8FA963',
                 }}
               />
               <span
-                style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}
+                style={{ fontSize: '14px', color: '#4A5D23', fontWeight: 500 }}
               >
                 자동 새로고침 (10초)
               </span>
@@ -276,7 +276,7 @@ export default function EmergenciesPage() {
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#8FA963',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -337,8 +337,8 @@ export default function EmergenciesPage() {
             <div
               style={{
                 padding: '20px',
-                borderTop: '1px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
+                borderTop: '1px solid #E9F0DF',
+                backgroundColor: '#F7F9F2',
               }}
             >
               <h3
@@ -346,7 +346,7 @@ export default function EmergenciesPage() {
                   margin: '0 0 14px',
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: '#1e293b',
+                  color: '#4A5D23',
                 }}
               >
                 {selectedEmergency.wardName}
@@ -354,34 +354,34 @@ export default function EmergenciesPage() {
               <div
                 style={{
                   fontSize: '13px',
-                  color: '#475569',
+                  color: '#4A5D23',
                   lineHeight: '1.9',
                 }}
               >
                 <div>
-                  <strong style={{ color: '#1e293b' }}>유형:</strong>{' '}
+                  <strong style={{ color: '#4A5D23' }}>유형:</strong>{' '}
                   {TYPE_LABELS[selectedEmergency.type]}
                 </div>
                 <div>
-                  <strong style={{ color: '#1e293b' }}>발생시각:</strong>{' '}
+                  <strong style={{ color: '#4A5D23' }}>발생시각:</strong>{' '}
                   {new Date(selectedEmergency.createdAt).toLocaleString(
                     'ko-KR',
                   )}
                 </div>
                 {selectedEmergency.message && (
                   <div>
-                    <strong style={{ color: '#1e293b' }}>메시지:</strong>{' '}
+                    <strong style={{ color: '#4A5D23' }}>메시지:</strong>{' '}
                     {selectedEmergency.message}
                   </div>
                 )}
                 {selectedEmergency.respondedAgencies.length > 0 && (
                   <div>
-                    <strong style={{ color: '#1e293b' }}>연락기관:</strong>{' '}
+                    <strong style={{ color: '#4A5D23' }}>연락기관:</strong>{' '}
                     {selectedEmergency.respondedAgencies.join(', ')}
                   </div>
                 )}
                 <div>
-                  <strong style={{ color: '#1e293b' }}>보호자 알림:</strong>{' '}
+                  <strong style={{ color: '#4A5D23' }}>보호자 알림:</strong>{' '}
                   {selectedEmergency.guardianNotified ? '완료' : '미발송'}
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function EmergenciesPage() {
             flex: 1,
             borderRadius: '12px',
             overflow: 'hidden',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <LocationMap
@@ -485,9 +485,9 @@ function EmergencyCard({
         gap: '14px',
         padding: '16px 20px',
         border: 'none',
-        borderBottom: '1px solid #f1f5f9',
+        borderBottom: '1px solid #F0F5E8',
         backgroundColor: isSelected
-          ? '#eff6ff'
+          ? '#F0F5E8'
           : isActive
             ? '#fef2f2'
             : 'transparent',
@@ -520,7 +520,7 @@ function EmergencyCard({
             style={{
               fontWeight: isActive ? 600 : 500,
               fontSize: '14px',
-              color: isActive ? '#dc2626' : '#1e293b',
+              color: isActive ? '#dc2626' : '#4A5D23',
             }}
           >
             {emergency.wardName}

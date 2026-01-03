@@ -189,7 +189,7 @@ export default function ManualWardForm({
               style={{
                 fontSize: '14px',
                 fontWeight: 600,
-                color: '#1e293b',
+                color: '#4A5D23',
                 display: 'flex',
                 gap: '6px',
                 alignItems: 'center',
@@ -217,10 +217,10 @@ export default function ManualWardForm({
                 borderRadius: '10px',
                 border: fieldErrors[field.key]
                   ? '1px solid #ef4444'
-                  : '1px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
+                  : '1px solid #E9F0DF',
+                backgroundColor: '#F7F9F2',
                 fontSize: '14px',
-                color: '#1f2937',
+                color: '#4A5D23',
               }}
             />
             {fieldErrors[field.key] && (
@@ -261,23 +261,23 @@ export default function ManualWardForm({
           style={{
             padding: '10px 14px',
             borderRadius: '10px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
             backgroundColor: '#ffffff',
-            color: '#475569',
+            color: '#4A5D23',
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
             transition: 'all 150ms ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = '#f8fafc';
-            e.currentTarget.style.color = '#1e293b';
-            e.currentTarget.style.borderColor = '#cbd5e1';
+            e.currentTarget.style.backgroundColor = '#F7F9F2';
+            e.currentTarget.style.color = '#4A5D23';
+            e.currentTarget.style.borderColor = '#C2D5A8';
           }}
           onMouseLeave={e => {
             e.currentTarget.style.backgroundColor = '#ffffff';
-            e.currentTarget.style.color = '#475569';
-            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#4A5D23';
+            e.currentTarget.style.borderColor = '#E9F0DF';
           }}
         >
           Cancel
@@ -290,7 +290,7 @@ export default function ManualWardForm({
             borderRadius: '10px',
             border: 'none',
             backgroundColor:
-              allowManualSubmit && !submitting ? '#2563eb' : '#93c5fd',
+              allowManualSubmit && !submitting ? '#8FA963' : '#C2D5A8',
             color: '#ffffff',
             fontSize: '14px',
             fontWeight: 700,
@@ -303,11 +303,11 @@ export default function ManualWardForm({
           }}
           onMouseEnter={e => {
             if (!allowManualSubmit || submitting) return;
-            e.currentTarget.style.backgroundColor = '#1d4ed8';
+            e.currentTarget.style.backgroundColor = '#4A5D23';
           }}
           onMouseLeave={e => {
             if (!allowManualSubmit || submitting) return;
-            e.currentTarget.style.backgroundColor = '#2563eb';
+            e.currentTarget.style.backgroundColor = '#8FA963';
           }}
         >
           {submitting ? '등록 중...' : '추가하기'}

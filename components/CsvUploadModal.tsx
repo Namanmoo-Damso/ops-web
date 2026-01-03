@@ -81,7 +81,7 @@ export default function CsvUploadModal({
           backgroundColor: '#ffffff',
           boxShadow: '0 20px 50px rgba(15,23,42,0.15)',
           padding: '28px',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #E9F0DF',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -98,7 +98,7 @@ export default function CsvUploadModal({
               margin: 0,
               fontSize: '18px',
               fontWeight: 700,
-              color: '#111827',
+              color: '#4A5D23',
             }}
           >
             피보호자 등록
@@ -118,7 +118,7 @@ export default function CsvUploadModal({
               transition: 'all 150ms ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#f1f5f9';
+              e.currentTarget.style.backgroundColor = '#F0F5E8';
               e.currentTarget.style.color = '#64748b';
             }}
             onMouseLeave={e => {
@@ -151,9 +151,9 @@ export default function CsvUploadModal({
                 style={{
                   padding: '10px 12px',
                   borderRadius: '10px',
-                  border: isActive ? '1px solid #2563eb' : '1px solid #e2e8f0',
-                  backgroundColor: isActive ? '#eff6ff' : '#ffffff',
-                  color: isActive ? '#1d4ed8' : '#475569',
+                  border: isActive ? '1px solid #8FA963' : '1px solid #E9F0DF',
+                  backgroundColor: isActive ? '#F0F5E8' : '#ffffff',
+                  color: isActive ? '#4A5D23' : '#4A5D23',
                   fontSize: '14px',
                   fontWeight: 600,
                   cursor: uploading ? 'not-allowed' : 'pointer',

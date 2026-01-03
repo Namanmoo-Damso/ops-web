@@ -84,7 +84,7 @@ export default function LocationsPage() {
             width: '340px',
             backgroundColor: 'white',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
@@ -95,7 +95,7 @@ export default function LocationsPage() {
           <div
             style={{
               padding: '20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #E9F0DF',
             }}
           >
             <h2
@@ -103,7 +103,7 @@ export default function LocationsPage() {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: '#4A5D23',
               }}
             >
               실시간 위치 현황
@@ -121,7 +121,7 @@ export default function LocationsPage() {
               display: 'flex',
               gap: '8px',
               padding: '14px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #E9F0DF',
             }}
           >
             <StatusBadge
@@ -148,7 +148,7 @@ export default function LocationsPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: '1px solid #e2e8f0',
+              borderBottom: '1px solid #E9F0DF',
             }}
           >
             <label
@@ -161,11 +161,11 @@ export default function LocationsPage() {
                 style={{
                   width: '16px',
                   height: '16px',
-                  accentColor: '#3b82f6',
+                  accentColor: '#8FA963',
                 }}
               />
               <span
-                style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}
+                style={{ fontSize: '14px', color: '#4A5D23', fontWeight: 500 }}
               >
                 자동 새로고침
               </span>
@@ -175,7 +175,7 @@ export default function LocationsPage() {
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#8FA963',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -236,8 +236,8 @@ export default function LocationsPage() {
             <div
               style={{
                 padding: '20px',
-                borderTop: '1px solid #e2e8f0',
-                backgroundColor: '#f8fafc',
+                borderTop: '1px solid #E9F0DF',
+                backgroundColor: '#F7F9F2',
               }}
             >
               <h3
@@ -245,7 +245,7 @@ export default function LocationsPage() {
                   margin: '0 0 14px',
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: '#1e293b',
+                  color: '#4A5D23',
                 }}
               >
                 {selectedLocation.wardName}
@@ -253,23 +253,23 @@ export default function LocationsPage() {
               <div
                 style={{
                   fontSize: '13px',
-                  color: '#475569',
+                  color: '#4A5D23',
                   lineHeight: '1.9',
                 }}
               >
                 <div>
-                  <strong style={{ color: '#1e293b' }}>위치:</strong>{' '}
+                  <strong style={{ color: '#4A5D23' }}>위치:</strong>{' '}
                   {selectedLocation.latitude.toFixed(6)},{' '}
                   {selectedLocation.longitude.toFixed(6)}
                 </div>
                 {selectedLocation.accuracy && (
                   <div>
-                    <strong style={{ color: '#1e293b' }}>정확도:</strong>{' '}
+                    <strong style={{ color: '#4A5D23' }}>정확도:</strong>{' '}
                     {selectedLocation.accuracy.toFixed(1)}m
                   </div>
                 )}
                 <div>
-                  <strong style={{ color: '#1e293b' }}>마지막 업데이트:</strong>{' '}
+                  <strong style={{ color: '#4A5D23' }}>마지막 업데이트:</strong>{' '}
                   {new Date(selectedLocation.lastUpdated).toLocaleString(
                     'ko-KR',
                   )}
@@ -285,7 +285,7 @@ export default function LocationsPage() {
             flex: 1,
             borderRadius: '12px',
             overflow: 'hidden',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <LocationMap
@@ -328,7 +328,7 @@ function StatusBadge({
           backgroundColor: color,
         }}
       />
-      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>
+      <span style={{ fontSize: '13px', color: '#4A5D23', fontWeight: 500 }}>
         {label}: {count}
       </span>
     </div>
@@ -362,14 +362,14 @@ function WardListItem({
         gap: '14px',
         padding: '14px 20px',
         border: 'none',
-        borderBottom: '1px solid #f1f5f9',
-        backgroundColor: isSelected ? '#eff6ff' : 'transparent',
+        borderBottom: '1px solid #F0F5E8',
+        backgroundColor: isSelected ? '#F0F5E8' : 'transparent',
         cursor: 'pointer',
         textAlign: 'left',
         transition: 'background 150ms ease',
       }}
       onMouseEnter={e =>
-        !isSelected && (e.currentTarget.style.backgroundColor = '#f8fafc')
+        !isSelected && (e.currentTarget.style.backgroundColor = '#F7F9F2')
       }
       onMouseLeave={e =>
         !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')
@@ -397,7 +397,7 @@ function WardListItem({
           style={{
             fontWeight: isSelected ? 600 : 500,
             fontSize: '14px',
-            color: '#1e293b',
+            color: '#4A5D23',
             marginBottom: '4px',
           }}
         >

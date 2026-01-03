@@ -222,8 +222,8 @@ export default function CsvUploadPanel({
               width: '100%',
               minHeight: '220px',
               borderRadius: '12px',
-              border: `2px dashed ${isDragActive ? '#2563eb' : '#e2e8f0'}`,
-              backgroundColor: isDragActive ? '#eff6ff' : '#f8fafc',
+              border: `2px dashed ${isDragActive ? '#8FA963' : '#E9F0DF'}`,
+              backgroundColor: isDragActive ? '#F0F5E8' : '#F7F9F2',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
@@ -240,16 +240,16 @@ export default function CsvUploadPanel({
                 width: '48px',
                 height: '48px',
                 borderRadius: '12px',
-                backgroundColor: '#e0f2fe',
+                backgroundColor: '#F0F5E8',
                 display: 'grid',
                 placeItems: 'center',
-                color: '#2563eb',
+                color: '#8FA963',
               }}
             >
               <IconUpload />
             </div>
             <div
-              style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}
+              style={{ fontSize: '15px', fontWeight: 600, color: '#4A5D23' }}
             >
               {csvFile
                 ? csvFile.name
@@ -300,7 +300,7 @@ export default function CsvUploadPanel({
               gap: '12px',
             }}
           >
-            <div style={{ fontSize: '14px', color: '#1e293b' }}>
+            <div style={{ fontSize: '14px', color: '#4A5D23' }}>
               총 {parsedRows.length}건 •{' '}
               {hasRowErrors ? '오류를 수정해야 합니다' : '모두 유효합니다'}
             </div>
@@ -313,9 +313,9 @@ export default function CsvUploadPanel({
               style={{
                 padding: '8px 12px',
                 borderRadius: '8px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid #E9F0DF',
                 backgroundColor: '#ffffff',
-                color: '#475569',
+                color: '#4A5D23',
                 cursor: 'pointer',
               }}
             >
@@ -342,7 +342,7 @@ export default function CsvUploadPanel({
             style={{
               maxHeight: '320px',
               overflow: 'auto',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #E9F0DF',
               borderRadius: '12px',
             }}
           >
@@ -351,11 +351,11 @@ export default function CsvUploadPanel({
                 display: 'grid',
                 gridTemplateColumns: '1.5fr 1.8fr 1.6fr 1fr 1fr 1fr',
                 padding: '10px 12px',
-                backgroundColor: '#f8fafc',
+                backgroundColor: '#F7F9F2',
                 fontSize: '12px',
                 fontWeight: 700,
-                color: '#475569',
-                borderBottom: '1px solid #e2e8f0',
+                color: '#4A5D23',
+                borderBottom: '1px solid #E9F0DF',
               }}
             >
               <span>이름*</span>
@@ -376,7 +376,7 @@ export default function CsvUploadPanel({
                   borderBottom:
                     idx === parsedRows.length - 1
                       ? 'none'
-                      : '1px solid #f1f5f9',
+                      : '1px solid #F0F5E8',
                   backgroundColor: row.errors.length ? '#fff7ed' : '#ffffff',
                 }}
               >
@@ -416,10 +416,10 @@ export default function CsvUploadPanel({
                       borderRadius: '8px',
                       border: row.errors.length
                         ? '1px solid #fb7185'
-                        : '1px solid #e2e8f0',
+                        : '1px solid #E9F0DF',
                       backgroundColor: '#ffffff',
                       fontSize: '13px',
-                      color: '#1f2937',
+                      color: '#4A5D23',
                     }}
                     placeholder={
                       field === 'birth_date'
@@ -462,7 +462,7 @@ export default function CsvUploadPanel({
               display: 'flex',
               justifyContent: 'space-between',
               fontSize: '12px',
-              color: '#475569',
+              color: '#4A5D23',
             }}
           >
             <span>업로드 진행 중...</span>
@@ -475,7 +475,7 @@ export default function CsvUploadPanel({
               width: '100%',
               height: '8px',
               borderRadius: '999px',
-              backgroundColor: '#e2e8f0',
+              backgroundColor: '#E9F0DF',
               overflow: 'hidden',
             }}
           >
@@ -486,7 +486,7 @@ export default function CsvUploadPanel({
                   100,
                 ).toFixed(1)}%`,
                 height: '100%',
-                backgroundColor: '#2563eb',
+                backgroundColor: '#8FA963',
                 transition: 'width 150ms ease',
               }}
             />
@@ -508,23 +508,23 @@ export default function CsvUploadPanel({
           style={{
             padding: '10px 14px',
             borderRadius: '10px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
             backgroundColor: '#ffffff',
-            color: '#475569',
+            color: '#4A5D23',
             fontSize: '14px',
             fontWeight: 600,
             cursor: uploading ? 'not-allowed' : 'pointer',
             transition: 'all 150ms ease',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = '#f8fafc';
-            e.currentTarget.style.color = '#1e293b';
-            e.currentTarget.style.borderColor = '#cbd5e1';
+            e.currentTarget.style.backgroundColor = '#F7F9F2';
+            e.currentTarget.style.color = '#4A5D23';
+            e.currentTarget.style.borderColor = '#C2D5A8';
           }}
           onMouseLeave={e => {
             e.currentTarget.style.backgroundColor = '#ffffff';
-            e.currentTarget.style.color = '#475569';
-            e.currentTarget.style.borderColor = '#e2e8f0';
+            e.currentTarget.style.color = '#4A5D23';
+            e.currentTarget.style.borderColor = '#E9F0DF';
           }}
         >
           Cancel
@@ -540,9 +540,9 @@ export default function CsvUploadPanel({
             style={{
               padding: '10px 14px',
               borderRadius: '10px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #E9F0DF',
               backgroundColor: '#ffffff',
-              color: '#475569',
+              color: '#4A5D23',
               fontSize: '14px',
               fontWeight: 600,
               cursor: uploading ? 'not-allowed' : 'pointer',
@@ -560,7 +560,7 @@ export default function CsvUploadPanel({
             borderRadius: '10px',
             border: 'none',
             backgroundColor:
-              uploadDisabled || uploading ? '#93c5fd' : '#2563eb',
+              uploadDisabled || uploading ? '#C2D5A8' : '#8FA963',
             color: '#ffffff',
             fontSize: '14px',
             fontWeight: 700,
@@ -573,11 +573,11 @@ export default function CsvUploadPanel({
           }}
           onMouseEnter={e => {
             if (uploadDisabled || uploading) return;
-            e.currentTarget.style.backgroundColor = '#1d4ed8';
+            e.currentTarget.style.backgroundColor = '#4A5D23';
           }}
           onMouseLeave={e => {
             if (uploadDisabled || uploading) return;
-            e.currentTarget.style.backgroundColor = '#2563eb';
+            e.currentTarget.style.backgroundColor = '#8FA963';
           }}
         >
           {uploading

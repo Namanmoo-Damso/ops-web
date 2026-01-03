@@ -44,13 +44,13 @@ export function WeeklyTrendChart({ data }: { data: WeeklyTrendData[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-        <XAxis dataKey="dayLabel" stroke="#9ca3af" fontSize={12} />
-        <YAxis stroke="#9ca3af" fontSize={12} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E9F0DF" />
+        <XAxis dataKey="dayLabel" stroke="#64748b" fontSize={12} />
+        <YAxis stroke="#64748b" fontSize={12} />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#1f2937',
-            border: '1px solid #374151',
+            backgroundColor: '#F0F5E8',
+            border: '1px solid #C2D5A8',
             borderRadius: '8px',
           }}
         />
@@ -58,7 +58,7 @@ export function WeeklyTrendChart({ data }: { data: WeeklyTrendData[] }) {
         <Line
           type="monotone"
           dataKey="calls"
-          stroke="#3b82f6"
+          stroke="#8FA963"
           strokeWidth={2}
           name="통화"
         />
@@ -93,8 +93,8 @@ export function MoodPieChart({ data }: { data: MoodData[] }) {
         </Pie>
         <Tooltip
           contentStyle={{
-            backgroundColor: '#1f2937',
-            border: '1px solid #374151',
+            backgroundColor: '#F0F5E8',
+            border: '1px solid #C2D5A8',
             borderRadius: '8px',
           }}
         />
@@ -107,24 +107,24 @@ export function OrganizationBarChart({ data }: { data: OrgData[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} layout="vertical">
-        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-        <XAxis type="number" stroke="#9ca3af" fontSize={12} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E9F0DF" />
+        <XAxis type="number" stroke="#64748b" fontSize={12} />
         <YAxis
           dataKey="name"
           type="category"
-          stroke="#9ca3af"
+          stroke="#64748b"
           fontSize={12}
           width={80}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#1f2937',
-            border: '1px solid #374151',
+            backgroundColor: '#F0F5E8',
+            border: '1px solid #C2D5A8',
             borderRadius: '8px',
           }}
         />
         <Legend />
-        <Bar dataKey="wardCount" fill="#3b82f6" name="피보호자" />
+        <Bar dataKey="wardCount" fill="#8FA963" name="피보호자" />
         <Bar dataKey="callCount" fill="#22c55e" name="통화" />
       </BarChart>
     </ResponsiveContainer>
@@ -140,23 +140,23 @@ export function KeywordsBarChart({ data }: { data: KeywordData[] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} layout="vertical" margin={{ left: 40 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis type="number" stroke="#9ca3af" fontSize={12} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#E9F0DF" />
+        <XAxis type="number" stroke="#64748b" fontSize={12} />
         <YAxis
           type="category"
           dataKey="keyword"
-          stroke="#9ca3af"
+          stroke="#64748b"
           fontSize={12}
           width={60}
         />
         <Tooltip
           contentStyle={{
-            backgroundColor: '#fff',
-            border: '1px solid #e5e7eb',
+            backgroundColor: '#F0F5E8',
+            border: '1px solid #C2D5A8',
             borderRadius: '8px',
           }}
         />
-        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+        <Bar dataKey="count" fill="#8FA963" radius={[0, 4, 4, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );

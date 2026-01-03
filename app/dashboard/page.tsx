@@ -110,13 +110,23 @@ const MOOD_COLORS = {
   neutral: '#f59e0b',
   negative: '#ef4444',
 };
+const palette = {
+  background: '#F7F9F2',
+  panel: '#ffffff',
+  border: '#E9F0DF',
+  text: '#4A5D23',
+  textMuted: '#64748b',
+  accent: '#8FA963',
+  accentDark: '#4A5D23',
+  soft: '#F0F5E8',
+};
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [realtime, setRealtime] = useState<RealtimeStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -190,20 +200,12 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchStats();
     fetchRealtime();
+  }, [fetchStats, fetchRealtime]);
 
-    let statsInterval: NodeJS.Timeout | null = null;
-    let realtimeInterval: NodeJS.Timeout | null = null;
-
-    if (autoRefresh) {
-      statsInterval = setInterval(fetchStats, 60000); // 1분마다 전체 통계
-      realtimeInterval = setInterval(fetchRealtime, 10000); // 10초마다 실시간
-    }
-
-    return () => {
-      if (statsInterval) clearInterval(statsInterval);
-      if (realtimeInterval) clearInterval(realtimeInterval);
-    };
-  }, [fetchStats, fetchRealtime, autoRefresh]);
+  useEffect(() => {
+    if (!stats) return;
+    setCsvModalOpen(stats.overview.totalWards === 0);
+  }, [stats]);
 
   if (isLoading) {
     return (
@@ -225,7 +227,7 @@ export default function DashboardPage() {
             style={{
               marginLeft: '12px',
               padding: '8px 16px',
-              backgroundColor: '#3b82f6',
+              backgroundColor: '#8FA963',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -273,72 +275,21 @@ export default function DashboardPage() {
   }));
 
   return (
-    <SidebarLayout>
-      {/* Custom Header with Controls */}
+    <SidebarLayout
+      title="대시보드"
+      csvModalOpen={csvModalOpen}
+      onCsvModalOpenChange={setCsvModalOpen}
+    >
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px',
+          flexDirection: 'column',
+          gap: '24px',
+          backgroundColor: palette.background,
+          padding: '20px',
+          borderRadius: '16px',
         }}
       >
-        <div>
-          <h1
-            style={{
-              margin: 0,
-              fontSize: '22px',
-              fontWeight: 700,
-              color: '#1e293b',
-            }}
-          >
-            관제 대시보드
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
-            마지막 업데이트: {new Date(stats.fetchedAt).toLocaleString('ko-KR')}
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={e => setAutoRefresh(e.target.checked)}
-              style={{ width: '16px', height: '16px', accentColor: '#3b82f6' }}
-            />
-            <span
-              style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}
-            >
-              자동 새로고침
-            </span>
-          </label>
-          <button
-            onClick={() => {
-              fetchStats();
-              fetchRealtime();
-            }}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: 600,
-              transition: 'background 150ms ease',
-            }}
-            onMouseEnter={e =>
-              (e.currentTarget.style.backgroundColor = '#2563eb')
-            }
-            onMouseLeave={e =>
-              (e.currentTarget.style.backgroundColor = '#3b82f6')
-            }
-          >
-            새로고침
-          </button>
-        </div>
-      </div>
 
       {/* Realtime Stats Banner */}
       {realtime && (
@@ -353,7 +304,7 @@ export default function DashboardPage() {
           <RealtimeCard
             label="진행 중인 통화"
             value={realtime.activeCalls}
-            color="#3b82f6"
+            color="#8FA963"
             icon="📞"
           />
           <RealtimeCard
@@ -440,11 +391,11 @@ export default function DashboardPage() {
         {/* Weekly Trend Chart */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <h3
@@ -452,7 +403,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: '#4A5D23',
             }}
           >
             주간 추이
@@ -463,11 +414,11 @@ export default function DashboardPage() {
         {/* Mood Distribution */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <h3
@@ -475,7 +426,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: '#4A5D23',
             }}
           >
             감정 분포 (총 {moodTotal}건)
@@ -496,11 +447,11 @@ export default function DashboardPage() {
         {/* Health Alerts */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <h3
@@ -508,7 +459,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: '#4A5D23',
             }}
           >
             건강 알림
@@ -524,7 +475,7 @@ export default function DashboardPage() {
             <AlertRow
               label="정보 알림"
               value={stats.healthAlerts.info}
-              color="#3b82f6"
+              color="#8FA963"
             />
             <AlertRow
               label="미확인 알림"
@@ -538,11 +489,11 @@ export default function DashboardPage() {
         {/* Top Keywords */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <h3
@@ -550,7 +501,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: '#4A5D23',
             }}
           >
             주요 건강 키워드
@@ -575,11 +526,11 @@ export default function DashboardPage() {
         {/* Organization Stats */}
         <div
           style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
+            backgroundColor: palette.panel,
+            borderRadius: '16px',
             padding: '20px',
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            border: '1px solid #e2e8f0',
+            border: '1px solid #E9F0DF',
           }}
         >
           <h3
@@ -587,7 +538,7 @@ export default function DashboardPage() {
               margin: '0 0 16px',
               fontSize: '16px',
               fontWeight: 600,
-              color: '#1e293b',
+              color: '#4A5D23',
             }}
           >
             기관별 현황
@@ -602,12 +553,12 @@ export default function DashboardPage() {
                 }}
               >
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                  <tr style={{ borderBottom: '1px solid #E9F0DF' }}>
                     <th
                       style={{
                         textAlign: 'left',
                         padding: '10px 4px',
-                        color: '#475569',
+                        color: '#4A5D23',
                         fontWeight: 600,
                       }}
                     >
@@ -617,7 +568,7 @@ export default function DashboardPage() {
                       style={{
                         textAlign: 'right',
                         padding: '10px 4px',
-                        color: '#475569',
+                        color: '#4A5D23',
                         fontWeight: 600,
                       }}
                     >
@@ -627,7 +578,7 @@ export default function DashboardPage() {
                       style={{
                         textAlign: 'right',
                         padding: '10px 4px',
-                        color: '#475569',
+                        color: '#4A5D23',
                         fontWeight: 600,
                       }}
                     >
@@ -639,16 +590,16 @@ export default function DashboardPage() {
                   {stats.organizationStats.map(org => (
                     <tr
                       key={org.id}
-                      style={{ borderBottom: '1px solid #f1f5f9' }}
+                      style={{ borderBottom: '1px solid #F0F5E8' }}
                     >
-                      <td style={{ padding: '10px 4px', color: '#1e293b' }}>
+                      <td style={{ padding: '10px 4px', color: '#4A5D23' }}>
                         {org.name}
                       </td>
                       <td
                         style={{
                           textAlign: 'right',
                           padding: '10px 4px',
-                          color: '#475569',
+                          color: '#4A5D23',
                         }}
                       >
                         {org.wardCount}
@@ -657,7 +608,7 @@ export default function DashboardPage() {
                         style={{
                           textAlign: 'right',
                           padding: '10px 4px',
-                          color: '#475569',
+                          color: '#4A5D23',
                         }}
                       >
                         {org.callCount}
@@ -686,11 +637,11 @@ export default function DashboardPage() {
       {/* Recent Activity */}
       <div
         style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
+          backgroundColor: palette.panel,
+          borderRadius: '16px',
           padding: '20px',
           boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #E9F0DF',
         }}
       >
         <h3
@@ -698,7 +649,7 @@ export default function DashboardPage() {
             margin: '0 0 16px',
             fontSize: '16px',
             fontWeight: 600,
-            color: '#1e293b',
+            color: '#4A5D23',
           }}
         >
           최근 활동
@@ -716,6 +667,7 @@ export default function DashboardPage() {
             최근 활동 없음
           </div>
         )}
+      </div>
       </div>
     </SidebarLayout>
   );
@@ -737,14 +689,14 @@ function RealtimeCard({
   return (
     <div
       style={{
-        backgroundColor: highlight ? '#fef2f2' : 'white',
-        borderRadius: '12px',
+        backgroundColor: highlight ? '#fef2f2' : palette.panel,
+        borderRadius: '16px',
         padding: '18px 22px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         display: 'flex',
         alignItems: 'center',
         gap: '16px',
-        border: highlight ? '2px solid #fca5a5' : '1px solid #e2e8f0',
+        border: highlight ? '2px solid #fca5a5' : '1px solid #E9F0DF',
         animation: highlight ? 'pulse 2s infinite' : 'none',
       }}
     >
@@ -771,15 +723,15 @@ function StatCard({
   return (
     <div
       style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
+        backgroundColor: palette.panel,
+        borderRadius: '16px',
         padding: '18px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         textAlign: 'center',
-        border: '1px solid #e2e8f0',
+        border: '1px solid #E9F0DF',
       }}
     >
-      <div style={{ fontSize: '26px', fontWeight: 700, color: '#1e293b' }}>
+      <div style={{ fontSize: '26px', fontWeight: 700, color: '#4A5D23' }}>
         {value}
       </div>
       <div
@@ -815,14 +767,14 @@ function TodayCard({
   return (
     <div
       style={{
-        backgroundColor: highlight ? '#fef2f2' : 'white',
-        borderRadius: '12px',
+        backgroundColor: highlight ? '#fef2f2' : palette.panel,
+        borderRadius: '16px',
         padding: '18px 22px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
         display: 'flex',
         alignItems: 'center',
         gap: '14px',
-        border: highlight ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+        border: highlight ? '1px solid #fca5a5' : '1px solid #E9F0DF',
       }}
     >
       <span style={{ fontSize: '26px' }}>{icon}</span>
@@ -831,7 +783,7 @@ function TodayCard({
           style={{
             fontSize: '22px',
             fontWeight: 700,
-            color: highlight ? '#dc2626' : '#1e293b',
+            color: highlight ? '#dc2626' : '#4A5D23',
           }}
         >
           {value}
@@ -862,12 +814,12 @@ function AlertRow({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: '14px 18px',
-        backgroundColor: highlight ? '#fef2f2' : '#f8fafc',
-        borderRadius: '10px',
-        border: highlight ? '1px solid #fca5a5' : '1px solid #e2e8f0',
+        backgroundColor: highlight ? '#fef2f2' : '#F7F9F2',
+        borderRadius: '16px',
+        border: highlight ? '1px solid #fca5a5' : '1px solid #E9F0DF',
       }}
     >
-      <span style={{ fontSize: '14px', color: '#475569', fontWeight: 500 }}>
+      <span style={{ fontSize: '14px', color: '#4A5D23', fontWeight: 500 }}>
         {label}
       </span>
       <span
@@ -900,7 +852,7 @@ function ActivityItem({
   };
 
   const typeColors: Record<string, string> = {
-    call_started: '#3b82f6',
+    call_started: '#8FA963',
     call_ended: '#64748b',
     emergency: '#dc2626',
   };
@@ -914,12 +866,12 @@ function ActivityItem({
         alignItems: 'center',
         gap: '14px',
         padding: '12px 16px',
-        backgroundColor: activity.type === 'emergency' ? '#fef2f2' : '#f8fafc',
-        borderRadius: '10px',
+        backgroundColor: activity.type === 'emergency' ? '#fef2f2' : '#F7F9F2',
+        borderRadius: '16px',
         border:
           activity.type === 'emergency'
             ? '1px solid #fca5a5'
-            : '1px solid #e2e8f0',
+            : '1px solid #E9F0DF',
       }}
     >
       <span style={{ fontSize: '22px' }}>
@@ -930,7 +882,7 @@ function ActivityItem({
           style={{
             fontSize: '14px',
             fontWeight: 500,
-            color: typeColors[activity.type] || '#475569',
+            color: typeColors[activity.type] || '#4A5D23',
           }}
         >
           {activity.description}

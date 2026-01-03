@@ -64,7 +64,7 @@ export const ControlBar = ({
           height: '48px',
           borderRadius: '50%',
           background: 'white',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #E9F0DF',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
           cursor: 'pointer',
           zIndex: 10,

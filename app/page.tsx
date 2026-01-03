@@ -104,7 +104,7 @@ const LiveTile = ({
           backdropFilter: 'blur(8px)',
           fontSize: '11px',
           fontWeight: '600',
-          color: '#e2e8f0',
+          color: '#E9F0DF',
           maxWidth: '200px',
           overflow: 'hidden',
           textOverflow: 'ellipsis',

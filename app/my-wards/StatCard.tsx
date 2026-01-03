@@ -15,7 +15,7 @@ export function StatCard({ label, value, color, icon, extra, highlight, footer }
     <div
       style={{
         background: '#ffffff',
-        border: highlight ? `1px solid ${color}33` : '1px solid #e2e8f0',
+        border: highlight ? `1px solid ${color}33` : '1px solid #E9F0DF',
         borderRadius: '14px',
         padding: '16px',
         boxShadow: highlight
@@ -44,7 +44,7 @@ export function StatCard({ label, value, color, icon, extra, highlight, footer }
           style={{
             fontSize: '32px',
             fontWeight: 800,
-            color: highlight ? color : '#0f172a',
+            color: highlight ? color : '#4A5D23',
           }}
         >
           {value}

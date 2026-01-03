@@ -260,9 +260,9 @@ export default function MyWardsPage() {
             style={{
               padding: '10px 14px',
               borderRadius: '10px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #E9F0DF',
               backgroundColor: '#ffffff',
-              color: '#1e293b',
+              color: '#4A5D23',
               cursor: 'pointer',
             }}
           >
@@ -284,8 +284,8 @@ export default function MyWardsPage() {
               style={{
                 padding: '10px 14px',
                 borderRadius: '10px',
-                backgroundColor: '#f8fafc',
-                color: '#475569',
+                backgroundColor: '#F7F9F2',
+                color: '#4A5D23',
                 fontSize: '13px',
                 fontWeight: 700,
                 marginBottom: '12px',
@@ -300,7 +300,7 @@ export default function MyWardsPage() {
                 margin: 0,
                 fontSize: '24px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: '#4A5D23',
               }}
             >
               대상자 연동 현황
@@ -344,7 +344,7 @@ export default function MyWardsPage() {
                     backgroundColor: '#fef2f2',
                     display: 'grid',
                     placeItems: 'center',
-                    color: '#2563eb',
+                    color: '#8FA963',
                     flexShrink: 0,
                   }}
                 >
@@ -423,7 +423,7 @@ export default function MyWardsPage() {
             <StatCard
               label="총 등록 인원 (청구 기준)"
               value={totals.total}
-              color="#3b82f6"
+              color="#8FA963"
               icon={<UsersIcon size={32} />}
             />
             <StatCard
@@ -437,7 +437,7 @@ export default function MyWardsPage() {
                     width: '100%',
                     height: '8px',
                     borderRadius: '999px',
-                    backgroundColor: '#e2e8f0',
+                    backgroundColor: '#E9F0DF',
                     overflow: 'hidden',
                     marginTop: '10px',
                   }}
@@ -446,7 +446,7 @@ export default function MyWardsPage() {
                     style={{
                       width: `${totals.rate}%`,
                       height: '100%',
-                      backgroundColor: '#93c5fd',
+                      backgroundColor: '#8FA963',
                       transition: 'width 150ms ease',
                     }}
                   />
@@ -471,7 +471,7 @@ export default function MyWardsPage() {
           <section
             style={{
               background: '#ffffff',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #E9F0DF',
               borderRadius: '16px',
               boxShadow: '0 6px 18px rgba(15, 23, 42, 0.08)',
               overflow: 'hidden',
@@ -480,7 +480,7 @@ export default function MyWardsPage() {
             <div
               style={{
                 padding: '16px 20px',
-                borderBottom: '1px solid #e2e8f0',
+                borderBottom: '1px solid #E9F0DF',
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '12px',
@@ -492,7 +492,7 @@ export default function MyWardsPage() {
                 style={{
                   display: 'flex',
                   gap: '8px',
-                  background: '#f1f5f9',
+                  background: '#F0F5E8',
                   padding: '6px',
                   borderRadius: '12px',
                 }}
@@ -507,7 +507,7 @@ export default function MyWardsPage() {
                     border: 'none',
                     backgroundColor:
                       filterStatus === 'all' ? '#ffffff' : 'transparent',
-                    color: filterStatus === 'all' ? '#1e293b' : '#64748b',
+                    color: filterStatus === 'all' ? '#4A5D23' : '#64748b',
                     fontWeight: 700,
                     fontSize: '14px',
                     boxShadow:
@@ -565,7 +565,7 @@ export default function MyWardsPage() {
                   style={{
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #E9F0DF',
                     backgroundColor: autoRefresh ? '#ecfdf5' : '#ffffff',
                     color: autoRefresh ? '#059669' : '#64748b',
                     fontSize: '14px',
@@ -589,9 +589,9 @@ export default function MyWardsPage() {
                   style={{
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    backgroundColor: loading ? '#f1f5f9' : '#ffffff',
-                    color: loading ? '#94a3b8' : '#1e293b',
+                    border: '1px solid #E9F0DF',
+                    backgroundColor: loading ? '#F0F5E8' : '#ffffff',
+                    color: loading ? '#94a3b8' : '#4A5D23',
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: loading ? 'not-allowed' : 'pointer',
@@ -629,10 +629,10 @@ export default function MyWardsPage() {
                 width: '100%',
                 padding: '10px 12px 10px 36px',
                     borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    backgroundColor: '#f8fafc',
+                    border: '1px solid #E9F0DF',
+                    backgroundColor: '#F7F9F2',
                     fontSize: '14px',
-                    color: '#1e293b',
+                    color: '#4A5D23',
                     outline: 'none',
                   }}
                 />
@@ -647,12 +647,12 @@ export default function MyWardsPage() {
                 <thead>
                   <tr
                     style={{
-                      backgroundColor: '#f8fafc',
-                      color: '#475569',
+                      backgroundColor: '#F7F9F2',
+                      color: '#4A5D23',
                       fontSize: '12px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
-                      borderBottom: '1px solid #e2e8f0',
+                      borderBottom: '1px solid #E9F0DF',
                     }}
                   >
                     <th style={{ padding: '14px 16px', textAlign: 'left' }}>
@@ -677,7 +677,7 @@ export default function MyWardsPage() {
                     <tr
                       key={ward.id}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: '1px solid #F0F5E8',
                         backgroundColor: '#ffffff',
                         transition: 'background-color 150ms ease',
                       }}
@@ -692,13 +692,13 @@ export default function MyWardsPage() {
                         style={{
                           padding: '14px 16px',
                           fontWeight: 700,
-                          color: '#0f172a',
+                          color: '#4A5D23',
                         }}
                       >
                         {ward.name}
                       </td>
                       <td style={{ padding: '14px 12px' }}>
-                        <div style={{ color: '#475569', fontSize: '14px' }}>
+                        <div style={{ color: '#4A5D23', fontSize: '14px' }}>
                           {ward.phoneNumber}
                         </div>
                         <div style={{ color: '#94a3b8', fontSize: '12px' }}>
@@ -748,7 +748,7 @@ export default function MyWardsPage() {
                           padding: '14px 12px',
                           textAlign: 'center',
                           fontSize: '12px',
-                          color: '#475569',
+                          color: '#4A5D23',
                         }}
                       >
                         {formatDate(ward.lastCallAt)}
@@ -766,7 +766,7 @@ export default function MyWardsPage() {
                               backgroundColor:
                                 resendingId !== null || resendingAll
                                   ? '#bfdbfe'
-                                  : '#2563eb',
+                                  : '#8FA963',
                               color: '#ffffff',
                               fontWeight: 700,
                               fontSize: '12px',
@@ -781,11 +781,11 @@ export default function MyWardsPage() {
                             }}
                             onMouseEnter={e => {
                               if (resendingId !== null || resendingAll) return;
-                              e.currentTarget.style.backgroundColor = '#1d4ed8';
+                              e.currentTarget.style.backgroundColor = '#4A5D23';
                             }}
                             onMouseLeave={e => {
                               if (resendingId !== null || resendingAll) return;
-                              e.currentTarget.style.backgroundColor = '#2563eb';
+                              e.currentTarget.style.backgroundColor = '#8FA963';
                             }}
                           >
                             <RefreshIcon size={14} />
@@ -810,7 +810,7 @@ export default function MyWardsPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: '#475569',
+                  color: '#4A5D23',
                 }}
               >
                 <div
@@ -818,10 +818,10 @@ export default function MyWardsPage() {
                     width: '56px',
                     height: '56px',
                     borderRadius: '14px',
-                    backgroundColor: '#f1f5f9',
+                    backgroundColor: '#F0F5E8',
                     display: 'grid',
                     placeItems: 'center',
-                    color: totals.total === 0 ? '#cbd5e1' : '#4A5D23',
+                    color: totals.total === 0 ? '#C2D5A8' : '#4A5D23',
                     margin: '0 auto 12px',
                   }}
                 >
@@ -831,7 +831,7 @@ export default function MyWardsPage() {
                   style={{
                     fontWeight: 700,
                     fontSize: '16px',
-                    color: '#0f172a',
+                    color: '#4A5D23',
                   }}
                 >
                   {totals.total === 0

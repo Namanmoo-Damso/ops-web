@@ -120,10 +120,10 @@ export default function SelectOrganizationPage() {
     width: '100%',
     padding: '14px 16px',
     fontSize: '16px',
-    border: '2px solid #e5e7eb',
+    border: '2px solid #E9F0DF',
     borderRadius: '12px',
     backgroundColor: 'white',
-    color: '#1f2937',
+    color: '#4A5D23',
     cursor: 'pointer',
     appearance: 'none' as const,
     backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
@@ -134,7 +134,7 @@ export default function SelectOrganizationPage() {
 
   const disabledSelectStyle = {
     ...selectStyle,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#F7F9F2',
     cursor: 'not-allowed',
   };
 
@@ -145,7 +145,7 @@ export default function SelectOrganizationPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#F7F9F2',
         fontFamily: 'sans-serif',
       }}
     >
@@ -165,12 +165,12 @@ export default function SelectOrganizationPage() {
               margin: 0,
               fontSize: '24px',
               fontWeight: 'bold',
-              color: '#1f2937',
+              color: '#4A5D23',
             }}
           >
             관제센터 선택
           </h1>
-          <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#6b7280' }}>
+          <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#64748b' }}>
             소속 지역을 선택해주세요
           </p>
         </div>
@@ -207,7 +207,7 @@ export default function SelectOrganizationPage() {
                 marginBottom: '8px',
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#374151',
+                color: '#4A5D23',
               }}
             >
               시/도
@@ -238,7 +238,7 @@ export default function SelectOrganizationPage() {
                 marginBottom: '8px',
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#374151',
+                color: '#4A5D23',
               }}
             >
               시/군/구
@@ -269,11 +269,11 @@ export default function SelectOrganizationPage() {
                 marginBottom: '8px',
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#374151',
+                color: '#4A5D23',
               }}
             >
               읍/면/동{' '}
-              <span style={{ fontSize: '12px', color: '#9ca3af' }}>(선택)</span>
+              <span style={{ fontSize: '12px', color: '#C2D5A8' }}>(선택)</span>
             </label>
             <select
               value={dong}
@@ -297,12 +297,12 @@ export default function SelectOrganizationPage() {
             style={{
               padding: '16px',
               marginBottom: '24px',
-              backgroundColor: '#eff6ff',
+              backgroundColor: '#F0F5E8',
               borderRadius: '12px',
               textAlign: 'center',
             }}
           >
-            <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+            <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
               선택된 관제센터
             </p>
             <p
@@ -310,7 +310,7 @@ export default function SelectOrganizationPage() {
                 margin: '4px 0 0',
                 fontSize: '18px',
                 fontWeight: '600',
-                color: '#1e40af',
+                color: '#4A5D23',
               }}
             >
               {dong
@@ -326,7 +326,7 @@ export default function SelectOrganizationPage() {
           style={{
             width: '100%',
             padding: '14px 20px',
-            backgroundColor: sido && sigungu ? '#3b82f6' : '#9ca3af',
+            backgroundColor: sido && sigungu ? '#8FA963' : '#C2D5A8',
             color: 'white',
             border: 'none',
             borderRadius: '12px',

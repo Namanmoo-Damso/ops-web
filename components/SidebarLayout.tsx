@@ -11,6 +11,17 @@ import { ManualWardPayload } from './ManualWardForm';
 import { AdminInfo } from '../types/admin';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const palette = {
+  primary: '#8FA963',
+  primaryDark: '#4A5D23',
+  secondary: '#C2D5A8',
+  background: '#F7F9F2',
+  panel: '#ffffff',
+  border: '#E9F0DF',
+  text: '#4A5D23',
+  textMuted: '#64748b',
+  textSoft: '#94a3b8',
+};
 
 const IconMenu = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -225,22 +236,37 @@ type SidebarLayoutProps = {
   children: ReactNode;
   title?: string;
   noPadding?: boolean;
+  csvModalOpen?: boolean;
+  onCsvModalOpenChange?: (open: boolean) => void;
 };
 
 export default function SidebarLayout({
   children,
   title,
   noPadding,
+  csvModalOpen,
+  onCsvModalOpenChange,
 }: SidebarLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [internalCsvModalOpen, setInternalCsvModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     processed: number;
     total: number;
   } | null>(null);
+  const isCsvModalOpen = csvModalOpen ?? internalCsvModalOpen;
+  const setCsvModalOpen = useCallback(
+    (open: boolean) => {
+      if (onCsvModalOpenChange) {
+        onCsvModalOpenChange(open);
+        return;
+      }
+      setInternalCsvModalOpen(open);
+    },
+    [onCsvModalOpenChange],
+  );
 
   // 세션 모니터링 (토큰 만료 시점에 정확히 발동, 5분 전 경고)
   const { handleLogout } = useSessionMonitor({
@@ -438,11 +464,11 @@ export default function SidebarLayout({
             width: '44px',
             height: '44px',
             borderRadius: '12px',
-            border: '1px solid #e2e8f0',
-            background: 'white',
+            border: `1px solid ${palette.border}`,
+            background: palette.panel,
             display: 'grid',
             placeItems: 'center',
-            color: '#475569',
+            color: palette.textMuted,
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
             zIndex: 9999,
@@ -460,8 +486,8 @@ export default function SidebarLayout({
           left: 0,
           bottom: 0,
           width: '240px',
-          backgroundColor: '#ffffff',
-          borderRight: '1px solid #e2e8f0',
+          backgroundColor: palette.panel,
+          borderRight: `1px solid ${palette.border}`,
           display: 'flex',
           flexDirection: 'column',
           transform: sidebarCollapsed ? 'translateX(-240px)' : 'translateX(0)',
@@ -473,7 +499,7 @@ export default function SidebarLayout({
         <div
           style={{
             padding: '20px 16px',
-            borderBottom: '1px solid #e2e8f0',
+            borderBottom: `1px solid ${palette.border}`,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -493,16 +519,15 @@ export default function SidebarLayout({
                 width: '36px',
                 height: '36px',
                 borderRadius: '10px',
-                background:
-                  'conic-gradient(from 120deg, #3b82f6, #1e40af, #22c55e, #3b82f6)',
-                boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.12)',
+                background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})`,
+                boxShadow: '0 0 0 3px rgba(143, 169, 99, 0.18)',
               }}
             />
             <span
               style={{
                 fontSize: '18px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: palette.text,
               }}
             >
               담소 관제센터
@@ -521,17 +546,17 @@ export default function SidebarLayout({
               background: 'transparent',
               display: 'grid',
               placeItems: 'center',
-              color: '#94a3b8',
+              color: palette.textSoft,
               cursor: 'pointer',
               transition: 'all 150ms ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#f1f5f9';
-              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.backgroundColor = '#F0F5E8';
+              e.currentTarget.style.color = palette.textMuted;
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#94a3b8';
+              e.currentTarget.style.color = palette.textSoft;
             }}
           >
             <IconClose />
@@ -570,12 +595,12 @@ export default function SidebarLayout({
                   borderRadius: '10px',
                   border: 'none',
                   textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: isActive ? 600 : 500,
-                  color: isActive ? '#3b82f6' : '#475569',
-                  backgroundColor: isActive
-                    ? 'rgba(59, 130, 246, 0.08)'
-                    : 'transparent',
+                fontSize: '14px',
+                fontWeight: isActive ? 600 : 500,
+                color: isActive ? palette.primaryDark : palette.textMuted,
+                backgroundColor: isActive
+                  ? 'rgba(143, 169, 99, 0.18)'
+                  : 'transparent',
                   transition: 'all 150ms ease',
                   cursor: 'pointer',
                   width: '100%',
@@ -583,14 +608,14 @@ export default function SidebarLayout({
                 }}
                 onMouseEnter={e => {
                   if (!isActive) {
-                    e.currentTarget.style.backgroundColor = '#f1f5f9';
-                    e.currentTarget.style.color = '#1e293b';
+                    e.currentTarget.style.backgroundColor = '#F0F5E8';
+                    e.currentTarget.style.color = palette.text;
                   }
                 }}
                 onMouseLeave={e => {
                   if (!isActive) {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.color = palette.textMuted;
                   }
                 }}
               >
@@ -612,7 +637,7 @@ export default function SidebarLayout({
               console.log(
                 '[DEBUG] Register CSV button clicked - opening modal',
               );
-              setIsCsvModalOpen(true);
+              setCsvModalOpen(true);
             }}
             style={{
               display: 'flex',
@@ -622,23 +647,23 @@ export default function SidebarLayout({
               padding: '12px 14px',
               marginBottom: '8px',
               borderRadius: '10px',
-              border: '1px solid #e2e8f0',
-              background: '#f8fafc',
+              border: `1px solid ${palette.border}`,
+              background: '#F0F5E8',
               fontSize: '14px',
               fontWeight: 600,
-              color: '#1f2937',
+              color: palette.text,
               cursor: 'pointer',
               transition: 'all 150ms ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = '#e2e8f0';
-              e.currentTarget.style.color = '#1e293b';
-              e.currentTarget.style.borderColor = '#cbd5e1';
+              e.currentTarget.style.backgroundColor = palette.secondary;
+              e.currentTarget.style.color = palette.text;
+              e.currentTarget.style.borderColor = palette.secondary;
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = '#f8fafc';
-              e.currentTarget.style.color = '#1f2937';
-              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.backgroundColor = '#F0F5E8';
+              e.currentTarget.style.color = palette.text;
+              e.currentTarget.style.borderColor = palette.border;
             }}
           >
             <IconUpload />
@@ -647,7 +672,7 @@ export default function SidebarLayout({
           <div
             style={{
               height: '1px',
-              backgroundColor: '#e2e8f0',
+              backgroundColor: palette.border,
               marginBottom: '10px',
               marginTop: '6px',
             }}
@@ -664,7 +689,7 @@ export default function SidebarLayout({
               background: 'transparent',
               fontSize: '14px',
               fontWeight: 500,
-              color: '#64748b',
+              color: palette.textMuted,
               cursor: 'pointer',
               transition: 'all 150ms ease',
             }}
@@ -674,7 +699,7 @@ export default function SidebarLayout({
             }}
             onMouseLeave={e => {
               e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.color = palette.textMuted;
             }}
           >
             <IconLogout />
@@ -690,6 +715,7 @@ export default function SidebarLayout({
           marginLeft: sidebarCollapsed ? 0 : '240px',
           // 모달 등 자식에서 사이드바 폭을 참조할 수 있도록 CSS 변수 제공
           '--sidebar-width': sidebarCollapsed ? '0px' : '240px',
+          backgroundColor: palette.background,
           minHeight: '100vh',
           height: noPadding ? '100vh' : undefined,
           display: noPadding ? 'flex' : undefined,
@@ -701,8 +727,7 @@ export default function SidebarLayout({
         {title && (
           <header
             style={{
-              backgroundColor: '#ffffff',
-              borderBottom: '1px solid #e2e8f0',
+              backgroundColor: palette.panel,
               padding: '20px 28px',
               position: 'sticky',
               top: 0,
@@ -714,7 +739,7 @@ export default function SidebarLayout({
                 margin: 0,
                 fontSize: '22px',
                 fontWeight: 700,
-                color: '#1e293b',
+                color: palette.text,
               }}
             >
               {title}
@@ -742,7 +767,7 @@ export default function SidebarLayout({
       {/* CSV Upload Modal */}
       <CsvUploadModal
         open={isCsvModalOpen}
-        onClose={() => setIsCsvModalOpen(false)}
+        onClose={() => setCsvModalOpen(false)}
         onUpload={handleCsvUpload}
         onManualSubmit={handleManualSubmit}
         uploading={uploading}
