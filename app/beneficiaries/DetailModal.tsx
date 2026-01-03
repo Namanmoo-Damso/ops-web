@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -42,6 +42,60 @@ export default function DetailModal({
   detail,
   onClose,
 }: DetailModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // ESC로 닫기 + 포커스 트랩
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab') {
+        const root = dialogRef.current;
+        if (!root) return;
+        const focusables = root.querySelectorAll<HTMLElement>(
+          'a, button, textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+
+        if (!active) {
+          first.focus();
+          e.preventDefault();
+          return;
+        }
+
+        if (e.shiftKey && active === first) {
+          last.focus();
+          e.preventDefault();
+        } else if (!e.shiftKey && active === last) {
+          first.focus();
+          e.preventDefault();
+        }
+      }
+    };
+
+    const root = dialogRef.current;
+    if (root) {
+      root.focus();
+    }
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [onClose]);
+
+  const handleOverlayClick: React.MouseEventHandler<HTMLDivElement> = e => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   if (!beneficiary) return null;
 
   const status = beneficiary.status;
@@ -54,7 +108,7 @@ export default function DetailModal({
     <div
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
+      onClick={handleOverlayClick}
       style={{
         position: 'fixed',
         inset: 0,
@@ -69,6 +123,8 @@ export default function DetailModal({
       }}
     >
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         onClick={e => e.stopPropagation()}
         style={{
           // 사이드바 폭을 제외한 영역에서 여백을 둔 최대 너비 설정 (sidebar 있을 때 더 좁게 맞춤)
