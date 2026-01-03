@@ -11,7 +11,15 @@ import {
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
-import { EmptyTile, getInitials, ControlBar, ParticipantSidebar, type MockParticipant } from '../components/video';
+import {
+  EmptyTile,
+  getInitials,
+  ControlBar,
+  ParticipantSidebar,
+  ParticipantDetailSidebar,
+  FullScreenVideo,
+  type MockParticipant,
+} from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import styles from './page.module.css';
 
@@ -20,22 +28,35 @@ const LiveTile = ({
   displayName,
   roomName,
   videoOff,
+  onClick,
+  participantId,
 }: {
   trackRef: any;
   displayName: string;
   roomName: string;
   videoOff: boolean;
+  onClick?: (participantId: string) => void;
+  participantId: string;
 }) => {
   const cameraOff = videoOff;
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick(participantId);
+    }
+  };
 
   return (
     <div
       className={styles.tile}
-      style={{ position: 'relative' }}
+      style={{ position: 'relative', cursor: onClick ? 'pointer' : 'default' }}
+      onClick={handleClick}
     >
       <div className={styles.tileMedia}>
         {cameraOff ? (
-          <div className={styles.avatarFallback}>{getInitials(displayName)}</div>
+          <div className={styles.avatarFallback}>
+            {getInitials(displayName)}
+          </div>
         ) : (
           <TrackRefContext.Provider value={trackRef}>
             <VideoTrack className={styles.video} />
@@ -100,21 +121,39 @@ const LiveTile = ({
 const RoomTracks = ({
   roomName,
   onParticipantsUpdate,
+  onTileClick,
+  selectedParticipantForAudio,
 }: {
   roomName: string;
   onParticipantsUpdate?: (participants: MockParticipant[]) => void;
+  onTileClick?: (participantId: string, videoTrackRef: any) => void;
+  selectedParticipantForAudio?: string | null;
 }) => {
   const allTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },
   );
 
+  const audioTracks = useTracks(
+    [{ source: Track.Source.Microphone, withPlaceholder: false }],
+    { onlySubscribed: false },
+  );
+
   // Filter out admin and agent participants (they are invisible in grid)
   const tracks = allTracks.filter(
-    (track) =>
+    track =>
       !track.participant.identity.startsWith('admin_') &&
       !track.participant.identity.startsWith('agent-'),
   );
+
+  // Filter audio tracks to only include selected participant and exclude AI agents
+  const filteredAudioTracks = audioTracks.filter(track => {
+    if (!selectedParticipantForAudio) return false;
+    const participantId = track.participant.identity || track.participant.sid;
+    // Exclude AI agents from audio
+    if (participantId.startsWith('agent-')) return false;
+    return participantId === selectedParticipantForAudio;
+  });
 
   const getParticipantId = (participant: any) =>
     participant.identity || participant.sid || 'unknown';
@@ -130,7 +169,7 @@ const RoomTracks = ({
   // Update parent with participant list
   useEffect(() => {
     if (onParticipantsUpdate) {
-      const participants: MockParticipant[] = tracks.map((trackRef) => {
+      const participants: MockParticipant[] = tracks.map(trackRef => {
         const participant = trackRef.participant;
         return {
           id: getParticipantId(participant),
@@ -156,8 +195,17 @@ const RoomTracks = ({
 
   return (
     <>
-      <RoomAudioRenderer />
-      {tracks.map((trackRef) => {
+      {filteredAudioTracks.map(audioTrackRef => (
+        <TrackRefContext.Provider
+          key={
+            audioTrackRef.participant.identity || audioTrackRef.participant.sid
+          }
+          value={audioTrackRef}
+        >
+          <RoomAudioRenderer />
+        </TrackRefContext.Provider>
+      ))}
+      {tracks.map(trackRef => {
         const participant = trackRef.participant;
         if (!participant) return null;
         const identity = getParticipantId(participant);
@@ -169,6 +217,8 @@ const RoomTracks = ({
             displayName={displayName}
             roomName={roomName}
             videoOff={isVideoOff(participant)}
+            onClick={participantId => onTileClick?.(participantId, trackRef)}
+            participantId={identity}
           />
         );
       })}
@@ -222,7 +272,8 @@ const ControlBarWrapper = ({
   showParticipantList: boolean;
   onToggleParticipantList: () => void;
 }) => {
-  const { isMicrophoneEnabled, isCameraEnabled, localParticipant } = useLocalParticipant();
+  const { isMicrophoneEnabled, isCameraEnabled, localParticipant } =
+    useLocalParticipant();
 
   const toggleMicrophone = async () => {
     if (!localParticipant) return;
@@ -269,17 +320,53 @@ export default function Home() {
   const [apiBase, setApiBase] = useState(apiBaseEnv);
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
-  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
-  const [allParticipants, setAllParticipants] = useState<Record<string, MockParticipant[]>>({});
+  const [selectedParticipantId, setSelectedParticipantId] = useState<
+    string | null
+  >(null);
+  const [allParticipants, setAllParticipants] = useState<
+    Record<string, MockParticipant[]>
+  >({});
+  const [selectedRoomName, setSelectedRoomName] = useState<string | null>(null);
+  const [showDetailSidebar, setShowDetailSidebar] = useState(false);
+  const [detailParticipant, setDetailParticipant] =
+    useState<MockParticipant | null>(null);
+  const [selectedParticipantForAudio, setSelectedParticipantForAudio] =
+    useState<string | null>(null);
+  const [selectedVideoTrackRef, setSelectedVideoTrackRef] = useState<any>(null);
+  const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
 
-  // Collect participants from all rooms
+  // Collect participants from all rooms or selected   room
   const participantList = useMemo(() => {
     const participants: MockParticipant[] = [];
-    Object.values(allParticipants).forEach((roomParticipants) => {
-      participants.push(...roomParticipants);
-    });
+    if (selectedRoomName && allParticipants[selectedRoomName]) {
+      // Show only participants from the selected room
+      participants.push(...allParticipants[selectedRoomName]);
+    } else {
+      // Show all participants from all rooms
+      Object.values(allParticipants).forEach(roomParticipants => {
+        participants.push(...roomParticipants);
+      });
+    }
     return participants;
-  }, [allParticipants]);
+  }, [allParticipants, selectedRoomName]);
+
+  // Close detail sidebar if the selected participant leaves
+  useEffect(() => {
+    if (!detailParticipant || !selectedParticipantForAudio) return;
+
+    const participantExists = participantList.some(
+      p => p.id === selectedParticipantForAudio,
+    );
+
+    if (!participantExists) {
+      setShowDetailSidebar(false);
+      setDetailParticipant(null);
+      setSelectedRoomName(null);
+      setSelectedParticipantForAudio(null);
+      setSelectedVideoTrackRef(null);
+      setShowFullScreenVideo(false);
+    }
+  }, [participantList, detailParticipant, selectedParticipantForAudio]);
 
   useEffect(() => {
     if (apiBaseEnv) {
@@ -310,6 +397,8 @@ export default function Home() {
       key: string;
       connection?: any;
       onParticipantsUpdate?: (participants: MockParticipant[]) => void;
+      onTileClick?: (participantId: string, videoTrackRef: any) => void;
+      selectedParticipantForAudio?: string | null;
     }> = [];
 
     for (let i = 0; i < slots; i++) {
@@ -318,7 +407,7 @@ export default function Home() {
         // Create a stable callback for each room
         const roomName = connection.roomName;
         const onParticipantsUpdate = (participants: MockParticipant[]) => {
-          setAllParticipants((prev) => {
+          setAllParticipants(prev => {
             // Check if participants have actually changed
             const existingParticipants = prev[roomName];
             if (
@@ -341,11 +430,44 @@ export default function Home() {
           });
         };
 
+        const onTileClick = (participantId: string, videoTrackRef: any) => {
+          // If clicking the same participant that's already in fullscreen, close it
+          if (
+            showFullScreenVideo &&
+            selectedParticipantForAudio === participantId
+          ) {
+            setShowFullScreenVideo(false);
+            setShowDetailSidebar(false);
+            setDetailParticipant(null);
+            setSelectedRoomName(null);
+            setSelectedParticipantForAudio(null);
+            setSelectedVideoTrackRef(null);
+          } else {
+            // Open both fullscreen video and detail sidebar, enable audio for this participant
+            setSelectedParticipantForAudio(participantId);
+            setSelectedRoomName(roomName);
+            setSelectedVideoTrackRef(videoTrackRef);
+            // Get the participant details from this room
+            const roomParticipants = allParticipants[roomName];
+            if (roomParticipants && roomParticipants.length > 0) {
+              // Find the specific participant that was clicked
+              const clickedParticipant =
+                roomParticipants.find(p => p.id === participantId) ||
+                roomParticipants[0];
+              setDetailParticipant(clickedParticipant);
+              setShowFullScreenVideo(true);
+              setShowDetailSidebar(true); // Show sidebar together with video
+            }
+          }
+        };
+
         result.push({
           type: 'connection',
           key: connection.roomName,
           connection,
           onParticipantsUpdate,
+          onTileClick,
+          selectedParticipantForAudio,
         });
       } else {
         result.push({
@@ -357,7 +479,7 @@ export default function Home() {
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connections, gridSize]);
+  }, [connections, gridSize, selectedParticipantForAudio, showFullScreenVideo]);
 
   // We need at least one connection to show the control bar
   const firstConnection = connections[0];
@@ -373,14 +495,20 @@ export default function Home() {
               connect={firstConnection.connected}
               audio
               video={false}
-              className={styles.room}              options={{
+              className={styles.room}
+              options={{
                 audioCaptureDefaults: {
                   autoGainControl: true,
                   echoCancellation: true,
                   noiseSuppression: true,
                 },
-              }}            >
-              <div className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}>
+              }}
+            >
+              <div
+                className={`${styles.content} ${
+                  !showParticipantList ? styles.contentFullWidth : ''
+                }`}
+              >
                 {/* Error State */}
                 {error && (
                   <div
@@ -408,7 +536,7 @@ export default function Home() {
                 )}
 
                 {/* Main Stage */}
-                <div className={styles.stage}>
+                <div className={styles.stage} style={{ position: 'relative' }}>
                   {/* Grid with Live Video Feeds */}
                   <div
                     className={styles.grid}
@@ -417,7 +545,7 @@ export default function Home() {
                       gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
                     }}
                   >
-                    {gridSlots.map((slot) =>
+                    {gridSlots.map(slot =>
                       slot.type === 'connection' ? (
                         <LiveKitRoom
                           key={slot.key}
@@ -442,6 +570,10 @@ export default function Home() {
                           <RoomTracks
                             roomName={slot.connection.roomName}
                             onParticipantsUpdate={slot.onParticipantsUpdate}
+                            onTileClick={slot.onTileClick}
+                            selectedParticipantForAudio={
+                              slot.selectedParticipantForAudio
+                            }
                           />
                         </LiveKitRoom>
                       ) : (
@@ -455,17 +587,49 @@ export default function Home() {
                     gridSize={gridSize}
                     onGridSizeChange={setGridSize}
                     showParticipantList={showParticipantList}
-                    onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                    onToggleParticipantList={() =>
+                      setShowParticipantList(!showParticipantList)
+                    }
                   />
                 </div>
 
+                {/* Full Screen Video */}
+                {showFullScreenVideo &&
+                  detailParticipant &&
+                  selectedVideoTrackRef && (
+                    <FullScreenVideo
+                      participant={detailParticipant}
+                      videoTrackRef={selectedVideoTrackRef}
+                    />
+                  )}
+
+                {/* Participant Detail Sidebar */}
+                {showFullScreenVideo &&
+                  showDetailSidebar &&
+                  detailParticipant && (
+                    <ParticipantDetailSidebar
+                      participant={detailParticipant}
+                      onClose={() => {
+                        setShowFullScreenVideo(false);
+                        setShowDetailSidebar(false);
+                        setDetailParticipant(null);
+                        setSelectedRoomName(null);
+                        setSelectedParticipantForAudio(null);
+                        setSelectedVideoTrackRef(null);
+                      }}
+                    />
+                  )}
+
                 {/* Participant Sidebar */}
-                {showParticipantList && (
+                {showParticipantList && !showFullScreenVideo && (
                   <ParticipantSidebar
                     participants={participantList}
                     selectedParticipantId={selectedParticipantId}
                     onSelectParticipant={setSelectedParticipantId}
-                    onClose={() => setShowParticipantList(false)}
+                    onClose={() => {
+                      setShowParticipantList(false);
+                      setSelectedRoomName(null);
+                    }}
                     onMuteAll={() => {}}
                     onInvite={() => {}}
                     inviteBusy={false}
@@ -477,7 +641,11 @@ export default function Home() {
               </div>
             </LiveKitRoom>
           ) : (
-            <div className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}>
+            <div
+              className={`${styles.content} ${
+                !showParticipantList ? styles.contentFullWidth : ''
+              }`}
+            >
               {/* Error State */}
               {error && (
                 <div
@@ -505,7 +673,7 @@ export default function Home() {
               )}
 
               {/* Main Stage */}
-              <div className={styles.stage}>
+              <div className={styles.stage} style={{ position: 'relative' }}>
                 {/* Grid with Empty Tiles */}
                 <div
                   className={styles.grid}
@@ -514,7 +682,7 @@ export default function Home() {
                     gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
                   }}
                 >
-                  {gridSlots.map((slot) => (
+                  {gridSlots.map(slot => (
                     <EmptyTile key={slot.key} />
                   ))}
                 </div>
@@ -530,7 +698,9 @@ export default function Home() {
                   onToggleAllAudio={() => {}}
                   onToggleAllVideo={() => {}}
                   showParticipantList={showParticipantList}
-                  onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                  onToggleParticipantList={() =>
+                    setShowParticipantList(!showParticipantList)
+                  }
                   gridSize={gridSize}
                   onGridSizeChange={setGridSize}
                   onLeaveRoom={() => {}}
@@ -539,13 +709,43 @@ export default function Home() {
                 />
               </div>
 
+              {/* Full Screen Video */}
+              {showFullScreenVideo &&
+                detailParticipant &&
+                selectedVideoTrackRef && (
+                  <FullScreenVideo
+                    participant={detailParticipant}
+                    videoTrackRef={selectedVideoTrackRef}
+                  />
+                )}
+
+              {/* Participant Detail Sidebar */}
+              {showFullScreenVideo &&
+                showDetailSidebar &&
+                detailParticipant && (
+                  <ParticipantDetailSidebar
+                    participant={detailParticipant}
+                    onClose={() => {
+                      setShowFullScreenVideo(false);
+                      setShowDetailSidebar(false);
+                      setDetailParticipant(null);
+                      setSelectedRoomName(null);
+                      setSelectedParticipantForAudio(null);
+                      setSelectedVideoTrackRef(null);
+                    }}
+                  />
+                )}
+
               {/* Participant Sidebar */}
-              {showParticipantList && (
+              {showParticipantList && !showFullScreenVideo && (
                 <ParticipantSidebar
                   participants={participantList}
                   selectedParticipantId={selectedParticipantId}
                   onSelectParticipant={setSelectedParticipantId}
-                  onClose={() => setShowParticipantList(false)}
+                  onClose={() => {
+                    setShowParticipantList(false);
+                    setSelectedRoomName(null);
+                  }}
                   onMuteAll={() => {}}
                   onInvite={() => {}}
                   inviteBusy={false}
