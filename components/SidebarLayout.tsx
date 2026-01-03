@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ReactNode, useCallback, useState } from 'react';
+import { ReactNode, useCallback, useState, type CSSProperties } from 'react';
 import AuthGuard from './AuthGuard';
 import { useSessionMonitor } from '../hooks/useSessionMonitor';
 import CsvUploadModal from './CsvUploadModal';
@@ -688,12 +688,14 @@ export default function SidebarLayout({
         style={{
           flex: 1,
           marginLeft: sidebarCollapsed ? 0 : '240px',
+          // 모달 등 자식에서 사이드바 폭을 참조할 수 있도록 CSS 변수 제공
+          '--sidebar-width': sidebarCollapsed ? '0px' : '240px',
           minHeight: '100vh',
           height: noPadding ? '100vh' : undefined,
           display: noPadding ? 'flex' : undefined,
           flexDirection: noPadding ? 'column' : undefined,
           transition: 'margin-left 200ms ease',
-        }}
+        } as CSSProperties & { '--sidebar-width': string }}
       >
         {/* Header */}
         {title && (
