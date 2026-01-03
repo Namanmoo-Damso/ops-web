@@ -11,7 +11,15 @@ import {
 } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
-import { EmptyTile, getInitials, ControlBar, ParticipantSidebar, ParticipantDetailSidebar, FullScreenVideo, type MockParticipant } from '../components/video';
+import {
+  EmptyTile,
+  getInitials,
+  ControlBar,
+  ParticipantSidebar,
+  ParticipantDetailSidebar,
+  FullScreenVideo,
+  type MockParticipant,
+} from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import styles from './page.module.css';
 
@@ -46,7 +54,9 @@ const LiveTile = ({
     >
       <div className={styles.tileMedia}>
         {cameraOff ? (
-          <div className={styles.avatarFallback}>{getInitials(displayName)}</div>
+          <div className={styles.avatarFallback}>
+            {getInitials(displayName)}
+          </div>
         ) : (
           <TrackRefContext.Provider value={trackRef}>
             <VideoTrack className={styles.video} />
@@ -131,13 +141,13 @@ const RoomTracks = ({
 
   // Filter out admin and agent participants (they are invisible in grid)
   const tracks = allTracks.filter(
-    (track) =>
+    track =>
       !track.participant.identity.startsWith('admin_') &&
       !track.participant.identity.startsWith('agent-'),
   );
 
   // Filter audio tracks to only include selected participant and exclude AI agents
-  const filteredAudioTracks = audioTracks.filter((track) => {
+  const filteredAudioTracks = audioTracks.filter(track => {
     if (!selectedParticipantForAudio) return false;
     const participantId = track.participant.identity || track.participant.sid;
     // Exclude AI agents from audio
@@ -159,7 +169,7 @@ const RoomTracks = ({
   // Update parent with participant list
   useEffect(() => {
     if (onParticipantsUpdate) {
-      const participants: MockParticipant[] = tracks.map((trackRef) => {
+      const participants: MockParticipant[] = tracks.map(trackRef => {
         const participant = trackRef.participant;
         return {
           id: getParticipantId(participant),
@@ -185,12 +195,17 @@ const RoomTracks = ({
 
   return (
     <>
-      {filteredAudioTracks.map((audioTrackRef) => (
-        <TrackRefContext.Provider key={audioTrackRef.participant.identity || audioTrackRef.participant.sid} value={audioTrackRef}>
+      {filteredAudioTracks.map(audioTrackRef => (
+        <TrackRefContext.Provider
+          key={
+            audioTrackRef.participant.identity || audioTrackRef.participant.sid
+          }
+          value={audioTrackRef}
+        >
           <RoomAudioRenderer />
         </TrackRefContext.Provider>
       ))}
-      {tracks.map((trackRef) => {
+      {tracks.map(trackRef => {
         const participant = trackRef.participant;
         if (!participant) return null;
         const identity = getParticipantId(participant);
@@ -202,7 +217,7 @@ const RoomTracks = ({
             displayName={displayName}
             roomName={roomName}
             videoOff={isVideoOff(participant)}
-            onClick={(participantId) => onTileClick?.(participantId, trackRef)}
+            onClick={participantId => onTileClick?.(participantId, trackRef)}
             participantId={identity}
           />
         );
@@ -257,7 +272,8 @@ const ControlBarWrapper = ({
   showParticipantList: boolean;
   onToggleParticipantList: () => void;
 }) => {
-  const { isMicrophoneEnabled, isCameraEnabled, localParticipant } = useLocalParticipant();
+  const { isMicrophoneEnabled, isCameraEnabled, localParticipant } =
+    useLocalParticipant();
 
   const toggleMicrophone = async () => {
     if (!localParticipant) return;
@@ -304,16 +320,22 @@ export default function Home() {
   const [apiBase, setApiBase] = useState(apiBaseEnv);
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
-  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
-  const [allParticipants, setAllParticipants] = useState<Record<string, MockParticipant[]>>({});
+  const [selectedParticipantId, setSelectedParticipantId] = useState<
+    string | null
+  >(null);
+  const [allParticipants, setAllParticipants] = useState<
+    Record<string, MockParticipant[]>
+  >({});
   const [selectedRoomName, setSelectedRoomName] = useState<string | null>(null);
   const [showDetailSidebar, setShowDetailSidebar] = useState(false);
-  const [detailParticipant, setDetailParticipant] = useState<MockParticipant | null>(null);
-  const [selectedParticipantForAudio, setSelectedParticipantForAudio] = useState<string | null>(null);
+  const [detailParticipant, setDetailParticipant] =
+    useState<MockParticipant | null>(null);
+  const [selectedParticipantForAudio, setSelectedParticipantForAudio] =
+    useState<string | null>(null);
   const [selectedVideoTrackRef, setSelectedVideoTrackRef] = useState<any>(null);
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
 
-  // Collect participants from all rooms or selected room
+  // Collect participants from all rooms or selected   room
   const participantList = useMemo(() => {
     const participants: MockParticipant[] = [];
     if (selectedRoomName && allParticipants[selectedRoomName]) {
@@ -321,7 +343,7 @@ export default function Home() {
       participants.push(...allParticipants[selectedRoomName]);
     } else {
       // Show all participants from all rooms
-      Object.values(allParticipants).forEach((roomParticipants) => {
+      Object.values(allParticipants).forEach(roomParticipants => {
         participants.push(...roomParticipants);
       });
     }
@@ -330,17 +352,19 @@ export default function Home() {
 
   // Close detail sidebar if the selected participant leaves
   useEffect(() => {
-    if (detailParticipant && selectedParticipantForAudio) {
-      // Check if the participant still exists in the participant list
-      const participantExists = participantList.some(p => p.id === selectedParticipantForAudio);
-      if (!participantExists) {
-        // Participant left, close the sidebar and turn off audio
-        setShowDetailSidebar(false);
-        setDetailParticipant(null);
-        setSelectedRoomName(null);
-        setSelectedParticipantForAudio(null);
-        setSelectedVideoTrackRef(null);
-      }
+    if (!detailParticipant || !selectedParticipantForAudio) return;
+
+    const participantExists = participantList.some(
+      p => p.id === selectedParticipantForAudio,
+    );
+
+    if (!participantExists) {
+      setShowDetailSidebar(false);
+      setDetailParticipant(null);
+      setSelectedRoomName(null);
+      setSelectedParticipantForAudio(null);
+      setSelectedVideoTrackRef(null);
+      setShowFullScreenVideo(false);
     }
   }, [participantList, detailParticipant, selectedParticipantForAudio]);
 
@@ -383,7 +407,7 @@ export default function Home() {
         // Create a stable callback for each room
         const roomName = connection.roomName;
         const onParticipantsUpdate = (participants: MockParticipant[]) => {
-          setAllParticipants((prev) => {
+          setAllParticipants(prev => {
             // Check if participants have actually changed
             const existingParticipants = prev[roomName];
             if (
@@ -408,7 +432,10 @@ export default function Home() {
 
         const onTileClick = (participantId: string, videoTrackRef: any) => {
           // If clicking the same participant that's already in fullscreen, close it
-          if (showFullScreenVideo && selectedParticipantForAudio === participantId) {
+          if (
+            showFullScreenVideo &&
+            selectedParticipantForAudio === participantId
+          ) {
             setShowFullScreenVideo(false);
             setShowDetailSidebar(false);
             setDetailParticipant(null);
@@ -424,7 +451,9 @@ export default function Home() {
             const roomParticipants = allParticipants[roomName];
             if (roomParticipants && roomParticipants.length > 0) {
               // Find the specific participant that was clicked
-              const clickedParticipant = roomParticipants.find(p => p.id === participantId) || roomParticipants[0];
+              const clickedParticipant =
+                roomParticipants.find(p => p.id === participantId) ||
+                roomParticipants[0];
               setDetailParticipant(clickedParticipant);
               setShowFullScreenVideo(true);
               setShowDetailSidebar(true); // Show sidebar together with video
@@ -466,14 +495,20 @@ export default function Home() {
               connect={firstConnection.connected}
               audio
               video={false}
-              className={styles.room}              options={{
+              className={styles.room}
+              options={{
                 audioCaptureDefaults: {
                   autoGainControl: true,
                   echoCancellation: true,
                   noiseSuppression: true,
                 },
-              }}            >
-              <div className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}>
+              }}
+            >
+              <div
+                className={`${styles.content} ${
+                  !showParticipantList ? styles.contentFullWidth : ''
+                }`}
+              >
                 {/* Error State */}
                 {error && (
                   <div
@@ -510,7 +545,7 @@ export default function Home() {
                       gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
                     }}
                   >
-                    {gridSlots.map((slot) =>
+                    {gridSlots.map(slot =>
                       slot.type === 'connection' ? (
                         <LiveKitRoom
                           key={slot.key}
@@ -536,7 +571,9 @@ export default function Home() {
                             roomName={slot.connection.roomName}
                             onParticipantsUpdate={slot.onParticipantsUpdate}
                             onTileClick={slot.onTileClick}
-                            selectedParticipantForAudio={slot.selectedParticipantForAudio}
+                            selectedParticipantForAudio={
+                              slot.selectedParticipantForAudio
+                            }
                           />
                         </LiveKitRoom>
                       ) : (
@@ -550,32 +587,38 @@ export default function Home() {
                     gridSize={gridSize}
                     onGridSizeChange={setGridSize}
                     showParticipantList={showParticipantList}
-                    onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                    onToggleParticipantList={() =>
+                      setShowParticipantList(!showParticipantList)
+                    }
                   />
                 </div>
 
                 {/* Full Screen Video */}
-                {showFullScreenVideo && detailParticipant && selectedVideoTrackRef && (
-                  <FullScreenVideo
-                    participant={detailParticipant}
-                    videoTrackRef={selectedVideoTrackRef}
-                  />
-                )}
+                {showFullScreenVideo &&
+                  detailParticipant &&
+                  selectedVideoTrackRef && (
+                    <FullScreenVideo
+                      participant={detailParticipant}
+                      videoTrackRef={selectedVideoTrackRef}
+                    />
+                  )}
 
                 {/* Participant Detail Sidebar */}
-                {showFullScreenVideo && showDetailSidebar && detailParticipant && (
-                  <ParticipantDetailSidebar
-                    participant={detailParticipant}
-                    onClose={() => {
-                      setShowFullScreenVideo(false);
-                      setShowDetailSidebar(false);
-                      setDetailParticipant(null);
-                      setSelectedRoomName(null);
-                      setSelectedParticipantForAudio(null);
-                      setSelectedVideoTrackRef(null);
-                    }}
-                  />
-                )}
+                {showFullScreenVideo &&
+                  showDetailSidebar &&
+                  detailParticipant && (
+                    <ParticipantDetailSidebar
+                      participant={detailParticipant}
+                      onClose={() => {
+                        setShowFullScreenVideo(false);
+                        setShowDetailSidebar(false);
+                        setDetailParticipant(null);
+                        setSelectedRoomName(null);
+                        setSelectedParticipantForAudio(null);
+                        setSelectedVideoTrackRef(null);
+                      }}
+                    />
+                  )}
 
                 {/* Participant Sidebar */}
                 {showParticipantList && !showFullScreenVideo && (
@@ -598,7 +641,11 @@ export default function Home() {
               </div>
             </LiveKitRoom>
           ) : (
-            <div className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''}`}>
+            <div
+              className={`${styles.content} ${
+                !showParticipantList ? styles.contentFullWidth : ''
+              }`}
+            >
               {/* Error State */}
               {error && (
                 <div
@@ -635,7 +682,7 @@ export default function Home() {
                     gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
                   }}
                 >
-                  {gridSlots.map((slot) => (
+                  {gridSlots.map(slot => (
                     <EmptyTile key={slot.key} />
                   ))}
                 </div>
@@ -651,7 +698,9 @@ export default function Home() {
                   onToggleAllAudio={() => {}}
                   onToggleAllVideo={() => {}}
                   showParticipantList={showParticipantList}
-                  onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                  onToggleParticipantList={() =>
+                    setShowParticipantList(!showParticipantList)
+                  }
                   gridSize={gridSize}
                   onGridSizeChange={setGridSize}
                   onLeaveRoom={() => {}}
@@ -661,27 +710,31 @@ export default function Home() {
               </div>
 
               {/* Full Screen Video */}
-              {showFullScreenVideo && detailParticipant && selectedVideoTrackRef && (
-                <FullScreenVideo
-                  participant={detailParticipant}
-                  videoTrackRef={selectedVideoTrackRef}
-                />
-              )}
+              {showFullScreenVideo &&
+                detailParticipant &&
+                selectedVideoTrackRef && (
+                  <FullScreenVideo
+                    participant={detailParticipant}
+                    videoTrackRef={selectedVideoTrackRef}
+                  />
+                )}
 
               {/* Participant Detail Sidebar */}
-              {showFullScreenVideo && showDetailSidebar && detailParticipant && (
-                <ParticipantDetailSidebar
-                  participant={detailParticipant}
-                  onClose={() => {
-                    setShowFullScreenVideo(false);
-                    setShowDetailSidebar(false);
-                    setDetailParticipant(null);
-                    setSelectedRoomName(null);
-                    setSelectedParticipantForAudio(null);
-                    setSelectedVideoTrackRef(null);
-                  }}
-                />
-              )}
+              {showFullScreenVideo &&
+                showDetailSidebar &&
+                detailParticipant && (
+                  <ParticipantDetailSidebar
+                    participant={detailParticipant}
+                    onClose={() => {
+                      setShowFullScreenVideo(false);
+                      setShowDetailSidebar(false);
+                      setDetailParticipant(null);
+                      setSelectedRoomName(null);
+                      setSelectedParticipantForAudio(null);
+                      setSelectedVideoTrackRef(null);
+                    }}
+                  />
+                )}
 
               {/* Participant Sidebar */}
               {showParticipantList && !showFullScreenVideo && (
