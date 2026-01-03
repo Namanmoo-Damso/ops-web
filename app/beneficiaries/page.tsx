@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useAdminApi } from '../../hooks/useAdminApi';
 import DetailModal, {
   type BeneficiaryDetail,
-  type BeneficiaryLog,
+  type BeneficiaryUpdatePayload,
 } from './DetailModal';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -40,90 +41,42 @@ type BeneficiariesApiResponse = {
   total?: number;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+type BeneficiaryDetailPayload = BeneficiaryDetail & {
+  id: string;
+};
 
-const DEFAULT_DETAIL: BeneficiaryDetail = {
-  phoneNumber: '-',
-  guardian: '-',
+type BeneficiaryDetailResponse = {
+  data: BeneficiaryDetailPayload;
+};
+
+const EMPTY_DETAIL: BeneficiaryDetail = {
+  name: null,
+  email: null,
+  phoneNumber: null,
+  birthDate: null,
+  address: null,
+  gender: null,
+  type: null,
+  guardian: null,
   diseases: [],
-  medication: '-',
-  notes: '특이사항 없음',
+  medication: null,
+  notes: null,
   recentLogs: [],
 };
 
-const BENEFICIARY_DETAIL_MOCKS: Record<string, BeneficiaryDetail> = {
-  '1': {
-    phoneNumber: '010-1234-1111',
-    guardian: '아들 박성훈 (010-1234-5678)',
-    diseases: ['고혈압', '협심증'],
-    medication: '혈압약 (아침/저녁)',
-    notes:
-      '거동이 불편하여 방문 시 초인종을 길게 눌러주세요. 강아지를 키우고 계십니다.',
-    recentLogs: [
-      {
-        id: 1,
-        date: '오늘 14:30',
-        type: 'AI 안부',
-        content: '가슴 통증 호소 (위험 감지)',
-        sentiment: 'negative',
-      },
-      {
-        id: 2,
-        date: '5/07 10:00',
-        type: '정기 방문',
-        content: '반찬 배달 및 청소 지원',
-        sentiment: 'neutral',
-      },
-      {
-        id: 3,
-        date: '5/06 14:00',
-        type: 'AI 안부',
-        content: '식사 잘 하심, 기분 좋음',
-        sentiment: 'positive',
-      },
-    ],
-  },
-  '2': {
-    phoneNumber: '010-9876-2222',
-    guardian: '딸 박지민 (010-9876-5432)',
-    diseases: ['관절염'],
-    medication: '진통제 (필요시)',
-    notes: '난청이 있으셔서 크게 말씀해드려야 합니다.',
-    recentLogs: [
-      {
-        id: 1,
-        date: '어제 10:00',
-        type: 'AI 안부',
-        content: '복지관 다녀오심',
-        sentiment: 'positive',
-      },
-    ],
-  },
-  '3': {
-    phoneNumber: '010-3333-3333',
-    guardian: '손자 이민호 (010-3333-4444)',
-    diseases: ['우울증', '불면증'],
-    medication: '수면제',
-    notes: '외로움 호소, 주 2회 통화 권장.',
-    recentLogs: [
-      {
-        id: 1,
-        date: '5/05 11:00',
-        type: 'AI 안부',
-        content: '외로움 호소',
-        sentiment: 'negative',
-      },
-    ],
-  },
-};
-
 export default function BeneficiariesPage() {
+  const { getApiBase, requireAdminToken, clearAdminSession } = useAdminApi();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'risk'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [detailOverride, setDetailOverride] =
+    useState<BeneficiaryDetailPayload | null>(null);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
   useEffect(() => {
@@ -139,14 +92,15 @@ export default function BeneficiariesPage() {
     setPage(1);
   }, [debouncedSearch, filter]);
 
+  useEffect(() => {
+    setDeleteError(null);
+    setDetailOverride(null);
+  }, [selectedId]);
+
   const { data, loading, error } = useAuthedFetch<BeneficiariesApiResponse>({
-    deps: [debouncedSearch, filter, page, pageSize],
+    deps: [debouncedSearch, filter, page, pageSize, refreshKey],
     fetcher: async ({ token, signal }) => {
-      if (!API_BASE) {
-        throw new Error(
-          'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
-        );
-      }
+      const apiBase = getApiBase();
 
       const params = new URLSearchParams();
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
@@ -155,7 +109,7 @@ export default function BeneficiariesPage() {
       params.set('pageSize', String(pageSize));
 
       const response = await fetch(
-        `${API_BASE}/v1/admin/beneficiaries?${params.toString()}`,
+        `${apiBase}/v1/admin/beneficiaries?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -169,14 +123,153 @@ export default function BeneficiariesPage() {
       }
 
       if (!response.ok) {
+        console.error(
+          'Failed to fetch beneficiaries list.',
+          response.status,
+          response.statusText,
+        );
         throw new Error(
-          `목록 불러오기에 실패했습니다. (HTTP ${response.status})`,
+          '대상자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
         );
       }
 
       return (await response.json()) as BeneficiariesApiResponse;
     },
   });
+
+  const {
+    data: detailResponse,
+    loading: detailLoading,
+    error: detailError,
+  } = useAuthedFetch<BeneficiaryDetailResponse | null>({
+    deps: [selectedId],
+    fetcher: async ({ token, signal }) => {
+      if (!selectedId) return null;
+      const apiBase = getApiBase();
+
+      const response = await fetch(
+        `${apiBase}/v1/admin/beneficiaries/${selectedId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          signal,
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
+
+      if (!response.ok) {
+        console.error(
+          'Failed to fetch beneficiary detail.',
+          response.status,
+          response.statusText,
+        );
+        throw new Error(
+          '상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+        );
+      }
+
+      return (await response.json()) as BeneficiaryDetailResponse;
+    },
+  });
+
+  const handleDelete = async (id: string) => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const apiBase = getApiBase();
+      const token = requireAdminToken();
+      const response = await fetch(
+        `${apiBase}/v1/admin/beneficiaries/${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
+
+      if (!response.ok) {
+        console.error(
+          'Failed to delete beneficiary.',
+          response.status,
+          response.statusText,
+        );
+        throw new Error(
+          '대상자 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
+        );
+      }
+
+      setSelectedId(null);
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        clearAdminSession();
+        window.location.replace('/login');
+        return;
+      }
+      console.error('Delete beneficiary failed.', err);
+      setDeleteError('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleUpdate = async (
+    id: string,
+    payload: BeneficiaryUpdatePayload,
+  ): Promise<BeneficiaryDetailPayload | null> => {
+    try {
+      const apiBase = getApiBase();
+      const token = requireAdminToken();
+      const response = await fetch(
+        `${apiBase}/v1/admin/beneficiaries/${id}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
+
+      if (!response.ok) {
+        console.error(
+          'Failed to update beneficiary.',
+          response.status,
+          response.statusText,
+        );
+        throw new Error(
+          '정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.',
+        );
+      }
+
+      const result = (await response.json()) as BeneficiaryDetailResponse;
+      setDetailOverride(result.data);
+      setRefreshKey(prev => prev + 1);
+      return result.data;
+    } catch (err) {
+      if (err instanceof AuthError) {
+        clearAdminSession();
+        window.location.replace('/login');
+        return null;
+      }
+      console.error('Update beneficiary failed.', err);
+      throw new Error('정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  };
 
   const items = useMemo<Beneficiary[]>(() => {
     const apiItems = Array.isArray(data?.data) ? data?.data : [];
@@ -246,9 +339,21 @@ export default function BeneficiariesPage() {
     if (!selectedId) return null;
     const base = items.find(item => item.id === selectedId);
     if (!base) return null;
-    const detail = BENEFICIARY_DETAIL_MOCKS[selectedId] ?? DEFAULT_DETAIL;
-    return { base, detail };
-  }, [items, selectedId]);
+    const detail =
+      detailOverride?.id === selectedId
+        ? detailOverride
+        : detailResponse?.data.id === selectedId
+        ? detailResponse.data
+        : EMPTY_DETAIL;
+    return { base, detail, detailLoading, detailError };
+  }, [
+    detailError,
+    detailLoading,
+    detailOverride,
+    detailResponse,
+    items,
+    selectedId,
+  ]);
 
   return (
     <SidebarLayout>
@@ -277,6 +382,10 @@ export default function BeneficiariesPage() {
             beneficiary={selectedData.base}
             detail={selectedData.detail}
             onClose={() => setSelectedId(null)}
+            onDelete={() => handleDelete(selectedData.base.id)}
+            deleting={deleteLoading}
+            deleteError={deleteError}
+            onUpdate={payload => handleUpdate(selectedData.base.id, payload)}
           />
         )}
       </div>
