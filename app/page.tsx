@@ -109,9 +109,11 @@ const RoomTracks = ({
     { onlySubscribed: false },
   );
 
-  // Filter out admin participants (admins are invisible)
+  // Filter out admin and agent participants (they are invisible in grid)
   const tracks = allTracks.filter(
-    (track) => !track.participant.identity.startsWith('admin_'),
+    (track) =>
+      !track.participant.identity.startsWith('admin_') &&
+      !track.participant.identity.startsWith('agent-'),
   );
 
   const getParticipantId = (participant: any) =>
@@ -146,6 +148,11 @@ const RoomTracks = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tracks]);
+
+  // If no visible participants, render an EmptyTile to maintain grid structure
+  if (tracks.length === 0) {
+    return <EmptyTile />;
+  }
 
   return (
     <>
