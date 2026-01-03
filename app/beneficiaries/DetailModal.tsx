@@ -71,7 +71,10 @@ export default function DetailModal({
   onUpdate,
 }: DetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const confirmDialogRef = useRef<HTMLDivElement>(null);
+  const confirmPrimaryRef = useRef<HTMLButtonElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [form, setForm] = useState({
     name: '',
     phoneNumber: '',
@@ -89,6 +92,7 @@ export default function DetailModal({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
+  const diseaseText = detail.diseases.join(', ');
   const defaultForm = useMemo(
     () => ({
       name: detail.name ?? beneficiary?.name ?? '',
@@ -98,11 +102,26 @@ export default function DetailModal({
       gender: detail.gender ?? beneficiary?.gender ?? '',
       wardType: detail.type ?? beneficiary?.type ?? '',
       guardian: detail.guardian ?? '',
-      diseases: detail.diseases.join(', '),
+      diseases: diseaseText,
       medication: detail.medication ?? '',
       notes: detail.notes ?? '',
     }),
-    [beneficiary, detail],
+    [
+      beneficiary?.address,
+      beneficiary?.gender,
+      beneficiary?.name,
+      beneficiary?.type,
+      detail.address,
+      detail.birthDate,
+      diseaseText,
+      detail.gender,
+      detail.guardian,
+      detail.medication,
+      detail.name,
+      detail.notes,
+      detail.phoneNumber,
+      detail.type,
+    ],
   );
 
   // ESC로 닫기 + 포커스 트랩
@@ -110,11 +129,17 @@ export default function DetailModal({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        if (showDeleteConfirm) {
+          setShowDeleteConfirm(false);
+        } else {
+          onClose();
+        }
         return;
       }
       if (e.key === 'Tab') {
-        const root = dialogRef.current;
+        const root = showDeleteConfirm
+          ? confirmDialogRef.current
+          : dialogRef.current;
         if (!root) return;
         const focusables = root.querySelectorAll<HTMLElement>(
           'a, button, textarea, input, select, [tabindex]:not([tabindex="-1"])',
@@ -140,16 +165,16 @@ export default function DetailModal({
       }
     };
 
-    const root = dialogRef.current;
-    if (root) {
-      root.focus();
-    }
+    const root = showDeleteConfirm
+      ? confirmDialogRef.current
+      : dialogRef.current;
+    if (root) root.focus();
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [onClose]);
+  }, [onClose, showDeleteConfirm]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -160,8 +185,14 @@ export default function DetailModal({
   }, [isEditing]);
 
   useEffect(() => {
+    if (showDeleteConfirm) {
+      confirmPrimaryRef.current?.focus();
+    }
+  }, [showDeleteConfirm]);
+
+  useEffect(() => {
     if (isEditing && !isDirty) {
-      setForm(defaultForm);
+      setForm(prev => (isFormEqual(prev, defaultForm) ? prev : defaultForm));
     }
   }, [defaultForm, isDirty, isEditing]);
 
@@ -253,10 +284,20 @@ export default function DetailModal({
       setIsEditing(false);
       setIsDirty(false);
     } catch (error) {
-      setSaveError((error as Error).message || '저장 중 오류가 발생했습니다.');
+      console.error('Failed to update beneficiary detail.', error);
+      setSaveError('저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setSaveLoading(false);
     }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    onDelete?.();
   };
 
   return (
@@ -520,7 +561,7 @@ export default function DetailModal({
             <button
               type="button"
               className={styles.deleteButton}
-              onClick={onDelete}
+              onClick={handleDeleteClick}
               disabled={!onDelete || deleting || isEditing || saveLoading}
             >
               {deleting ? '삭제 중...' : '대상자 삭제'}
@@ -543,6 +584,56 @@ export default function DetailModal({
           </div>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div
+          className={styles.confirmOverlay}
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="beneficiary-delete-title"
+            aria-describedby="beneficiary-delete-description"
+            ref={confirmDialogRef}
+            tabIndex={-1}
+            onClick={e => e.stopPropagation()}
+            className={styles.confirmDialog}
+          >
+            <div className={styles.confirmTitle} id="beneficiary-delete-title">
+              대상자 삭제 확인
+            </div>
+            <div
+              className={styles.confirmDescription}
+              id="beneficiary-delete-description"
+            >
+              삭제하면 복구할 수 없습니다. 정말 삭제하시겠습니까?
+            </div>
+            {deleteError && (
+              <div className={styles.confirmError}>{deleteError}</div>
+            )}
+            <div className={styles.confirmActions}>
+              <button
+                type="button"
+                className={styles.confirmCancel}
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                ref={confirmPrimaryRef}
+                className={styles.confirmDelete}
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+              >
+                {deleting ? '삭제 중...' : '삭제하기'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -596,4 +687,44 @@ function calculateAgeFromBirthDate(value: string): number | null {
     age -= 1;
   }
   return age;
+}
+
+function isFormEqual(
+  a: {
+    name: string;
+    phoneNumber: string;
+    birthDate: string;
+    address: string;
+    gender: string;
+    wardType: string;
+    guardian: string;
+    diseases: string;
+    medication: string;
+    notes: string;
+  },
+  b: {
+    name: string;
+    phoneNumber: string;
+    birthDate: string;
+    address: string;
+    gender: string;
+    wardType: string;
+    guardian: string;
+    diseases: string;
+    medication: string;
+    notes: string;
+  },
+) {
+  return (
+    a.name === b.name &&
+    a.phoneNumber === b.phoneNumber &&
+    a.birthDate === b.birthDate &&
+    a.address === b.address &&
+    a.gender === b.gender &&
+    a.wardType === b.wardType &&
+    a.guardian === b.guardian &&
+    a.diseases === b.diseases &&
+    a.medication === b.medication &&
+    a.notes === b.notes
+  );
 }

@@ -146,8 +146,13 @@ export default function BeneficiariesPage() {
       }
 
       if (!response.ok) {
+        console.error(
+          'Failed to fetch beneficiaries list.',
+          response.status,
+          response.statusText,
+        );
         throw new Error(
-          `목록 불러오기에 실패했습니다. (HTTP ${response.status})`,
+          '대상자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
         );
       }
 
@@ -180,8 +185,13 @@ export default function BeneficiariesPage() {
       }
 
       if (!response.ok) {
+        console.error(
+          'Failed to fetch beneficiary detail.',
+          response.status,
+          response.statusText,
+        );
         throw new Error(
-          `상세 정보를 불러오지 못했습니다. (HTTP ${response.status})`,
+          '상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
         );
       }
 
@@ -190,9 +200,6 @@ export default function BeneficiariesPage() {
   });
 
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm('선택한 대상자를 삭제하시겠습니까?');
-    if (!confirmed) return;
-
     setDeleteLoading(true);
     setDeleteError(null);
     try {
@@ -213,8 +220,13 @@ export default function BeneficiariesPage() {
       }
 
       if (!response.ok) {
+        console.error(
+          'Failed to delete beneficiary.',
+          response.status,
+          response.statusText,
+        );
         throw new Error(
-          `대상자 삭제에 실패했습니다. (HTTP ${response.status})`,
+          '대상자 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
         );
       }
 
@@ -226,7 +238,8 @@ export default function BeneficiariesPage() {
         window.location.replace('/login');
         return;
       }
-      setDeleteError((err as Error).message || '삭제 중 오류가 발생했습니다.');
+      console.error('Delete beneficiary failed.', err);
+      setDeleteError('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setDeleteLoading(false);
     }
@@ -256,8 +269,13 @@ export default function BeneficiariesPage() {
       }
 
       if (!response.ok) {
+        console.error(
+          'Failed to update beneficiary.',
+          response.status,
+          response.statusText,
+        );
         throw new Error(
-          `정보 수정에 실패했습니다. (HTTP ${response.status})`,
+          '정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.',
         );
       }
 
@@ -271,7 +289,8 @@ export default function BeneficiariesPage() {
         window.location.replace('/login');
         return null;
       }
-      throw err;
+      console.error('Update beneficiary failed.', err);
+      throw new Error('정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
   };
 
