@@ -5,3 +5,4 @@ export type {
 } from './useLiveKitSession';
 export { useRoomSSE } from './useRoomSSE';
 export { useMultiRoomSession } from './useMultiRoomSession';
+export { useAdminApi } from './useAdminApi';

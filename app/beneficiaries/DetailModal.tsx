@@ -249,12 +249,9 @@ export default function DetailModal({
     if (!onUpdate) return;
     setSaveError(null);
     setSaveSuccess(null);
-    if (!form.name.trim()) {
-      setSaveError('이름은 필수입니다.');
-      return;
-    }
-    if (!form.phoneNumber.trim()) {
-      setSaveError('전화번호는 필수입니다.');
+    const validationMessage = validateForm(form);
+    if (validationMessage) {
+      setSaveError(validationMessage);
       return;
     }
 
@@ -727,4 +724,25 @@ function isFormEqual(
     a.medication === b.medication &&
     a.notes === b.notes
   );
+}
+
+function validateForm(form: {
+  name: string;
+  phoneNumber: string;
+  birthDate: string;
+  address: string;
+  gender: string;
+  wardType: string;
+  guardian: string;
+  diseases: string;
+  medication: string;
+  notes: string;
+}) {
+  if (!form.name.trim()) {
+    return '이름은 필수입니다.';
+  }
+  if (!form.phoneNumber.trim()) {
+    return '전화번호는 필수입니다.';
+  }
+  return null;
 }

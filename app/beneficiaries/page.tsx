@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useAdminApi } from '../../hooks/useAdminApi';
 import DetailModal, {
   type BeneficiaryDetail,
   type BeneficiaryUpdatePayload,
@@ -48,31 +49,6 @@ type BeneficiaryDetailResponse = {
   data: BeneficiaryDetailPayload;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-
-const getApiBase = () => {
-  if (!API_BASE) {
-    throw new Error(
-      'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
-    );
-  }
-  return API_BASE;
-};
-
-const requireAdminToken = () => {
-  const token = localStorage.getItem('admin_access_token');
-  if (!token) {
-    throw new AuthError('로그인이 필요합니다.');
-  }
-  return token;
-};
-
-const clearAdminSession = () => {
-  localStorage.removeItem('admin_access_token');
-  localStorage.removeItem('admin_refresh_token');
-  localStorage.removeItem('admin_info');
-};
-
 const EMPTY_DETAIL: BeneficiaryDetail = {
   name: null,
   email: null,
@@ -89,6 +65,7 @@ const EMPTY_DETAIL: BeneficiaryDetail = {
 };
 
 export default function BeneficiariesPage() {
+  const { getApiBase, requireAdminToken, clearAdminSession } = useAdminApi();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'risk'>('all');
