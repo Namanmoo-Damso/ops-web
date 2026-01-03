@@ -246,6 +246,12 @@
   align-items: center;
 }
 
+.footerLeft {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .textMuted {
   color: var(--beneficiary-muted);
   font-size: 12px;
@@ -359,6 +365,17 @@
   color: #ef4444;
   font-weight: 800;
   cursor: pointer;
+}
+
+.deleteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.deleteError {
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .editButton {

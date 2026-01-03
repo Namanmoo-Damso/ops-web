@@ -50,6 +50,29 @@ type BeneficiaryDetailResponse = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
+const getApiBase = () => {
+  if (!API_BASE) {
+    throw new Error(
+      'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
+    );
+  }
+  return API_BASE;
+};
+
+const requireAdminToken = () => {
+  const token = localStorage.getItem('admin_access_token');
+  if (!token) {
+    throw new AuthError('로그인이 필요합니다.');
+  }
+  return token;
+};
+
+const clearAdminSession = () => {
+  localStorage.removeItem('admin_access_token');
+  localStorage.removeItem('admin_refresh_token');
+  localStorage.removeItem('admin_info');
+};
+
 const EMPTY_DETAIL: BeneficiaryDetail = {
   phoneNumber: null,
   guardian: null,
@@ -66,6 +89,9 @@ export default function BeneficiariesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
   useEffect(() => {
@@ -81,14 +107,14 @@ export default function BeneficiariesPage() {
     setPage(1);
   }, [debouncedSearch, filter]);
 
+  useEffect(() => {
+    setDeleteError(null);
+  }, [selectedId]);
+
   const { data, loading, error } = useAuthedFetch<BeneficiariesApiResponse>({
-    deps: [debouncedSearch, filter, page, pageSize],
+    deps: [debouncedSearch, filter, page, pageSize, refreshKey],
     fetcher: async ({ token, signal }) => {
-      if (!API_BASE) {
-        throw new Error(
-          'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
-        );
-      }
+      const apiBase = getApiBase();
 
       const params = new URLSearchParams();
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
@@ -97,7 +123,7 @@ export default function BeneficiariesPage() {
       params.set('pageSize', String(pageSize));
 
       const response = await fetch(
-        `${API_BASE}/v1/admin/beneficiaries?${params.toString()}`,
+        `${apiBase}/v1/admin/beneficiaries?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -128,14 +154,10 @@ export default function BeneficiariesPage() {
     deps: [selectedId],
     fetcher: async ({ token, signal }) => {
       if (!selectedId) return null;
-      if (!API_BASE) {
-        throw new Error(
-          'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_URL을 확인하세요.',
-        );
-      }
+      const apiBase = getApiBase();
 
       const response = await fetch(
-        `${API_BASE}/v1/admin/beneficiaries/${selectedId}`,
+        `${apiBase}/v1/admin/beneficiaries/${selectedId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -157,6 +179,49 @@ export default function BeneficiariesPage() {
       return (await response.json()) as BeneficiaryDetailResponse;
     },
   });
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm('선택한 대상자를 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const apiBase = getApiBase();
+      const token = requireAdminToken();
+      const response = await fetch(
+        `${apiBase}/v1/admin/beneficiaries/${id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `대상자 삭제에 실패했습니다. (HTTP ${response.status})`,
+        );
+      }
+
+      setSelectedId(null);
+      setRefreshKey(prev => prev + 1);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        clearAdminSession();
+        window.location.replace('/login');
+        return;
+      }
+      setDeleteError((err as Error).message || '삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const items = useMemo<Beneficiary[]>(() => {
     const apiItems = Array.isArray(data?.data) ? data?.data : [];
@@ -260,6 +325,9 @@ export default function BeneficiariesPage() {
             beneficiary={selectedData.base}
             detail={selectedData.detail}
             onClose={() => setSelectedId(null)}
+            onDelete={() => handleDelete(selectedData.base.id)}
+            deleting={deleteLoading}
+            deleteError={deleteError}
           />
         )}
       </div>

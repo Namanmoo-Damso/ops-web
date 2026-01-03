@@ -36,12 +36,18 @@ type DetailModalProps = {
   beneficiary: BeneficiarySummary | undefined;
   detail: BeneficiaryDetail;
   onClose: () => void;
+  onDelete?: () => void;
+  deleting?: boolean;
+  deleteError?: string | null;
 };
 
 export default function DetailModal({
   beneficiary,
   detail,
   onClose,
+  onDelete,
+  deleting = false,
+  deleteError = null,
 }: DetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -245,9 +251,17 @@ export default function DetailModal({
         </div>
 
         <div className={styles.footer}>
-          <button type="button" className={styles.deleteButton}>
-            대상자 삭제
-          </button>
+          <div className={styles.footerLeft}>
+            <button
+              type="button"
+              className={styles.deleteButton}
+              onClick={onDelete}
+              disabled={!onDelete || deleting}
+            >
+              {deleting ? '삭제 중...' : '대상자 삭제'}
+            </button>
+            {deleteError && <div className={styles.deleteError}>{deleteError}</div>}
+          </div>
           <div className={styles.footerActions}>
             <div className={styles.textMuted}>
               최근 통화: {beneficiary.lastCall ?? '정보 없음'}
