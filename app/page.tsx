@@ -655,6 +655,8 @@ export default function Home() {
                   detailParticipant && (
                     <ParticipantDetailSidebar
                       participant={detailParticipant}
+                      roomName={selectedRoomName || undefined}
+                      apiBase={process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL}
                       onClose={() => {
                         setShowFullScreenVideo(false);
                         setShowDetailSidebar(false);
@@ -771,6 +773,8 @@ export default function Home() {
                 detailParticipant && (
                   <ParticipantDetailSidebar
                     participant={detailParticipant}
+                    roomName={selectedRoomName || undefined}
+                    apiBase={process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL}
                     onClose={() => {
                       setShowFullScreenVideo(false);
                       setShowDetailSidebar(false);

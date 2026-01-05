@@ -1,4 +1,10 @@
-import { TrackRefContext, VideoTrack } from '@livekit/components-react';
+import { useEffect } from 'react';
+import {
+  TrackRefContext,
+  VideoTrack,
+  useRoomContext,
+} from '@livekit/components-react';
+import { VideoQuality, RoomEvent, Track } from 'livekit-client';
 import type { MockParticipant } from './ParticipantSidebar';
 
 type FullScreenVideoProps = {
@@ -10,6 +16,46 @@ export const FullScreenVideo = ({
   participant,
   videoTrackRef,
 }: FullScreenVideoProps) => {
+  const room = useRoomContext();
+
+  // Request highest quality immediately
+  useEffect(() => {
+    const pub = videoTrackRef?.publication;
+    if (!pub || !room) return;
+
+    // Request HIGH quality immediately - no delays
+    console.log(
+      '[FullScreenVideo] Requesting HIGH quality for',
+      participant.name,
+    );
+    pub.setVideoQuality(VideoQuality.HIGH);
+    pub.setVideoDimensions({ width: 1920, height: 1080 });
+
+    // Keep quality high if track gets resubscribed
+    const handleTrackSubscribed = (track: any, publication: any) => {
+      if (
+        track.kind === Track.Kind.Video &&
+        publication.trackSid === pub.trackSid
+      ) {
+        console.log(
+          '[FullScreenVideo] Track resubscribed, maintaining HIGH quality',
+        );
+        pub.setVideoQuality(VideoQuality.HIGH);
+        pub.setVideoDimensions({ width: 1920, height: 1080 });
+      }
+    };
+
+    room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+
+    // Cleanup: reset to medium quality for grid view
+    return () => {
+      room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      console.log('[FullScreenVideo] Reset to MEDIUM quality on unmount');
+      pub.setVideoQuality?.(VideoQuality.MEDIUM);
+      pub.setVideoDimensions?.({ width: 640, height: 480 });
+    };
+  }, [videoTrackRef, participant.name, room]);
+
   return (
     <>
       {/* Background Blur Effect */}
@@ -20,7 +66,7 @@ export const FullScreenVideo = ({
           backgroundColor: 'rgba(15, 23, 42, 0.4)',
           backdropFilter: 'blur(8px)',
           zIndex: 40,
-          pointerEvents: 'none', // Don't block clicks - let the backdrop handle it
+          pointerEvents: 'none',
         }}
       />
 
@@ -29,17 +75,16 @@ export const FullScreenVideo = ({
         style={{
           position: 'fixed',
           inset: 0,
-          left: '280px', // Account for SidebarLayout
-          right: '520px', // Account for ParticipantDetailSidebar
+          left: '280px',
+          right: '520px',
           zIndex: 50,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '40px',
-          pointerEvents: 'none', // Don't block clicks to backdrop
+          pointerEvents: 'none',
         }}
       >
-        {/* Video Container */}
         <div
           style={{
             position: 'relative',
@@ -48,7 +93,7 @@ export const FullScreenVideo = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            pointerEvents: 'auto', // Re-enable pointer events on the video itself
+            pointerEvents: 'auto',
           }}
         >
           {/* Video */}
@@ -59,17 +104,16 @@ export const FullScreenVideo = ({
               overflow: 'hidden',
               boxShadow: '0 40px 100px rgba(0, 0, 0, 0.6)',
               background: '#000000',
-              maxWidth: '100%',
               maxHeight: '90vh',
+              aspectRatio: '9 / 16', // Maintains portrait aspect ratio
             }}
           >
             <TrackRefContext.Provider value={videoTrackRef}>
               <VideoTrack
                 style={{
-                  maxWidth: '90vw',
-                  maxHeight: '90vh',
-                  width: 'auto',
-                  height: 'auto',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
                   display: 'block',
                 }}
               />
