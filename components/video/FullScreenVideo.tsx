@@ -23,11 +23,6 @@ export const FullScreenVideo = ({
     const pub = videoTrackRef?.publication;
     if (!pub || !room) return;
 
-    // Request HIGH quality immediately - ensure we're subscribed first
-    console.log(
-      '[FullScreenVideo] Requesting HIGH quality for',
-      participant.name,
-    );
     try {
       (pub as any)?.setSubscribed?.(true);
     } catch (e) {
@@ -69,9 +64,6 @@ export const FullScreenVideo = ({
         track.kind === Track.Kind.Video &&
         publication.trackSid === pub.trackSid
       ) {
-        console.log(
-          '[FullScreenVideo] Track resubscribed, maintaining HIGH quality',
-        );
         requestHighQuality();
       }
     };

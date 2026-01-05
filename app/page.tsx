@@ -9,7 +9,7 @@ import {
   useTracks,
   useLocalParticipant,
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, RemoteTrackPublication } from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
 import {
   EmptyTile,
@@ -151,16 +151,15 @@ const RoomTracks = ({
 
       // Always unsubscribe from agents/admins
       if (isAgent) {
-        (trackRef.publication as any)?.setSubscribed?.(false);
-        console.log('[FORCE UNSUBSCRIBE AGENT]', participantId);
+        if (trackRef.publication instanceof RemoteTrackPublication) {
+          trackRef.publication.setSubscribed(false);
+        }
       }
       // For regular participants, only subscribe if selected
       else if (selectedParticipantForAudio) {
-        (trackRef.publication as any)?.setSubscribed?.(isSelected);
-        console.log(
-          isSelected ? '[SUBSCRIBE]' : '[UNSUBSCRIBE]',
-          participantId,
-        );
+        if (trackRef.publication instanceof RemoteTrackPublication) {
+          trackRef.publication.setSubscribed(isSelected);
+        }
       }
     });
   }, [audioTracks, selectedParticipantForAudio]);
@@ -182,15 +181,12 @@ const RoomTracks = ({
       participantId.startsWith('agent-') ||
       participantId.startsWith('admin_')
     ) {
-      console.log(`[AUDIO FILTER] Excluding ${participantId} (agent/admin)`);
       return false;
     }
 
     // Only play audio for the selected participant
     const shouldPlay = participantId === selectedParticipantForAudio;
-    console.log(
-      `[AUDIO FILTER] ${participantId} === ${selectedParticipantForAudio}? ${shouldPlay}`,
-    );
+
     return shouldPlay;
   });
 
@@ -235,10 +231,6 @@ const RoomTracks = ({
   return (
     <>
       {filteredAudioTracks.map(audioTrackRef => {
-        console.log(
-          '[RENDERING AUDIO]',
-          audioTrackRef.participant.identity || audioTrackRef.participant.sid,
-        );
         return (
           <TrackRefContext.Provider
             key={
