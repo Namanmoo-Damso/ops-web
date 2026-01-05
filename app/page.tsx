@@ -543,10 +543,22 @@ export default function Home() {
               video={false}
               className={styles.room}
               options={{
+                adaptiveStream: false,
                 audioCaptureDefaults: {
                   autoGainControl: true,
                   echoCancellation: true,
                   noiseSuppression: true,
+                },
+                videoCaptureDefaults: {
+                  resolution: { width: 1920, height: 1080 },
+                  frameRate: 30,
+                },
+                dynacast: true,
+                publishDefaults: {
+                  videoEncoding: {
+                    maxBitrate: 3_000_000,
+                    maxFramerate: 30,
+                  },
                 },
               }}
             >
@@ -606,10 +618,22 @@ export default function Home() {
                             display: 'contents',
                           }}
                           options={{
+                            adaptiveStream: false,
                             audioCaptureDefaults: {
                               autoGainControl: true,
                               echoCancellation: true,
                               noiseSuppression: true,
+                            },
+                            videoCaptureDefaults: {
+                              resolution: { width: 1920, height: 1080 },
+                              frameRate: 30,
+                            },
+                            dynacast: true,
+                            publishDefaults: {
+                              videoEncoding: {
+                                maxBitrate: 3_000_000,
+                                maxFramerate: 30,
+                              },
                             },
                           }}
                         >
@@ -656,7 +680,10 @@ export default function Home() {
                     <ParticipantDetailSidebar
                       participant={detailParticipant}
                       roomName={selectedRoomName || undefined}
-                      apiBase={process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL}
+                      apiBase={
+                        process.env.NEXT_PUBLIC_API_BASE_URL ||
+                        process.env.NEXT_PUBLIC_API_URL
+                      }
                       onClose={() => {
                         setShowFullScreenVideo(false);
                         setShowDetailSidebar(false);
@@ -774,7 +801,10 @@ export default function Home() {
                   <ParticipantDetailSidebar
                     participant={detailParticipant}
                     roomName={selectedRoomName || undefined}
-                    apiBase={process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL}
+                    apiBase={
+                      process.env.NEXT_PUBLIC_API_BASE_URL ||
+                      process.env.NEXT_PUBLIC_API_URL
+                    }
                     onClose={() => {
                       setShowFullScreenVideo(false);
                       setShowDetailSidebar(false);

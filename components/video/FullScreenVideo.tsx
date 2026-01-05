@@ -23,13 +23,45 @@ export const FullScreenVideo = ({
     const pub = videoTrackRef?.publication;
     if (!pub || !room) return;
 
-    // Request HIGH quality immediately - no delays
+    // Request HIGH quality immediately - ensure we're subscribed first
     console.log(
       '[FullScreenVideo] Requesting HIGH quality for',
       participant.name,
     );
-    pub.setVideoQuality(VideoQuality.HIGH);
-    pub.setVideoDimensions({ width: 1920, height: 1080 });
+    try {
+      (pub as any)?.setSubscribed?.(true);
+    } catch (e) {
+      // ignore
+    }
+
+    const requestHighQuality = () => {
+      // Request high-quality layer (modern API)
+      if (typeof pub.setVideoQuality === 'function') {
+        pub.setVideoQuality(VideoQuality.HIGH);
+      } else if (typeof (pub as any).setPreferredLayer === 'function') {
+        // older client/server combos may use setPreferredLayer
+        (pub as any).setPreferredLayer(VideoQuality.HIGH);
+      }
+
+      // Request high subscription priority where supported
+      try {
+        const priorityEnum = (Track as any).Priority;
+        const highPriority = priorityEnum?.HIGH ?? undefined;
+        if (
+          highPriority !== undefined &&
+          typeof (pub as any).setPriority === 'function'
+        ) {
+          (pub as any).setPriority(highPriority);
+        }
+      } catch (e) {
+        // ignore if API not present
+      }
+
+      // Prefer a large render size
+      pub.setVideoDimensions?.({ width: 1920, height: 1080 });
+    };
+
+    requestHighQuality();
 
     // Keep quality high if track gets resubscribed
     const handleTrackSubscribed = (track: any, publication: any) => {
@@ -40,19 +72,15 @@ export const FullScreenVideo = ({
         console.log(
           '[FullScreenVideo] Track resubscribed, maintaining HIGH quality',
         );
-        pub.setVideoQuality(VideoQuality.HIGH);
-        pub.setVideoDimensions({ width: 1920, height: 1080 });
+        requestHighQuality();
       }
     };
 
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
 
-    // Cleanup: reset to medium quality for grid view
+    // Cleanup: remove listener but keep requested quality (do not downgrade)
     return () => {
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
-      console.log('[FullScreenVideo] Reset to MEDIUM quality on unmount');
-      pub.setVideoQuality?.(VideoQuality.MEDIUM);
-      pub.setVideoDimensions?.({ width: 640, height: 480 });
     };
   }, [videoTrackRef, participant.name, room]);
 
