@@ -115,8 +115,13 @@ function splitCsvLine(line: string) {
 }
 
 async function matchHeadersWithLLM(headers: string[]): Promise<Record<string, string | null>> {
+  const TIMEOUT_MS = 10000; // 10초 타임아웃
+
   try {
     const token = localStorage.getItem('access_token');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     const response = await fetch(`${API_BASE}/v1/admin/csv/match-headers`, {
       method: 'POST',
       headers: {
@@ -124,7 +129,10 @@ async function matchHeadersWithLLM(headers: string[]): Promise<Record<string, st
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ headers }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error('LLM header matching failed:', response.statusText);
@@ -132,9 +140,20 @@ async function matchHeadersWithLLM(headers: string[]): Promise<Record<string, st
     }
 
     const data = await response.json();
+
+    // 타입 검증
+    if (!data || typeof data.mapping !== 'object') {
+      console.error('Invalid LLM response format');
+      return {};
+    }
+
     return data.mapping || {};
   } catch (error) {
-    console.error('LLM header matching error:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('LLM header matching timeout');
+    } else {
+      console.error('LLM header matching error:', error);
+    }
     return {};
   }
 }
