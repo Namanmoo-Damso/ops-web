@@ -8,12 +8,15 @@ import {
   MessageCircle,
   Phone,
 } from 'lucide-react';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
+import { useTranscripts } from '../../hooks';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
   onClose: () => void;
+  roomName?: string;
+  apiBase?: string;
 };
 
 const hexToRgba = (hex: string, alpha = 1) => {
@@ -124,9 +127,27 @@ const InfoCard = ({
 export const ParticipantDetailSidebar = ({
   participant,
   onClose,
+  roomName,
+  apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch real-time transcripts
+  const { transcripts } = useTranscripts({
+    apiBase,
+    roomName: roomName || null,
+    enabled: !!roomName,
+    pollInterval: 2000, // Poll every 2 seconds
+  });
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    if (transcriptEndRef.current) {
+      transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [transcripts]);
 
   return (
     <>
@@ -410,109 +431,9 @@ export const ParticipantDetailSidebar = ({
                 }}
               >
                 <div className="flex flex-col gap-4">
-                  <div className="flex justify-end opacity-60">
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '4px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          color: '#0ea5e9',
-                          textAlign: 'right',
-                        }}
-                      >
-                        AI
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '13px',
-                          color: '#4A5D23',
-                          lineHeight: 1.5,
-                          background: '#e0f2fe',
-                          padding: '10px 12px',
-                          borderRadius: '14px',
-                          borderBottomRightRadius: '4px',
-                          border: '1px solid rgba(14,165,233,0.35)',
-                        }}
-                      >
-                        식사는 맛있게 하셨어요?
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '4px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: '11px',
-                          fontWeight: 800,
-                          color: '#0ea5e9',
-                          textAlign: 'right',
-                        }}
-                      >
-                        AI
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '13px',
-                          color: '#4A5D23',
-                          lineHeight: 1.5,
-                          fontWeight: 600,
-                          background: '#bae6fd',
-                          padding: '10px 12px',
-                          borderRadius: '14px',
-                          borderBottomRightRadius: '4px',
-                          border: '1px solid rgba(14,165,233,0.45)',
-                        }}
-                      >
-                        어디 불편하신 곳은 없으시고요?
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-start">
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        color: '#4A5D23',
-                        width: '32px',
-                      }}
-                    >
-                      {participant.name.split(' ')[0]}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '14px',
-                        color: '#4A5D23',
-                        fontWeight: 600,
-                        background: isWarning
-                          ? 'linear-gradient(135deg, #fee2e2, #fecaca)'
-                          : '#E9F0DF',
-                        padding: '12px 14px',
-                        borderRadius: '14px',
-                        borderTopLeftRadius: '4px',
-                        lineHeight: 1.6,
-                        border: isWarning
-                          ? `1px solid ${hexToRgba('#f87171', 0.6)}`
-                          : '1px solid rgba(148,163,184,0.6)',
-                        boxShadow: '0 8px 20px rgba(15,23,42,0.08)',
-                      }}
-                    >
-                      아이고.. 가슴이 자꾸 조여오네.. 숨 쉬기가 힘들어..
-                    </div>
-                  </div>
+                  {/* TODO: Re-enable transcript rendering once transcript UX is finalized */}
+                  {null}
+                  <div ref={transcriptEndRef} />
                 </div>
               </div>
             </div>

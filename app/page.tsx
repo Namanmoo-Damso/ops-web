@@ -9,7 +9,7 @@ import {
   useTracks,
   useLocalParticipant,
 } from '@livekit/components-react';
-import { Track } from 'livekit-client';
+import { Track, RemoteTrackPublication } from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
 import {
   EmptyTile,
@@ -139,6 +139,31 @@ const RoomTracks = ({
     { onlySubscribed: false },
   );
 
+  // Manually control audio subscriptions - ONLY subscribe to selected participant
+  useEffect(() => {
+    audioTracks.forEach(trackRef => {
+      const participantId =
+        trackRef.participant.identity || trackRef.participant.sid;
+      const isAgent =
+        participantId.startsWith('agent-') ||
+        participantId.startsWith('admin_');
+      const isSelected = participantId === selectedParticipantForAudio;
+
+      // Always unsubscribe from agents/admins
+      if (isAgent) {
+        if (trackRef.publication instanceof RemoteTrackPublication) {
+          trackRef.publication.setSubscribed(false);
+        }
+      }
+      // For regular participants, only subscribe if selected
+      else if (selectedParticipantForAudio) {
+        if (trackRef.publication instanceof RemoteTrackPublication) {
+          trackRef.publication.setSubscribed(isSelected);
+        }
+      }
+    });
+  }, [audioTracks, selectedParticipantForAudio]);
+
   // Filter out admin and agent participants (they are invisible in grid)
   const tracks = allTracks.filter(
     track =>
@@ -146,13 +171,23 @@ const RoomTracks = ({
       !track.participant.identity.startsWith('agent-'),
   );
 
-  // Filter audio tracks to only include selected participant and exclude AI agents
+  // Filter audio tracks to only include selected participant and exclude AI agents and admins
   const filteredAudioTracks = audioTracks.filter(track => {
     if (!selectedParticipantForAudio) return false;
     const participantId = track.participant.identity || track.participant.sid;
-    // Exclude AI agents from audio
-    if (participantId.startsWith('agent-')) return false;
-    return participantId === selectedParticipantForAudio;
+
+    // Exclude AI agents and admin from audio - they should NEVER be heard
+    if (
+      participantId.startsWith('agent-') ||
+      participantId.startsWith('admin_')
+    ) {
+      return false;
+    }
+
+    // Only play audio for the selected participant
+    const shouldPlay = participantId === selectedParticipantForAudio;
+
+    return shouldPlay;
   });
 
   const getParticipantId = (participant: any) =>
@@ -195,16 +230,19 @@ const RoomTracks = ({
 
   return (
     <>
-      {filteredAudioTracks.map(audioTrackRef => (
-        <TrackRefContext.Provider
-          key={
-            audioTrackRef.participant.identity || audioTrackRef.participant.sid
-          }
-          value={audioTrackRef}
-        >
-          <RoomAudioRenderer />
-        </TrackRefContext.Provider>
-      ))}
+      {filteredAudioTracks.map(audioTrackRef => {
+        return (
+          <TrackRefContext.Provider
+            key={
+              audioTrackRef.participant.identity ||
+              audioTrackRef.participant.sid
+            }
+            value={audioTrackRef}
+          >
+            <RoomAudioRenderer />
+          </TrackRefContext.Provider>
+        );
+      })}
       {tracks.map(trackRef => {
         const participant = trackRef.participant;
         if (!participant) return null;
@@ -493,14 +531,26 @@ export default function Home() {
               serverUrl={firstConnection.serverUrl}
               token={firstConnection.token}
               connect={firstConnection.connected}
-              audio
+              audio={false}
               video={false}
               className={styles.room}
               options={{
+                adaptiveStream: false,
                 audioCaptureDefaults: {
                   autoGainControl: true,
                   echoCancellation: true,
                   noiseSuppression: true,
+                },
+                videoCaptureDefaults: {
+                  resolution: { width: 1920, height: 1080 },
+                  frameRate: 30,
+                },
+                dynacast: true,
+                publishDefaults: {
+                  videoEncoding: {
+                    maxBitrate: 3_000_000,
+                    maxFramerate: 30,
+                  },
                 },
               }}
             >
@@ -552,7 +602,7 @@ export default function Home() {
                           serverUrl={slot.connection.serverUrl}
                           token={slot.connection.token}
                           connect={slot.connection.connected}
-                          audio
+                          audio={false}
                           video={false}
                           style={{
                             width: '100%',
@@ -560,10 +610,22 @@ export default function Home() {
                             display: 'contents',
                           }}
                           options={{
+                            adaptiveStream: false,
                             audioCaptureDefaults: {
                               autoGainControl: true,
                               echoCancellation: true,
                               noiseSuppression: true,
+                            },
+                            videoCaptureDefaults: {
+                              resolution: { width: 1920, height: 1080 },
+                              frameRate: 30,
+                            },
+                            dynacast: true,
+                            publishDefaults: {
+                              videoEncoding: {
+                                maxBitrate: 3_000_000,
+                                maxFramerate: 30,
+                              },
                             },
                           }}
                         >
@@ -609,6 +671,11 @@ export default function Home() {
                   detailParticipant && (
                     <ParticipantDetailSidebar
                       participant={detailParticipant}
+                      roomName={selectedRoomName || undefined}
+                      apiBase={
+                        process.env.NEXT_PUBLIC_API_BASE_URL ||
+                        process.env.NEXT_PUBLIC_API_URL
+                      }
                       onClose={() => {
                         setShowFullScreenVideo(false);
                         setShowDetailSidebar(false);
@@ -725,6 +792,11 @@ export default function Home() {
                 detailParticipant && (
                   <ParticipantDetailSidebar
                     participant={detailParticipant}
+                    roomName={selectedRoomName || undefined}
+                    apiBase={
+                      process.env.NEXT_PUBLIC_API_BASE_URL ||
+                      process.env.NEXT_PUBLIC_API_URL
+                    }
                     onClose={() => {
                       setShowFullScreenVideo(false);
                       setShowDetailSidebar(false);
