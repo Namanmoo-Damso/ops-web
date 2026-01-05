@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, type ReactElement } from 'react';
 import {
   ArrowRight,
   CheckCircle2,
@@ -15,9 +15,17 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import SidebarLayout from '../../components/SidebarLayout';
+import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
 import styles from './dashboard.module.css';
+import {
+  type FeatureCardProps,
+  type HeroCopy,
+  type MyWardsStatsResponse,
+  type StatCardProps,
+  type StatTone,
+} from './types';
 
-type StatTone = 'dark' | 'muted' | 'primary' | 'warning';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 const toneClass: Record<StatTone, string> = {
   dark: styles.toneDark,
@@ -28,12 +36,32 @@ const toneClass: Record<StatTone, string> = {
 
 export default function DashboardPage() {
   const [csvModalOpen, setCsvModalOpen] = useState(false);
-  const wardStats = {
-    total: 1,
-    unlinked: 0,
-  };
-  const unlinkedCount = Math.max(wardStats.unlinked, 0);
-  const totalCount = Math.max(wardStats.total, 0);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const { data, loading, error } = useAuthedFetch<MyWardsStatsResponse>({
+    deps: [refreshKey],
+    fetcher: async ({ token, signal }) => {
+      const response = await fetch(`${API_BASE}/v1/admin/my-wards`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        signal,
+      });
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
+      }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return (await response.json()) as MyWardsStatsResponse;
+    },
+  });
+
+  const totalCount =
+    typeof data?.stats?.total === 'number' ? data.stats.total : 0;
+  const linkedCount =
+    typeof data?.stats?.registered === 'number' ? data.stats.registered : 0;
+  const unlinkedCount = Math.max(totalCount - linkedCount, 0);
 
   const syncState =
     totalCount === 0
@@ -42,58 +70,97 @@ export default function DashboardPage() {
         ? 'needs_link'
         : 'all_linked';
 
-  const heroCopy =
-    syncState === 'empty'
+  const heroCopy: HeroCopy = error
+    ? {
+        title: '연동 현황을 불러오지 못했습니다.',
+        desc: (
+          <>
+            네트워크 상태를 확인한 뒤 다시 시도해주세요.
+            <br />
+            문제가 계속되면 관리자에게 문의하세요.
+          </>
+        ),
+        action: (
+          <button
+            className={styles.heroAction}
+            type="button"
+            onClick={() => setRefreshKey(key => key + 1)}
+          >
+            다시 시도하기
+          </button>
+        ),
+      }
+    : loading
       ? {
-          title: '아직 등록된 피보호자가 없습니다.',
+          title: '연동 현황을 불러오는 중입니다.',
           desc: (
             <>
-              CSV 업로드 또는 수기 등록으로 바로 시작하세요.
+              최신 대상자 연동 정보를 확인하고 있습니다.
               <br />
-              등록이 완료되면 실시간 관제 기능을 사용할 수 있습니다.
+              잠시만 기다려주세요.
             </>
           ),
           action: (
             <button
-              className={styles.heroAction}
+              className={`${styles.heroAction} ${styles.heroActionDisabled}`}
               type="button"
-              onClick={() => setCsvModalOpen(true)}
+              disabled
             >
-              피보호자 등록하기
+              불러오는 중...
             </button>
           ),
         }
-      : syncState === 'needs_link'
+      : syncState === 'empty'
         ? {
-            title: `${unlinkedCount}명의 대상자가 아직 연동되지 않았습니다.`,
+            title: '아직 등록된 피보호자가 없습니다.',
             desc: (
               <>
-                대상자 연동 현황에서 보호자 연결을 완료해주세요.
+                CSV 업로드 또는 수기 등록으로 바로 시작하세요.
                 <br />
-                연동이 완료되면 자동 관제 기능이 활성화됩니다.
+                등록이 완료되면 실시간 관제 기능을 사용할 수 있습니다.
               </>
             ),
             action: (
-              <Link className={styles.heroAction} href="/my-wards">
-                대상자 연동 현황으로 가기
-              </Link>
+              <button
+                className={styles.heroAction}
+                type="button"
+                onClick={() => setCsvModalOpen(true)}
+              >
+                피보호자 등록하기
+              </button>
             ),
           }
-        : {
-            title: `총 ${totalCount}명의 대상자가 등록되었습니다.`,
-            desc: (
-              <>
-                전체 대상자 관리에서 상세 정보를 확인하고 관리하세요.
-                <br />
-                오늘도 담소의 관제로 안전하게 케어하세요.
-              </>
-            ),
-            action: (
-              <Link className={styles.heroAction} href="/beneficiaries">
-                전체 대상자 관리
-              </Link>
-            ),
-          };
+        : syncState === 'needs_link'
+          ? {
+              title: `${unlinkedCount}명의 대상자가 아직 연동되지 않았습니다.`,
+              desc: (
+                <>
+                  대상자 연동 현황에서 보호자 연결을 완료해주세요.
+                  <br />
+                  연동이 완료되면 자동 관제 기능이 활성화됩니다.
+                </>
+              ),
+              action: (
+                <Link className={styles.heroAction} href="/my-wards">
+                  대상자 연동 현황으로 가기
+                </Link>
+              ),
+            }
+          : {
+              title: `총 ${totalCount}명의 대상자가 등록되었습니다.`,
+              desc: (
+                <>
+                  전체 대상자 관리에서 상세 정보를 확인하고 관리하세요.
+                  <br />
+                  오늘도 담소의 관제로 안전하게 케어하세요.
+                </>
+              ),
+              action: (
+                <Link className={styles.heroAction} href="/beneficiaries">
+                  전체 대상자 관리
+                </Link>
+              ),
+            };
 
   return (
     <SidebarLayout
@@ -102,6 +169,18 @@ export default function DashboardPage() {
       onCsvModalOpenChange={setCsvModalOpen}
     >
       <div className={styles.page}>
+        {error && (
+          <div className={styles.notice}>
+            연동 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+            <button
+              className={styles.noticeButton}
+              type="button"
+              onClick={() => setRefreshKey(key => key + 1)}
+            >
+              다시 시도
+            </button>
+          </div>
+        )}
         <section className={styles.hero}>
           <div className={styles.heroGlow} />
           <div className={styles.heroContent}>
@@ -198,14 +277,7 @@ function FeatureCard({
   description,
   actionLabel,
   href,
-}: {
-  icon: ReactNode;
-  cornerIcon: ReactNode;
-  title: string;
-  description: string;
-  actionLabel: string;
-  href: string;
-}) {
+}: FeatureCardProps) {
   return (
     <Link className={styles.featureCard} href={href}>
       <div className={styles.featureCorner}>{cornerIcon}</div>
@@ -226,14 +298,7 @@ function StatCard({
   icon,
   badge,
   tone,
-}: {
-  label: string;
-  value: string;
-  unit: string;
-  icon: ReactNode;
-  badge?: string;
-  tone: StatTone;
-}) {
+}: StatCardProps) {
   return (
     <div className={styles.statCard}>
       <div className={styles.statTop}>
