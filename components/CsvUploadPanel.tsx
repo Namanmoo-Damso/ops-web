@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { palette } from '../app/theme';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 const IconUpload = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path
@@ -49,6 +51,43 @@ function normalizeHeader(header: string) {
     .replace(/[\s-]+/g, '_');
 }
 
+// Map various header names to standard field names
+function mapHeaderToField(header: string): keyof CleanRow | null {
+  const normalized = header.toLowerCase().replace(/[\s-_]+/g, '');
+
+  // Name variations
+  if (['이름', '성명', 'name', '이룸', '대상자명'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+    return 'name';
+  }
+
+  // Email variations
+  if (['이메일', 'email', '메일', 'e-mail', 'mail'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+    return 'email';
+  }
+
+  // Phone variations
+  if (['전화번호', '전화', '휴대폰', '연락처', 'phone', 'phonenumber', 'mobile', 'contact', '핸드폰', '휴대전화'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+    return 'phone_number';
+  }
+
+  // Birth date variations
+  if (['생년월일', '생일', 'birthdate', 'birth', 'dateofbirth', 'dob', '태어난날'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+    return 'birth_date';
+  }
+
+  // Address variations
+  if (['주소', 'address', '거주지', '주거지', 'location'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+    return 'address';
+  }
+
+  // Notes variations
+  if (['비고', '메모', 'notes', 'note', 'memo', 'remark', '참고', '특이사항'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+    return 'notes';
+  }
+
+  return null;
+}
+
 function splitCsvLine(line: string) {
   const values: string[] = [];
   let current = '';
@@ -75,7 +114,51 @@ function splitCsvLine(line: string) {
   return values;
 }
 
-function parseCsvText(text: string): { rows: CleanRow[] } {
+async function matchHeadersWithLLM(headers: string[]): Promise<Record<string, string | null>> {
+  const TIMEOUT_MS = 10000; // 10초 타임아웃
+
+  try {
+    const token = localStorage.getItem('access_token');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    const response = await fetch(`${API_BASE}/v1/admin/csv/match-headers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ headers }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error('LLM header matching failed:', response.statusText);
+      return {};
+    }
+
+    const data = await response.json();
+
+    // 타입 검증
+    if (!data || typeof data.mapping !== 'object') {
+      console.error('Invalid LLM response format');
+      return {};
+    }
+
+    return data.mapping || {};
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('LLM header matching timeout');
+    } else {
+      console.error('LLM header matching error:', error);
+    }
+    return {};
+  }
+}
+
+async function parseCsvText(text: string): Promise<{ rows: CleanRow[] }> {
   const lines = text
     .split(/\r?\n/)
     .map(l => l.trim())
@@ -85,9 +168,51 @@ function parseCsvText(text: string): { rows: CleanRow[] } {
     return { rows: [] };
   }
 
-  const headers = splitCsvLine(lines[0]).map(normalizeHeader);
-  const rows: CleanRow[] = [];
+  const rawHeaders = splitCsvLine(lines[0]);
+  const headers = rawHeaders.map(normalizeHeader);
 
+  // Step 1: Try hardcoded matching first
+  const hardcodedMapping: Record<string, keyof CleanRow | null> = {};
+  const unmatchedHeaders: string[] = [];
+
+  rawHeaders.forEach((rawHeader, idx) => {
+    const normalized = headers[idx];
+    const field = mapHeaderToField(rawHeader);
+    hardcodedMapping[normalized] = field;
+    if (!field) {
+      unmatchedHeaders.push(rawHeader);
+    }
+  });
+
+  // Step 2: If there are unmatched headers, try LLM matching
+  let llmMapping: Record<string, string | null> = {};
+  if (unmatchedHeaders.length > 0) {
+    console.log('[CSV] Trying LLM matching for unmatched headers:', unmatchedHeaders);
+    llmMapping = await matchHeadersWithLLM(unmatchedHeaders);
+  }
+
+  // Step 3: Merge hardcoded and LLM mappings
+  const finalMapping: Record<string, string | null> = {};
+  rawHeaders.forEach((rawHeader, idx) => {
+    const normalized = headers[idx];
+    const hardcodedField = hardcodedMapping[normalized];
+    if (hardcodedField) {
+      finalMapping[normalized] = hardcodedField;
+    } else {
+      // Try LLM mapping
+      const llmField = llmMapping[rawHeader];
+      if (llmField) {
+        finalMapping[normalized] = llmField;
+      } else {
+        finalMapping[normalized] = null;
+      }
+    }
+  });
+
+  console.log('[CSV] Final header mapping:', finalMapping);
+
+  // Step 4: Parse rows using the final mapping
+  const rows: CleanRow[] = [];
   for (let idx = 1; idx < lines.length; idx++) {
     const cols = splitCsvLine(lines[idx]);
     const row: CleanRow = {
@@ -102,13 +227,10 @@ function parseCsvText(text: string): { rows: CleanRow[] } {
 
     headers.forEach((header, hIdx) => {
       const value = cols[hIdx]?.trim() ?? '';
-      if (header === 'name') row.name = value;
-      if (header === 'email') row.email = value;
-      if (header === 'phone_number' || header === 'phone')
-        row.phone_number = value;
-      if (header === 'birth_date' || header === 'birth') row.birth_date = value;
-      if (header === 'address') row.address = value;
-      if (header === 'notes' || header === 'note') row.notes = value;
+      const field = finalMapping[header];
+      if (field && field !== 'id') {
+        row[field as keyof CleanRow] = value;
+      }
     });
 
     rows.push(row);
@@ -157,7 +279,7 @@ export default function CsvUploadPanel({
     if (!csvFile) return;
     try {
       const text = await csvFile.text();
-      const { rows } = parseCsvText(text);
+      const { rows } = await parseCsvText(text);
       if (rows.length === 0) {
         setParseError('CSV에 데이터가 없습니다.');
         return;
