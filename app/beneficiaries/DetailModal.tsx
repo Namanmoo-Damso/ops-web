@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
+import { formatTags } from '../../utils/formatters';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -97,13 +98,6 @@ export default function DetailModal({
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const diseaseText = detail.diseases.join(', ');
-  const formatTags = (values: string[] | string | null) => {
-    const items = Array.isArray(values)
-      ? values
-      : (values ?? '').split(',');
-    const cleaned = items.map(item => item.trim()).filter(Boolean);
-    return cleaned.length ? cleaned.map(item => `#${item}`).join(' ') : '-';
-  };
   const defaultGuardianForm = useMemo(
     () => ({
       relation: '',
