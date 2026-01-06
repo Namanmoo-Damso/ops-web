@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
+import { formatTags } from '../../utils/formatters';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -87,12 +88,23 @@ export default function DetailModal({
     medication: '',
     notes: '',
   });
+  const [guardianForm, setGuardianForm] = useState({
+    relation: '',
+    contact: '',
+  });
   const [isDirty, setIsDirty] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const diseaseText = detail.diseases.join(', ');
+  const defaultGuardianForm = useMemo(
+    () => ({
+      relation: '',
+      contact: '',
+    }),
+    [],
+  );
   const defaultForm = useMemo(
     () => ({
       name: detail.name ?? beneficiary?.name ?? '',
@@ -123,6 +135,17 @@ export default function DetailModal({
       detail.type,
     ],
   );
+  const managerName = useMemo(() => {
+    if (typeof window === 'undefined') return '관리자';
+    const raw = localStorage.getItem('admin_info');
+    if (!raw) return '관리자';
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.name ?? '관리자';
+    } catch {
+      return '관리자';
+    }
+  }, []);
 
   // ESC로 닫기 + 포커스 트랩
   useEffect(() => {
@@ -218,20 +241,27 @@ export default function DetailModal({
 
   const displayName = detail.name ?? beneficiary.name;
   const displayGender = detail.gender ?? beneficiary.gender;
-  const displayType = detail.type ?? beneficiary.type;
   const displayAddress = detail.address ?? beneficiary.address ?? null;
   const displayAge = detail.birthDate
     ? calculateAgeFromBirthDate(detail.birthDate)
     : beneficiary.age;
+  const displayGenderShort =
+    displayGender === 'male' || displayGender === 'm'
+      ? '남'
+      : displayGender === 'female' || displayGender === 'f'
+      ? '여'
+      : '-';
 
   const handleEditStart = () => {
     setForm(defaultForm);
+    setGuardianForm(defaultGuardianForm);
     setIsEditing(true);
     setIsDirty(false);
   };
 
   const handleEditCancel = () => {
     setForm(defaultForm);
+    setGuardianForm(defaultGuardianForm);
     setIsEditing(false);
     setIsDirty(false);
     setSaveError(null);
@@ -324,35 +354,52 @@ export default function DetailModal({
               <div className={styles.titleRow}>
                 <div className={styles.name}>{displayName}</div>
                 <span className={styles.age}>
-                  ({displayAge ?? '-'}세 / {displayGender ?? '-'})
+                  ({displayAge ?? '-'}세 /{' '}
+                  {isEditing ? (
+                    <select
+                      className={styles.genderSelect}
+                      value={form.gender}
+                      onChange={e => handleFieldChange('gender', e.target.value)}
+                    >
+                      <option value="">-</option>
+                      <option value="male">남</option>
+                      <option value="female">여</option>
+                      <option value="other">기타</option>
+                    </select>
+                  ) : (
+                    displayGenderShort
+                  )}
+                  )
                 </span>
-              </div>
-              <div className={styles.metaRow}>
                 <span className={`${styles.tag} ${statusTagClass}`}>
                   ●{' '}
                   {status === 'WARNING'
-                    ? '케어 필요 (Warning)'
+                    ? '케어 필요'
                     : status === 'CAUTION'
                     ? '주의 필요'
                     : '안정적'}
-                </span>
-                <span className={styles.metaSeparator}>|</span>
-                <span className={styles.metaValue}>
-                  {displayType ?? '유형 정보 없음'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className={styles.actions}>
-            <button type="button" className={styles.ghostButton}>
-              담소일지 (상담 기록)
-            </button>
-            <button
-              type="button"
-              aria-label="닫기"
-              onClick={onClose}
-              className={styles.closeButton}
+            <div className={styles.actions}>
+              <div className={styles.managerToggle}>
+                <span className={styles.managerLabel}>담당자</span>
+                <select
+                  className={styles.managerSelect}
+                  value={managerName}
+                  disabled={!isEditing}
+                >
+                  <option value={managerName}>{managerName}</option>
+                </select>
+                {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
+              </div>
+              <button
+                type="button"
+                aria-label="닫기"
+                onClick={onClose}
+                className={styles.closeButton}
             >
               ×
             </button>
@@ -360,101 +407,241 @@ export default function DetailModal({
         </div>
 
         <div className={styles.body}>
-          {isEditing ? (
-            <div className={styles.editSection}>
-              <SectionTitle>정보 수정</SectionTitle>
-              <div className={styles.editGrid}>
+          <section className={styles.section}>
+            <div className={styles.basicCard}>
+              <div className={styles.cardHeader}>
+                <SectionTitle>기본 정보</SectionTitle>
+              </div>
+              <div className={styles.basicGrid}>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>이름 *</label>
+                  <span className={styles.editLabel}>이름 *</span>
                   <input
                     className={styles.editInput}
-                    value={form.name}
-                    onChange={e => handleFieldChange('name', e.target.value)}
-                  />
-                </div>
+                    value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
+                    readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('name', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>전화번호 *</label>
+                  <span className={styles.editLabel}>전화번호 *</span>
                   <input
                     className={styles.editInput}
-                    value={form.phoneNumber}
-                    onChange={e => handleFieldChange('phoneNumber', e.target.value)}
-                  />
-                </div>
+                    value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
+                    readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('phoneNumber', e.target.value)
+                          : undefined
+                      }
+                      placeholder={isEditing ? '' : '-'}
+                    />
+                  </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>생년월일</label>
+                  <span className={styles.editLabel}>생년월일</span>
                   <input
                     type="date"
                     className={styles.editInput}
-                    value={form.birthDate}
-                    onChange={e => handleFieldChange('birthDate', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>성별</label>
-                  <select
-                    className={styles.editSelect}
-                    value={form.gender}
-                    onChange={e => handleFieldChange('gender', e.target.value)}
-                  >
-                    <option value="">선택 안 함</option>
-                    <option value="male">남성</option>
-                    <option value="female">여성</option>
-                    <option value="other">기타</option>
-                  </select>
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>유형</label>
+                    value={isEditing ? form.birthDate : detail.birthDate ?? ''}
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('birthDate', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
+                <div className={`${styles.editField} ${styles.spanTwo}`}>
+                  <span className={styles.editLabel}>주소</span>
                   <input
                     className={styles.editInput}
-                    value={form.wardType}
-                    onChange={e => handleFieldChange('wardType', e.target.value)}
-                  />
+                    value={isEditing ? form.address : displayAddress ?? ''}
+                    readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('address', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <SectionTitle>보호자 정보</SectionTitle>
+              </div>
+              <div className={styles.guardianGrid}>
+                <div className={styles.editField}>
+                  <span className={styles.editLabel}>보호자 관계</span>
+                  {isEditing ? (
+                    <select
+                      className={styles.editSelect}
+                      value={guardianForm.relation}
+                      onChange={e =>
+                        setGuardianForm(prev => ({
+                          ...prev,
+                          relation: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">없음</option>
+                      <option value="자녀">자녀</option>
+                      <option value="지인">지인</option>
+                      <option value="기타">기타</option>
+                    </select>
+                  ) : (
+                    <input
+                      className={styles.editInput}
+                      value={guardianForm.relation || '없음'}
+                      readOnly
+                    />
+                  )}
                 </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>주소</label>
+                  <span className={styles.editLabel}>보호자 연락처</span>
                   <input
                     className={styles.editInput}
-                    value={form.address}
-                    onChange={e => handleFieldChange('address', e.target.value)}
+                    value={
+                      isEditing
+                        ? guardianForm.contact
+                        : guardianForm.contact || '-'
+                    }
+                    readOnly={!isEditing}
+                    onChange={
+                      isEditing
+                        ? e =>
+                            setGuardianForm(prev => ({
+                              ...prev,
+                              contact: e.target.value,
+                            }))
+                        : undefined
+                    }
                   />
                 </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>보호자</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.guardian}
-                    onChange={e => handleFieldChange('guardian', e.target.value)}
-                  />
+              </div>
+              {/* TODO: 보호자 관계/연락처 API 연동 후 저장/표시 로직 추가 */}
+            </div>
+          </section>
+
+          <section className={styles.healthLogSection}>
+            <div className={styles.healthColumn}>
+              <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <SectionTitle>건강 정보</SectionTitle>
                 </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>기저질환</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.diseases}
-                    onChange={e => handleFieldChange('diseases', e.target.value)}
-                  />
-                  <div className={styles.editHelper}>
-                    쉼표로 구분하여 입력하세요. (예: 고혈압, 당뇨)
+                <div className={styles.healthGrid}>
+                  <div className={styles.editSection}>
+                    <div className={styles.editField}>
+                      <span className={styles.editLabel}>기저질환</span>
+                      <input
+                        className={styles.editInput}
+                        value={
+                          isEditing ? form.diseases : formatTags(detail.diseases)
+                        }
+                        readOnly={!isEditing}
+                        onChange={
+                          isEditing
+                            ? e => handleFieldChange('diseases', e.target.value)
+                            : undefined
+                        }
+                      />
+                    </div>
+                    {isEditing && (
+                      <div className={styles.editHelper}>
+                        쉼표로 구분하여 입력하세요. (예: 고혈압, 당뇨)
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.editField}>
+                    <span className={styles.editLabel}>복약 정보</span>
+                    <input
+                      className={styles.editInput}
+                      value={
+                        isEditing ? form.medication : formatTags(detail.medication)
+                      }
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('medication', e.target.value)
+                          : undefined
+                      }
+                    />
                   </div>
                 </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>복약 정보</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.medication}
-                    onChange={e => handleFieldChange('medication', e.target.value)}
-                  />
+              </div>
+            </div>
+            <div className={styles.logsColumn}>
+              <div className={styles.logsCard}>
+                <div className={styles.cardHeader}>
+                  <SectionTitle>담소일지</SectionTitle>
+                  <button type="button" className={styles.logMoreButton}>
+                    자세히 보기 →
+                  </button>
                 </div>
+                {detail.recentLogs.length === 0 ? (
+                  <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
+                ) : (
+                  <div className={styles.logList}>
+                    {detail.recentLogs.map(log => (
+                      <div key={log.id} className={styles.logCard}>
+                        <div className={styles.logTextBlock}>
+                          <span className={styles.logType}>{log.type}</span>
+                          <p className={styles.logContent}>{log.content}</p>
+                        </div>
+                        <span className={styles.logDate}>{log.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className={styles.editField}>
-                <label className={styles.editLabel}>참고사항</label>
-                <textarea
-                  className={styles.editTextarea}
-                  value={form.notes}
-                  onChange={e => handleFieldChange('notes', e.target.value)}
-                />
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <SectionTitle>참고 및 특이사항</SectionTitle>
               </div>
-              <div className={styles.editActions}>
+              <textarea
+                className={styles.noteTextarea}
+                value={
+                  isEditing
+                    ? form.notes
+                    : detail.notes || '추가 메모가 없습니다.'
+                }
+                readOnly={!isEditing}
+                onChange={
+                  isEditing
+                    ? e => handleFieldChange('notes', e.target.value)
+                    : undefined
+                }
+              />
+            </div>
+          </section>
+
+        </div>
+
+        <div className={styles.footer}>
+          <div className={styles.footerLeft}>
+            <button
+              type="button"
+              className={styles.deleteButton}
+              onClick={handleDeleteClick}
+              disabled={!onDelete || deleting || isEditing || saveLoading}
+            >
+              {deleting ? '삭제 중...' : '대상자 삭제'}
+            </button>
+            {deleteError && <div className={styles.deleteError}>{deleteError}</div>}
+          </div>
+          <div className={styles.footerActions}>
+            {isEditing ? (
+              <div className={styles.footerEditActions}>
                 <button
                   type="button"
                   className={styles.editSave}
@@ -476,100 +663,7 @@ export default function DetailModal({
                   <div className={styles.editSuccess}>{saveSuccess}</div>
                 )}
               </div>
-            </div>
-          ) : (
-            <>
-              <div className={styles.grid}>
-                <div className={styles.column}>
-                  <SectionTitle>기본 정보</SectionTitle>
-                  <div className={styles.card}>
-                    <InfoItem label="대상자 전화번호" value={detail.phoneNumber} />
-                    <InfoItem label="주소" value={displayAddress} />
-                    <InfoItem label="보호자" value={detail.guardian ?? '-'} />
-                    <InfoItem label="담당자" value={beneficiary.manager ?? '-'} />
-                  </div>
-                </div>
-
-                <div className={styles.column}>
-                  <SectionTitle>건강 정보</SectionTitle>
-                  <div className={styles.card}>
-                    <InfoItem
-                      label="기저질환"
-                      value={
-                        detail.diseases.length
-                          ? detail.diseases.map(item => `#${item}`).join(' ')
-                          : '-'
-                      }
-                    />
-                    <InfoItem label="복약 정보" value={detail.medication ?? '-'} />
-                  </div>
-                </div>
-              </div>
-
-              <div className={styles.noteCard}>
-                <SectionTitle>참고사항 (특이사항)</SectionTitle>
-                <div className={styles.noteText}>
-                  {detail.notes || '추가 메모가 없습니다.'}
-                </div>
-              </div>
-
-              <div className={styles.card}>
-                <div className={styles.logHeader}>
-                  <SectionTitle>최근 안부 및 상담 기록</SectionTitle>
-                  <div className={styles.logCount}>총 {detail.recentLogs.length}건</div>
-                </div>
-                {detail.recentLogs.length === 0 ? (
-                  <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
-                ) : (
-                  <div className={styles.logList}>
-                    {detail.recentLogs.map(log => (
-                      <div key={log.id} className={styles.logCard}>
-                        <div
-                          aria-hidden="true"
-                          className={`${styles.logBadge} ${
-                            log.type.includes('AI')
-                              ? styles.logBadgeAi
-                              : styles.logBadgeDefault
-                          }`}
-                        >
-                          {log.type.includes('AI') ? 'AI' : 'LOG'}
-                        </div>
-                        <div className={styles.logBody}>
-                          <div className={styles.logMeta}>
-                            <div className={styles.logTitle}>
-                              <span>{log.type}</span>
-                              <SentimentBadge sentiment={log.sentiment} />
-                            </div>
-                            <div className={styles.textMuted}>{log.date}</div>
-                          </div>
-                          <div className={styles.logContent}>{log.content}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className={styles.footer}>
-          <div className={styles.footerLeft}>
-            <button
-              type="button"
-              className={styles.deleteButton}
-              onClick={handleDeleteClick}
-              disabled={!onDelete || deleting || isEditing || saveLoading}
-            >
-              {deleting ? '삭제 중...' : '대상자 삭제'}
-            </button>
-            {deleteError && <div className={styles.deleteError}>{deleteError}</div>}
-          </div>
-          <div className={styles.footerActions}>
-            <div className={styles.textMuted}>
-              최근 통화: {beneficiary.lastCall ?? '정보 없음'}
-            </div>
-            {!isEditing && (
+            ) : (
               <button
                 type="button"
                 className={styles.editButton}
@@ -637,15 +731,6 @@ export default function DetailModal({
 
 function SectionTitle({ children }: { children: string }) {
   return <div className={styles.sectionTitle}>{children}</div>;
-}
-
-function InfoItem({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className={styles.infoRow}>
-      <span className={styles.infoLabel}>{label}</span>
-      <span className={styles.infoValue}>{value ?? '-'}</span>
-    </div>
-  );
 }
 
 function SentimentBadge({
