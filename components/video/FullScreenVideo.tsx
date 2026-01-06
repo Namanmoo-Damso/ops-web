@@ -205,7 +205,7 @@ export const FullScreenVideo = ({
               overflow: 'hidden',
               boxShadow: '0 40px 100px rgba(0, 0, 0, 0.6)',
               background: '#000000',
-              maxHeight: '90vh',
+              height: '90vh',
               aspectRatio: '9 / 16', // Maintains portrait aspect ratio
             }}
           >
