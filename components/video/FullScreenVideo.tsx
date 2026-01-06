@@ -46,6 +46,12 @@ export const FullScreenVideo = ({
       const beforeQuality = pub.videoQuality;
       const beforeDimensions = currentTrack?.dimensions;
 
+      // 이미 HIGH면 스킵
+      if (beforeQuality === VideoQuality.HIGH) {
+        console.log('[FullScreen] 이미 HIGH 품질, 스킵:', { source });
+        return;
+      }
+
       // Request high-quality layer (modern API)
       if (typeof pub.setVideoQuality === 'function') {
         pub.setVideoQuality(VideoQuality.HIGH);
