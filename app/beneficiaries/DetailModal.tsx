@@ -363,17 +363,16 @@ export default function DetailModal({
         </div>
 
         <div className={styles.body}>
-          <div className={styles.grid}>
-            <div className={styles.column}>
-              <SectionTitle>기본 정보</SectionTitle>
-              <div className={styles.card}>
-                <div className={styles.editGrid}>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>이름 *</label>
-                    <input
-                      className={styles.editInput}
-                      value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
-                      readOnly={!isEditing}
+          <section className={styles.section}>
+            <SectionTitle>기본 정보</SectionTitle>
+            <div className={styles.basicCard}>
+              <div className={styles.basicGrid}>
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>이름 *</label>
+                  <input
+                    className={styles.editInput}
+                    value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
+                    readOnly={!isEditing}
                       onChange={
                         isEditing
                           ? e => handleFieldChange('name', e.target.value)
@@ -381,12 +380,12 @@ export default function DetailModal({
                       }
                     />
                   </div>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>전화번호 *</label>
-                    <input
-                      className={styles.editInput}
-                      value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
-                      readOnly={!isEditing}
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>전화번호 *</label>
+                  <input
+                    className={styles.editInput}
+                    value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
+                    readOnly={!isEditing}
                       onChange={
                         isEditing
                           ? e => handleFieldChange('phoneNumber', e.target.value)
@@ -395,12 +394,12 @@ export default function DetailModal({
                       placeholder={isEditing ? '' : '-'}
                     />
                   </div>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>생년월일</label>
-                    <input
-                      type="date"
-                      className={styles.editInput}
-                      value={isEditing ? form.birthDate : detail.birthDate ?? ''}
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>생년월일</label>
+                  <input
+                    type="date"
+                    className={styles.editInput}
+                    value={isEditing ? form.birthDate : detail.birthDate ?? ''}
                       readOnly={!isEditing}
                       onChange={
                         isEditing
@@ -409,12 +408,12 @@ export default function DetailModal({
                       }
                     />
                   </div>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>성별</label>
-                    <select
-                      className={styles.editSelect}
-                      value={isEditing ? form.gender : detail.gender ?? ''}
-                      disabled={!isEditing}
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>성별</label>
+                  <select
+                    className={styles.editSelect}
+                    value={isEditing ? form.gender : detail.gender ?? ''}
+                    disabled={!isEditing}
                       onChange={
                         isEditing
                           ? e => handleFieldChange('gender', e.target.value)
@@ -427,12 +426,12 @@ export default function DetailModal({
                       <option value="other">기타</option>
                     </select>
                   </div>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>주소</label>
-                    <input
-                      className={styles.editInput}
-                      value={isEditing ? form.address : displayAddress ?? ''}
-                      readOnly={!isEditing}
+                <div className={`${styles.editField} ${styles.spanTwo}`}>
+                  <label className={styles.editLabel}>주소</label>
+                  <input
+                    className={styles.editInput}
+                    value={isEditing ? form.address : displayAddress ?? ''}
+                    readOnly={!isEditing}
                       onChange={
                         isEditing
                           ? e => handleFieldChange('address', e.target.value)
@@ -440,12 +439,12 @@ export default function DetailModal({
                       }
                     />
                   </div>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>보호자</label>
-                    <input
-                      className={styles.editInput}
-                      value={isEditing ? form.guardian : detail.guardian ?? '-'}
-                      readOnly={!isEditing}
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>보호자</label>
+                  <input
+                    className={styles.editInput}
+                    value={isEditing ? form.guardian : detail.guardian ?? '-'}
+                    readOnly={!isEditing}
                       onChange={
                         isEditing
                           ? e => handleFieldChange('guardian', e.target.value)
@@ -453,22 +452,23 @@ export default function DetailModal({
                       }
                     />
                   </div>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>담당자</label>
-                    <input
-                      className={styles.editInput}
-                      value={beneficiary?.manager ?? '-'}
-                      readOnly
-                    />
-                  </div>
+                <div className={styles.editField}>
+                  <label className={styles.editLabel}>담당자</label>
+                  <input
+                    className={styles.editInput}
+                    value={beneficiary?.manager ?? '-'}
+                    readOnly
+                  />
                 </div>
               </div>
             </div>
+          </section>
 
-            <div className={styles.column}>
+          <section className={styles.healthLogSection}>
+            <div className={styles.healthColumn}>
               <SectionTitle>건강 정보</SectionTitle>
               <div className={styles.card}>
-                <div className={styles.editGrid}>
+                <div className={styles.healthGrid}>
                   <div className={styles.editField}>
                     <label className={styles.editLabel}>기저질환</label>
                     <input
@@ -506,60 +506,48 @@ export default function DetailModal({
                   </div>
                 </div>
               </div>
-              <div className={styles.card}>
-                <div className={styles.logHeader}>
-                  <SectionTitle>최근 안부 및 상담 기록</SectionTitle>
-                  <div className={styles.logCount}>총 {detail.recentLogs.length}건</div>
-                </div>
+            </div>
+            <div className={styles.logsColumn}>
+              <SectionTitle>최근 안부 및 상담 기록</SectionTitle>
+              <div className={styles.logsCard}>
                 {detail.recentLogs.length === 0 ? (
                   <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
                 ) : (
                   <div className={styles.logList}>
                     {detail.recentLogs.map(log => (
                       <div key={log.id} className={styles.logCard}>
-                        <div
-                          aria-hidden="true"
-                          className={`${styles.logBadge} ${
-                            log.type.includes('AI')
-                              ? styles.logBadgeAi
-                              : styles.logBadgeDefault
-                          }`}
-                        >
-                          {log.type.includes('AI') ? 'AI' : 'LOG'}
+                        <div className={styles.logTextBlock}>
+                          <span className={styles.logType}>{log.type}</span>
+                          <p className={styles.logContent}>{log.content}</p>
                         </div>
-                        <div className={styles.logBody}>
-                          <div className={styles.logMeta}>
-                            <div className={styles.logTitle}>
-                              <span>{log.type}</span>
-                              <SentimentBadge sentiment={log.sentiment} />
-                            </div>
-                            <div className={styles.textMuted}>{log.date}</div>
-                          </div>
-                          <div className={styles.logContent}>{log.content}</div>
-                        </div>
+                        <span className={styles.logDate}>{log.date}</span>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className={styles.card}>
-            <SectionTitle>참고사항 (특이사항)</SectionTitle>
-            <textarea
-              className={styles.editTextarea}
-              value={
-                isEditing
-                  ? form.notes
-                  : detail.notes || '추가 메모가 없습니다.'
-              }
-              readOnly={!isEditing}
-              onChange={
-                isEditing ? e => handleFieldChange('notes', e.target.value) : undefined
-              }
-            />
-          </div>
+          <section className={styles.section}>
+            <SectionTitle>참고 및 특이사항</SectionTitle>
+            <div className={styles.card}>
+              <textarea
+                className={styles.noteTextarea}
+                value={
+                  isEditing
+                    ? form.notes
+                    : detail.notes || '추가 메모가 없습니다.'
+                }
+                readOnly={!isEditing}
+                onChange={
+                  isEditing
+                    ? e => handleFieldChange('notes', e.target.value)
+                    : undefined
+                }
+              />
+            </div>
+          </section>
 
         </div>
 
