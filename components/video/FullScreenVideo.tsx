@@ -88,25 +88,36 @@ export const FullScreenVideo = ({
       });
     };
 
-    // 즉시 요청
-    requestHighQuality('mount');
+    // 이미 HIGH면 추가 작업 불필요
+    const isAlreadyHigh = pub.videoQuality === VideoQuality.HIGH;
 
-    // 트랙이 attach되면 재요청
-    const handleAttached = () => {
-      console.log('[FullScreen] 트랙 attached, 재요청');
-      requestHighQuality('attached');
-    };
-    track?.on('attached', handleAttached);
+    let retryTimeouts: NodeJS.Timeout[] = [];
 
-    // 트랙이 이미 attach된 경우 바로 재요청
-    if (track?.attachedElements?.length > 0) {
-      requestHighQuality('already-attached');
+    if (isAlreadyHigh) {
+      console.log('[FullScreen] 이미 HIGH 품질, 추가 요청 불필요');
+    } else {
+      // HIGH가 아닐 때만 요청 및 retry
+      requestHighQuality('mount');
+
+      // 트랙이 이미 attach된 경우 바로 재요청
+      if (track?.attachedElements?.length > 0) {
+        requestHighQuality('already-attached');
+      }
+
+      // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
+      retryTimeouts = [500, 1000, 2000].map((delay, i) =>
+        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay)
+      );
     }
 
-    // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
-    const retryTimeouts = [500, 1000, 2000].map((delay, i) =>
-      setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay)
-    );
+    // 트랙이 attach되면 재요청 (HIGH 아닐 때만)
+    const handleAttached = () => {
+      if (pub.videoQuality !== VideoQuality.HIGH) {
+        console.log('[FullScreen] 트랙 attached, 재요청');
+        requestHighQuality('attached');
+      }
+    };
+    track?.on('attached', handleAttached);
 
     // 🔍 비디오 크기 변경 감지
     const handleVideoDimensionsChanged = () => {
