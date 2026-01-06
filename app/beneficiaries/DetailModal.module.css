@@ -177,7 +177,7 @@
 }
 
 .body {
-  padding: 18px;
+  padding: 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -201,7 +201,7 @@
   background-color: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 14px;
-  padding: 12px;
+  padding: 14px;
   box-shadow: var(--beneficiary-card-shadow);
 }
 
@@ -219,7 +219,7 @@
 .noteText {
   color: #92400e;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -242,7 +242,7 @@
 }
 
 .editLabel {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   color: #64748b;
 }
@@ -253,9 +253,10 @@
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 12px;
   padding: 10px 12px;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--beneficiary-heading);
   background-color: #F7F9F2;
+  width: 100%;
 }
 
 .editTextarea {
@@ -263,8 +264,12 @@
   resize: vertical;
 }
 
+.editTextarea[readonly] {
+  background-color: #ffffff;
+}
+
 .editHelper {
-  font-size: 13px;
+  font-size: 14px;
   color: #94a3b8;
   font-weight: 700;
 }
@@ -304,18 +309,18 @@
 
 .editError {
   color: #dc2626;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .editSuccess {
   color: #15803d;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .sectionTitle {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 900;
   color: var(--beneficiary-heading);
   text-transform: uppercase;
@@ -338,6 +343,13 @@
   align-items: center;
 }
 
+.footerEditActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .footerLeft {
   display: flex;
   gap: 8px;
@@ -346,7 +358,7 @@
 
 .textMuted {
   color: var(--beneficiary-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -358,14 +370,14 @@
 
 .infoLabel {
   color: #94a3b8;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
 }
 
 .infoValue {
   color: var(--beneficiary-heading);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .card .infoRow + .infoRow {
@@ -375,7 +387,7 @@
 .logCard {
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 12px;
-  padding: 10px;
+  padding: 12px;
   display: flex;
   gap: 12px;
   align-items: flex-start;
@@ -397,7 +409,7 @@
 
 .logCount {
   color: var(--beneficiary-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -409,7 +421,7 @@
   display: grid;
   place-items: center;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .logBadgeAi {
@@ -430,7 +442,7 @@
 .logContent {
   color: #4A5D23;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -447,7 +459,7 @@
 }
 
 .emptyLogs {
-  padding: 12px;
+  padding: 14px;
   border-radius: 10px;
   background-color: #F7F9F2;
   color: #4A5D23;
@@ -471,7 +483,7 @@
 
 .deleteError {
   color: #dc2626;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -518,7 +530,7 @@
 }
 
 .confirmDescription {
-  font-size: 14px;
+  font-size: 15px;
   color: #4A5D23;
   font-weight: 700;
   line-height: 1.5;
@@ -559,7 +571,7 @@
 
 .confirmError {
   color: #dc2626;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 
@@ -569,7 +581,7 @@
   padding: 4px 8px;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 11px;
+  font-size: 12px;
   border: 1px solid transparent;
 }
 

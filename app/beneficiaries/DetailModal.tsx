@@ -343,10 +343,6 @@ export default function DetailModal({
                     ? '주의 필요'
                     : '안정적'}
                 </span>
-                <span className={styles.metaSeparator}>|</span>
-                <span className={styles.metaValue}>
-                  {displayType ?? '유형 정보 없음'}
-                </span>
               </div>
             </div>
           </div>
@@ -367,158 +363,149 @@ export default function DetailModal({
         </div>
 
         <div className={styles.body}>
-          {isEditing ? (
-            <div className={styles.editSection}>
-              <SectionTitle>정보 수정</SectionTitle>
-              <div className={styles.editGrid}>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>이름 *</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.name}
-                    onChange={e => handleFieldChange('name', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>전화번호 *</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.phoneNumber}
-                    onChange={e => handleFieldChange('phoneNumber', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>생년월일</label>
-                  <input
-                    type="date"
-                    className={styles.editInput}
-                    value={form.birthDate}
-                    onChange={e => handleFieldChange('birthDate', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>성별</label>
-                  <select
-                    className={styles.editSelect}
-                    value={form.gender}
-                    onChange={e => handleFieldChange('gender', e.target.value)}
-                  >
-                    <option value="">선택 안 함</option>
-                    <option value="male">남성</option>
-                    <option value="female">여성</option>
-                    <option value="other">기타</option>
-                  </select>
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>유형</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.wardType}
-                    onChange={e => handleFieldChange('wardType', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>주소</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.address}
-                    onChange={e => handleFieldChange('address', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>보호자</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.guardian}
-                    onChange={e => handleFieldChange('guardian', e.target.value)}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>기저질환</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.diseases}
-                    onChange={e => handleFieldChange('diseases', e.target.value)}
-                  />
-                  <div className={styles.editHelper}>
-                    쉼표로 구분하여 입력하세요. (예: 고혈압, 당뇨)
+          <div className={styles.grid}>
+            <div className={styles.column}>
+              <SectionTitle>기본 정보</SectionTitle>
+              <div className={styles.card}>
+                <div className={styles.editGrid}>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>이름 *</label>
+                    <input
+                      className={styles.editInput}
+                      value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('name', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>전화번호 *</label>
+                    <input
+                      className={styles.editInput}
+                      value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('phoneNumber', e.target.value)
+                          : undefined
+                      }
+                      placeholder={isEditing ? '' : '-'}
+                    />
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>생년월일</label>
+                    <input
+                      type="date"
+                      className={styles.editInput}
+                      value={isEditing ? form.birthDate : detail.birthDate ?? ''}
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('birthDate', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>성별</label>
+                    <select
+                      className={styles.editSelect}
+                      value={isEditing ? form.gender : detail.gender ?? ''}
+                      disabled={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('gender', e.target.value)
+                          : undefined
+                      }
+                    >
+                      <option value="">선택 안 함</option>
+                      <option value="male">남성</option>
+                      <option value="female">여성</option>
+                      <option value="other">기타</option>
+                    </select>
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>주소</label>
+                    <input
+                      className={styles.editInput}
+                      value={isEditing ? form.address : displayAddress ?? ''}
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('address', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>보호자</label>
+                    <input
+                      className={styles.editInput}
+                      value={isEditing ? form.guardian : detail.guardian ?? '-'}
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('guardian', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>담당자</label>
+                    <input
+                      className={styles.editInput}
+                      value={beneficiary?.manager ?? '-'}
+                      readOnly
+                    />
                   </div>
                 </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>복약 정보</label>
-                  <input
-                    className={styles.editInput}
-                    value={form.medication}
-                    onChange={e => handleFieldChange('medication', e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className={styles.editField}>
-                <label className={styles.editLabel}>참고사항</label>
-                <textarea
-                  className={styles.editTextarea}
-                  value={form.notes}
-                  onChange={e => handleFieldChange('notes', e.target.value)}
-                />
-              </div>
-              <div className={styles.editActions}>
-                <button
-                  type="button"
-                  className={styles.editSave}
-                  onClick={handleSave}
-                  disabled={saveLoading}
-                >
-                  {saveLoading ? '저장 중...' : '저장하기'}
-                </button>
-                <button
-                  type="button"
-                  className={styles.editCancel}
-                  onClick={handleEditCancel}
-                  disabled={saveLoading}
-                >
-                  취소
-                </button>
-                {saveError && <div className={styles.editError}>{saveError}</div>}
-                {saveSuccess && (
-                  <div className={styles.editSuccess}>{saveSuccess}</div>
-                )}
               </div>
             </div>
-          ) : (
-            <>
-              <div className={styles.grid}>
-                <div className={styles.column}>
-                  <SectionTitle>기본 정보</SectionTitle>
-                  <div className={styles.card}>
-                    <InfoItem label="대상자 전화번호" value={detail.phoneNumber} />
-                    <InfoItem label="주소" value={displayAddress} />
-                    <InfoItem label="보호자" value={detail.guardian ?? '-'} />
-                    <InfoItem label="담당자" value={beneficiary.manager ?? '-'} />
-                  </div>
-                </div>
 
-                <div className={styles.column}>
-                  <SectionTitle>건강 정보</SectionTitle>
-                  <div className={styles.card}>
-                    <InfoItem
-                      label="기저질환"
-                      value={formatTags(detail.diseases)}
-                    />
-                    <InfoItem
-                      label="복약 정보"
-                      value={formatTags(detail.medication)}
-                    />
-                  </div>
-                </div>
-              </div>
-
+            <div className={styles.column}>
+              <SectionTitle>건강 정보</SectionTitle>
               <div className={styles.card}>
-                <SectionTitle>참고사항 (특이사항)</SectionTitle>
-                <div className={styles.noteText}>
-                  {detail.notes || '추가 메모가 없습니다.'}
+                <div className={styles.editGrid}>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>기저질환</label>
+                    <input
+                      className={styles.editInput}
+                      value={
+                        isEditing ? form.diseases : formatTags(detail.diseases)
+                      }
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('diseases', e.target.value)
+                          : undefined
+                      }
+                    />
+                    {isEditing && (
+                      <div className={styles.editHelper}>
+                        쉼표로 구분하여 입력하세요. (예: 고혈압, 당뇨)
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.editField}>
+                    <label className={styles.editLabel}>복약 정보</label>
+                    <input
+                      className={styles.editInput}
+                      value={
+                        isEditing ? form.medication : formatTags(detail.medication)
+                      }
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('medication', e.target.value)
+                          : undefined
+                      }
+                    />
+                  </div>
                 </div>
               </div>
-
               <div className={styles.card}>
                 <div className={styles.logHeader}>
                   <SectionTitle>최근 안부 및 상담 기록</SectionTitle>
@@ -555,8 +542,25 @@ export default function DetailModal({
                   </div>
                 )}
               </div>
-            </>
-          )}
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <SectionTitle>참고사항 (특이사항)</SectionTitle>
+            <textarea
+              className={styles.editTextarea}
+              value={
+                isEditing
+                  ? form.notes
+                  : detail.notes || '추가 메모가 없습니다.'
+              }
+              readOnly={!isEditing}
+              onChange={
+                isEditing ? e => handleFieldChange('notes', e.target.value) : undefined
+              }
+            />
+          </div>
+
         </div>
 
         <div className={styles.footer}>
@@ -575,7 +579,30 @@ export default function DetailModal({
             <div className={styles.textMuted}>
               최근 통화: {beneficiary.lastCall ?? '정보 없음'}
             </div>
-            {!isEditing && (
+            {isEditing ? (
+              <div className={styles.footerEditActions}>
+                <button
+                  type="button"
+                  className={styles.editSave}
+                  onClick={handleSave}
+                  disabled={saveLoading}
+                >
+                  {saveLoading ? '저장 중...' : '저장하기'}
+                </button>
+                <button
+                  type="button"
+                  className={styles.editCancel}
+                  onClick={handleEditCancel}
+                  disabled={saveLoading}
+                >
+                  취소
+                </button>
+                {saveError && <div className={styles.editError}>{saveError}</div>}
+                {saveSuccess && (
+                  <div className={styles.editSuccess}>{saveSuccess}</div>
+                )}
+              </div>
+            ) : (
               <button
                 type="button"
                 className={styles.editButton}
@@ -643,15 +670,6 @@ export default function DetailModal({
 
 function SectionTitle({ children }: { children: string }) {
   return <div className={styles.sectionTitle}>{children}</div>;
-}
-
-function InfoItem({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className={styles.infoRow}>
-      <span className={styles.infoLabel}>{label}</span>
-      <span className={styles.infoValue}>{value ?? '-'}</span>
-    </div>
-  );
 }
 
 function SentimentBadge({
