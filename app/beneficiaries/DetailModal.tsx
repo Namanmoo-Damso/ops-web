@@ -93,6 +93,13 @@ export default function DetailModal({
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const diseaseText = detail.diseases.join(', ');
+  const formatTags = (values: string[] | string | null) => {
+    const items = Array.isArray(values)
+      ? values
+      : (values ?? '').split(',');
+    const cleaned = items.map(item => item.trim()).filter(Boolean);
+    return cleaned.length ? cleaned.map(item => `#${item}`).join(' ') : '-';
+  };
   const defaultForm = useMemo(
     () => ({
       name: detail.name ?? beneficiary?.name ?? '',
@@ -495,18 +502,17 @@ export default function DetailModal({
                   <div className={styles.card}>
                     <InfoItem
                       label="기저질환"
-                      value={
-                        detail.diseases.length
-                          ? detail.diseases.map(item => `#${item}`).join(' ')
-                          : '-'
-                      }
+                      value={formatTags(detail.diseases)}
                     />
-                    <InfoItem label="복약 정보" value={detail.medication ?? '-'} />
+                    <InfoItem
+                      label="복약 정보"
+                      value={formatTags(detail.medication)}
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className={styles.noteCard}>
+              <div className={styles.card}>
                 <SectionTitle>참고사항 (특이사항)</SectionTitle>
                 <div className={styles.noteText}>
                   {detail.notes || '추가 메모가 없습니다.'}

@@ -1,7 +1,7 @@
 :global(:root) {
   --beneficiary-modal-overlay-z: 2000;
-  --beneficiary-modal-max-width: 1300px;
-  --beneficiary-modal-padding: 12px;
+  --beneficiary-modal-max-width: 820px;
+  --beneficiary-modal-padding: 10px;
   --beneficiary-border-color: #E9F0DF;
   --beneficiary-muted: #94a3b8;
   --beneficiary-heading: #4A5D23;
@@ -45,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--beneficiary-border-color);
   background: #F7F9F2;
 }
@@ -94,7 +94,7 @@
 }
 
 .name {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--beneficiary-heading);
 }
@@ -117,7 +117,7 @@
   padding: 6px 10px;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 13px;
   border: 1px solid transparent;
 }
 
@@ -177,11 +177,11 @@
 }
 
 .body {
-  padding: 24px;
+  padding: 18px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
   background-color: #F7F9F2;
 }
 
@@ -194,14 +194,14 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 16px;
+  gap: 12px;
 }
 
 .card {
   background-color: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 14px;
-  padding: 14px;
+  padding: 12px;
   box-shadow: var(--beneficiary-card-shadow);
 }
 
@@ -209,7 +209,7 @@
   background-color: #fffbeb;
   border: 1px solid #fef3c7;
   border-radius: 14px;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -219,29 +219,30 @@
 .noteText {
   color: #92400e;
   font-weight: 700;
+  font-size: 14px;
   line-height: 1.5;
 }
 
 .editSection {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .editGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .editField {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .editLabel {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: #64748b;
 }
@@ -252,7 +253,7 @@
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 12px;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--beneficiary-heading);
   background-color: #F7F9F2;
 }
@@ -263,7 +264,7 @@
 }
 
 .editHelper {
-  font-size: 12px;
+  font-size: 13px;
   color: #94a3b8;
   font-weight: 700;
 }
@@ -314,7 +315,7 @@
 }
 
 .sectionTitle {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   color: var(--beneficiary-heading);
   text-transform: uppercase;
@@ -322,7 +323,7 @@
 }
 
 .footer {
-  padding: 16px 22px;
+  padding: 14px 20px;
   border-top: 1px solid var(--beneficiary-border-color);
   background-color: #ffffff;
   display: flex;
@@ -345,32 +346,36 @@
 
 .textMuted {
   color: var(--beneficiary-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .infoRow {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .infoLabel {
   color: #94a3b8;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
 .infoValue {
   color: var(--beneficiary-heading);
   font-weight: 800;
-  font-size: 14px;
+  font-size: 15px;
+}
+
+.card .infoRow + .infoRow {
+  margin-top: 4px;
 }
 
 .logCard {
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   gap: 12px;
   align-items: flex-start;
@@ -392,7 +397,7 @@
 
 .logCount {
   color: var(--beneficiary-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -425,6 +430,7 @@
 .logContent {
   color: #4A5D23;
   font-weight: 700;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -441,7 +447,7 @@
 }
 
 .emptyLogs {
-  padding: 14px;
+  padding: 12px;
   border-radius: 10px;
   background-color: #F7F9F2;
   color: #4A5D23;
@@ -506,13 +512,13 @@
 }
 
 .confirmTitle {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 900;
   color: var(--beneficiary-heading);
 }
 
 .confirmDescription {
-  font-size: 13px;
+  font-size: 14px;
   color: #4A5D23;
   font-weight: 700;
   line-height: 1.5;
@@ -553,7 +559,7 @@
 
 .confirmError {
   color: #dc2626;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
