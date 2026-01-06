@@ -389,7 +389,9 @@ const muteAgentInRoom = async (
     if (!response.ok) {
       console.error('[muteAgentInRoom] API error:', response.status);
     } else {
-      console.log(`[muteAgentInRoom] Agent ${mute ? 'muted' : 'unmuted'} in ${roomName}`);
+      console.log(
+        `[muteAgentInRoom] Agent ${mute ? 'muted' : 'unmuted'} in ${roomName}`,
+      );
     }
   } catch (err) {
     console.error('[muteAgentInRoom] Failed:', err);
@@ -450,8 +452,9 @@ const TakeoverAudioController = ({ active }: { active: boolean }) => {
           await localParticipant.publishTrack(track);
           audioTrackRef.current = track;
           isPublishingRef.current = false;
-          console.log('[TakeoverAudioController] Takeover active - admin mic on, agent muted');
-
+          console.log(
+            '[TakeoverAudioController] Takeover active - admin mic on, agent muted',
+          );
         } else if (!active && audioTrackRef.current) {
           isPublishingRef.current = true;
 
@@ -469,12 +472,16 @@ const TakeoverAudioController = ({ active }: { active: boolean }) => {
           await muteAgentInRoom(room.name, false);
 
           isPublishingRef.current = false;
-          console.log('[TakeoverAudioController] Takeover ended - admin mic off, agent unmuted');
+          console.log(
+            '[TakeoverAudioController] Takeover ended - admin mic off, agent unmuted',
+          );
         }
       } catch (err: any) {
         isPublishingRef.current = false;
         if (err?.name === 'NotAllowedError') {
-          console.warn('[TakeoverAudioController] Microphone permission denied');
+          console.warn(
+            '[TakeoverAudioController] Microphone permission denied',
+          );
           // Unmute agent since we couldn't take over
           await muteAgentInRoom(room.name, false);
           return;
@@ -555,6 +562,16 @@ export default function Home() {
       setShowFullScreenVideo(false);
     }
   }, [participantList, detailParticipant, selectedParticipantForAudio]);
+
+  // Ensure takeover is reset when sidebar closes unexpectedly
+  useEffect(() => {
+    if (!showDetailSidebar && isTakeoverActive) {
+      console.log(
+        '[Home] Resetting takeover state: Sidebar closed unexpectedly',
+      );
+      setIsTakeoverActive(false);
+    }
+  }, [showDetailSidebar, isTakeoverActive]);
 
   useEffect(() => {
     if (apiBaseEnv) {
