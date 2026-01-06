@@ -98,27 +98,6 @@ const LiveTile = ({
           </div>
         </div>
       </div>
-      {/* Room name badge */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '12px',
-          left: '12px',
-          padding: '4px 10px',
-          borderRadius: '6px',
-          background: 'rgba(0, 0, 0, 0.7)',
-          backdropFilter: 'blur(8px)',
-          fontSize: '11px',
-          fontWeight: '600',
-          color: '#E9F0DF',
-          maxWidth: '200px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {roomName}
-      </div>
     </div>
   );
 };

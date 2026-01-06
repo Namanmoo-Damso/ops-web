@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { ReactNode, useEffect, useRef } from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
-import { useTranscripts } from '../../hooks';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
@@ -136,22 +135,6 @@ export const ParticipantDetailSidebar = ({
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
-  const transcriptEndRef = useRef<HTMLDivElement>(null);
-
-  // Fetch real-time transcripts
-  const { transcripts } = useTranscripts({
-    apiBase,
-    roomName: roomName || null,
-    enabled: !!roomName,
-    pollInterval: 2000, // Poll every 2 seconds
-  });
-
-  // Auto-scroll to latest message
-  useEffect(() => {
-    if (transcriptEndRef.current) {
-      transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [transcripts]);
 
   return (
     <>
@@ -437,7 +420,6 @@ export const ParticipantDetailSidebar = ({
                 <div className="flex flex-col gap-4">
                   {/* TODO: Re-enable transcript rendering once transcript UX is finalized */}
                   {null}
-                  <div ref={transcriptEndRef} />
                 </div>
               </div>
             </div>
