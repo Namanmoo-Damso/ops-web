@@ -32,6 +32,7 @@ export const FullScreenVideo = ({
       simulcasted: pub.simulcasted,
       videoQuality: pub.videoQuality,
       subscribed: pub.subscribed,
+      trackAttached: track?.attachedElements?.length > 0,
     });
 
     try {
@@ -41,8 +42,15 @@ export const FullScreenVideo = ({
     }
 
     const requestHighQuality = (source: string) => {
+      const currentTrack = pub?.track;
       const beforeQuality = pub.videoQuality;
-      const beforeDimensions = track?.dimensions;
+      const beforeDimensions = currentTrack?.dimensions;
+
+      // 이미 HIGH면 스킵
+      if (beforeQuality === VideoQuality.HIGH) {
+        console.log('[FullScreen] 이미 HIGH 품질, 스킵:', { source });
+        return;
+      }
 
       // Request high-quality layer (modern API)
       if (typeof pub.setVideoQuality === 'function') {
@@ -75,12 +83,41 @@ export const FullScreenVideo = ({
         beforeQuality,
         afterQuality: pub.videoQuality,
         beforeDimensions,
-        afterDimensions: track?.dimensions,
+        afterDimensions: currentTrack?.dimensions,
         simulcasted: pub.simulcasted,
       });
     };
 
-    requestHighQuality('mount');
+    // 이미 HIGH면 추가 작업 불필요
+    const isAlreadyHigh = pub.videoQuality === VideoQuality.HIGH;
+
+    let retryTimeouts: NodeJS.Timeout[] = [];
+
+    if (isAlreadyHigh) {
+      console.log('[FullScreen] 이미 HIGH 품질, 추가 요청 불필요');
+    } else {
+      // HIGH가 아닐 때만 요청 및 retry
+      requestHighQuality('mount');
+
+      // 트랙이 이미 attach된 경우 바로 재요청
+      if (track?.attachedElements?.length > 0) {
+        requestHighQuality('already-attached');
+      }
+
+      // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
+      retryTimeouts = [500, 1000, 2000].map((delay, i) =>
+        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay)
+      );
+    }
+
+    // 트랙이 attach되면 재요청 (HIGH 아닐 때만)
+    const handleAttached = () => {
+      if (pub.videoQuality !== VideoQuality.HIGH) {
+        console.log('[FullScreen] 트랙 attached, 재요청');
+        requestHighQuality('attached');
+      }
+    };
+    track?.on('attached', handleAttached);
 
     // 🔍 비디오 크기 변경 감지
     const handleVideoDimensionsChanged = () => {
@@ -121,11 +158,13 @@ export const FullScreenVideo = ({
     pub.on('videoQualityChanged', handleVideoQualityChanged);
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
 
-    // Cleanup: remove listener but keep requested quality (do not downgrade)
+    // Cleanup: remove listeners and timers
     return () => {
+      track?.off('attached', handleAttached);
       track?.off('videoDimensionsChanged', handleVideoDimensionsChanged);
       pub.off('videoQualityChanged', handleVideoQualityChanged);
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      retryTimeouts.forEach(clearTimeout);
     };
   }, [videoTrackRef, participant.name, room]);
 
@@ -177,7 +216,7 @@ export const FullScreenVideo = ({
               overflow: 'hidden',
               boxShadow: '0 40px 100px rgba(0, 0, 0, 0.6)',
               background: '#000000',
-              maxHeight: '90vh',
+              height: '90vh',
               aspectRatio: '9 / 16', // Maintains portrait aspect ratio
             }}
           >
