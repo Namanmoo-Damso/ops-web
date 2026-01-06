@@ -720,3 +720,83 @@
   color: #4A5D23;
   border-color: var(--beneficiary-border-color);
 }
+
+@media (max-width: 1024px) {
+  .dialog {
+    border-radius: 26px;
+  }
+
+  .header {
+    padding: 10px 14px;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
+  }
+
+  .name {
+    font-size: 24px;
+  }
+
+  .tag {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .body {
+    padding: 22px;
+    gap: 20px;
+  }
+
+  .section {
+    gap: 14px;
+  }
+
+  .card,
+  .basicCard,
+  .logsCard {
+    padding: 18px;
+  }
+
+  .basicGrid,
+  .healthLogSection,
+  .editGrid,
+  .guardianGrid {
+    gap: 14px;
+  }
+
+  .healthLogSection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .healthColumn,
+  .logsColumn {
+    grid-column: span 1;
+  }
+
+  .logCard {
+    padding: 14px 16px;
+  }
+
+  .logContent {
+    font-size: 17px;
+  }
+
+  .editInput,
+  .editTextarea,
+  .editSelect,
+  .noteTextarea {
+    padding: 10px 14px;
+    font-size: 17px;
+  }
+
+  .noteTextarea {
+    min-height: 130px;
+  }
+
+  .footer {
+    padding: 16px 20px;
+  }
+}
