@@ -333,6 +333,11 @@
   background-color: #F7F9F2;
 }
 
+.editField:focus-within {
+  border-color: #8FA963;
+  box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.2);
+}
+
 .editLabel {
   font-size: 14px;
   font-weight: 800;
@@ -353,6 +358,13 @@
   background-color: transparent;
   width: 100%;
   min-width: 0;
+}
+
+.editInput:focus,
+.editTextarea:focus,
+.editSelect:focus {
+  outline: none;
+  box-shadow: none;
 }
 
 .editTextarea {
@@ -690,10 +702,9 @@
 .noteTextarea {
   width: 100%;
   min-height: 160px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  border: 1px solid var(--beneficiary-border-color);
-  background-color: #F7F9F2;
+  padding: 0;
+  border: none;
+  background-color: transparent;
   font-size: 17px;
   font-weight: 700;
   color: #4A5D23;
@@ -713,6 +724,18 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+}
+
+.noteField {
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background-color: #F7F9F2;
+}
+
+.noteField:focus-within {
+  border-color: #8FA963;
+  box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.2);
 }
 
 .sentimentNegative {

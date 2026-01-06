@@ -608,20 +608,22 @@ export default function DetailModal({
               <div className={styles.cardHeader}>
                 <SectionTitle>참고 및 특이사항</SectionTitle>
               </div>
-              <textarea
-                className={styles.noteTextarea}
-                value={
-                  isEditing
-                    ? form.notes
-                    : detail.notes || '추가 메모가 없습니다.'
-                }
-                readOnly={!isEditing}
-                onChange={
-                  isEditing
-                    ? e => handleFieldChange('notes', e.target.value)
-                    : undefined
-                }
-              />
+              <div className={styles.noteField}>
+                <textarea
+                  className={styles.noteTextarea}
+                  value={
+                    isEditing
+                      ? form.notes
+                      : detail.notes || '추가 메모가 없습니다.'
+                  }
+                  readOnly={!isEditing}
+                  onChange={
+                    isEditing
+                      ? e => handleFieldChange('notes', e.target.value)
+                      : undefined
+                  }
+                />
+              </div>
             </div>
           </section>
 
