@@ -1,7 +1,7 @@
 :global(:root) {
   --beneficiary-modal-overlay-z: 2000;
-  --beneficiary-modal-max-width: 820px;
-  --beneficiary-modal-padding: 10px;
+  --beneficiary-modal-max-width: 1120px;
+  --beneficiary-modal-padding: 16px;
   --beneficiary-border-color: #E9F0DF;
   --beneficiary-muted: #94a3b8;
   --beneficiary-heading: #4A5D23;
@@ -32,22 +32,23 @@
     var(--beneficiary-modal-max-width),
     calc(100vw - var(--sidebar-width, 0px) - 48px)
   );
-  background-color: #ffffff;
-  border-radius: 18px;
+  background-color: #FBFDF9;
+  border-radius: 32px;
   box-shadow: var(--beneficiary-dialog-shadow);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  border: 1px solid var(--beneficiary-border-color);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 24px 28px;
   border-bottom: 1px solid var(--beneficiary-border-color);
-  background: #F7F9F2;
+  background: #ffffff;
 }
 
 .headerWarning {
@@ -61,14 +62,14 @@
 }
 
 .avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
   color: #ffffff;
   display: grid;
   place-items: center;
   font-weight: 900;
-  font-size: 18px;
+  font-size: 24px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
@@ -94,7 +95,7 @@
 }
 
 .name {
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 900;
   color: var(--beneficiary-heading);
 }
@@ -114,10 +115,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-radius: 999px;
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
   border: 1px solid transparent;
 }
 
@@ -177,12 +178,12 @@
 }
 
 .body {
-  padding: 20px;
+  padding: 28px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  background-color: #F7F9F2;
+  gap: 24px;
+  background-color: #FBFDF9;
 }
 
 .column {
@@ -191,17 +192,11 @@
   gap: 12px;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 12px;
-}
-
 .card {
   background-color: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
-  border-radius: 14px;
-  padding: 14px;
+  border-radius: 28px;
+  padding: 20px;
   box-shadow: var(--beneficiary-card-shadow);
 }
 
@@ -216,11 +211,61 @@
   box-shadow: var(--beneficiary-card-shadow);
 }
 
-.noteText {
-  color: #92400e;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1.5;
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.basicCard {
+  background-color: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: var(--beneficiary-card-shadow);
+}
+
+.basicGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.healthLogSection {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.healthColumn {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.logsColumn {
+  grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.healthGrid {
+  display: grid;
+  gap: 18px;
+}
+
+.logsCard {
+  background-color: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: var(--beneficiary-card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
 }
 
 .editSection {
@@ -231,8 +276,8 @@
 
 .editGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .editField {
@@ -251,16 +296,16 @@
 .editTextarea,
 .editSelect {
   border: 1px solid var(--beneficiary-border-color);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 16px;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 18px;
   color: var(--beneficiary-heading);
   background-color: #F7F9F2;
   width: 100%;
 }
 
 .editTextarea {
-  min-height: 120px;
+  min-height: 140px;
   resize: vertical;
 }
 
@@ -320,7 +365,7 @@
 }
 
 .sectionTitle {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--beneficiary-heading);
   text-transform: uppercase;
@@ -328,7 +373,7 @@
 }
 
 .footer {
-  padding: 14px 20px;
+  padding: 20px 28px;
   border-top: 1px solid var(--beneficiary-border-color);
   background-color: #ffffff;
   display: flex;
@@ -365,7 +410,7 @@
 .infoRow {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .infoLabel {
@@ -381,17 +426,7 @@
 }
 
 .card .infoRow + .infoRow {
-  margin-top: 4px;
-}
-
-.logCard {
-  border: 1px solid var(--beneficiary-border-color);
-  border-radius: 12px;
-  padding: 12px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  background-color: #F7F9F2;
+  margin-top: 6px;
 }
 
 .logList {
@@ -400,67 +435,49 @@
   gap: 10px;
 }
 
-.logHeader {
+.logCard {
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 18px;
+  padding: 16px 18px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 16px;
+  background-color: #F7F9F2;
 }
 
-.logCount {
-  color: var(--beneficiary-muted);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.logBadge {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  color: #ffffff;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  font-size: 13px;
-}
-
-.logBadgeAi {
-  background-color: #8FA963;
-}
-
-.logBadgeDefault {
-  background-color: #4A5D23;
-}
-
-.logMeta {
+.logTextBlock {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logType {
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #8FA963;
 }
 
 .logContent {
   color: #4A5D23;
-  font-weight: 700;
-  font-size: 16px;
-  line-height: 1.5;
-}
-
-.logTitle {
-  display: flex;
-  gap: 8px;
-  align-items: center;
   font-weight: 800;
-  color: #4A5D23;
+  font-size: 18px;
+  line-height: 1.4;
+  margin: 0;
 }
 
-.logBody {
-  flex: 1;
+.logDate {
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
 .emptyLogs {
-  padding: 14px;
-  border-radius: 10px;
+  padding: 18px;
+  border-radius: 18px;
   background-color: #F7F9F2;
   color: #4A5D23;
   font-weight: 700;
@@ -583,6 +600,28 @@
   font-weight: 800;
   font-size: 12px;
   border: 1px solid transparent;
+}
+
+.spanTwo {
+  grid-column: span 2;
+}
+
+.noteTextarea {
+  width: 100%;
+  min-height: 160px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--beneficiary-border-color);
+  background-color: #F7F9F2;
+  font-size: 18px;
+  font-weight: 700;
+  color: #4A5D23;
+  outline: none;
+  resize: vertical;
+}
+
+.noteTextarea[readonly] {
+  background-color: #F7F9F2;
 }
 
 .sentimentNegative {
