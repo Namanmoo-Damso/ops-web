@@ -8,8 +8,10 @@ import {
   MessageCircle,
   Phone,
 } from 'lucide-react';
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
+import { useRoomContext } from '@livekit/components-react';
+import { RoomEvent, DataPacket_Kind } from 'livekit-client';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
@@ -18,6 +20,12 @@ type ParticipantDetailSidebarProps = {
   apiBase?: string;
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
+};
+
+type Transcript = {
+  role: 'agent' | 'user';
+  text: string;
+  timestamp: number;
 };
 
 const hexToRgba = (hex: string, alpha = 1) => {
@@ -135,6 +143,71 @@ export const ParticipantDetailSidebar = ({
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const room = useRoomContext();
+
+  // Listen for real-time transcripts via data packets
+  useEffect(() => {
+    console.log('[Sidebar] Room context:', room);
+    console.log('[Sidebar] Room state:', room?.state);
+    console.log('[Sidebar] Room name:', room?.name);
+
+    if (!room) {
+      console.log('[Sidebar] No room context available');
+      return;
+    }
+
+    console.log(
+      '[Sidebar] Setting up DataReceived listener for room:',
+      room.name,
+    );
+
+    const handleData = (
+      payload: Uint8Array,
+      participant?: any,
+      kind?: DataPacket_Kind,
+    ) => {
+      try {
+        const strData = new TextDecoder().decode(payload);
+        console.log(
+          '[Sidebar] Received data:',
+          strData,
+          'kind:',
+          kind,
+          'participant:',
+          participant?.identity,
+        );
+        const data = JSON.parse(strData);
+
+        if (data.type === 'transcript') {
+          console.log('[Sidebar] Processing transcript:', data);
+          setTranscripts(prev => [
+            ...prev,
+            {
+              role: data.role,
+              text: data.text,
+              timestamp: data.timestamp || Date.now(),
+            },
+          ]);
+        }
+      } catch (e) {
+        console.error('[Sidebar] Failed to parse data packet:', e);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room]);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    if (transcriptEndRef.current) {
+      transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [transcripts]);
 
   return (
     <>
@@ -418,8 +491,53 @@ export const ParticipantDetailSidebar = ({
                 }}
               >
                 <div className="flex flex-col gap-4">
-                  {/* TODO: Re-enable transcript rendering once transcript UX is finalized */}
-                  {null}
+                  {transcripts.length === 0 ? (
+                    <div className="text-center text-xs text-gray-400 py-4">
+                      대화 내역이 없습니다.
+                    </div>
+                  ) : (
+                    transcripts.map((t, i) => {
+                      const isAgent = t.role === 'agent';
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            alignSelf: isAgent ? 'flex-start' : 'flex-end',
+                            maxWidth: '85%',
+                            padding: '10px 14px',
+                            borderRadius: '16px',
+                            borderBottomLeftRadius: isAgent ? '2px' : '16px',
+                            borderBottomRightRadius: isAgent ? '16px' : '2px',
+                            background: isAgent ? '#ffffff' : '#4A5D23',
+                            color: isAgent ? '#1e293b' : '#ffffff',
+                            border: isAgent
+                              ? '1px solid rgba(226,232,240,1)'
+                              : 'none',
+                            fontSize: '13px',
+                            lineHeight: '1.5',
+                            boxShadow: isAgent
+                              ? '0 2px 4px rgba(0,0,0,0.02)'
+                              : '0 2px 4px rgba(74,93,35,0.2)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '10px',
+                              marginBottom: '4px',
+                              color: isAgent
+                                ? 'rgba(100,116,139,0.8)'
+                                : 'rgba(255,255,255,0.8)',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {isAgent ? 'AI Caregiver' : 'Patient'}
+                          </div>
+                          {t.text}
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={transcriptEndRef} />
                 </div>
               </div>
             </div>
