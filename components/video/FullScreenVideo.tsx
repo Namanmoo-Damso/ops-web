@@ -32,6 +32,7 @@ export const FullScreenVideo = ({
       simulcasted: pub.simulcasted,
       videoQuality: pub.videoQuality,
       subscribed: pub.subscribed,
+      trackAttached: track?.attachedElements?.length > 0,
     });
 
     try {
@@ -41,8 +42,9 @@ export const FullScreenVideo = ({
     }
 
     const requestHighQuality = (source: string) => {
+      const currentTrack = pub?.track;
       const beforeQuality = pub.videoQuality;
-      const beforeDimensions = track?.dimensions;
+      const beforeDimensions = currentTrack?.dimensions;
 
       // Request high-quality layer (modern API)
       if (typeof pub.setVideoQuality === 'function') {
@@ -75,12 +77,30 @@ export const FullScreenVideo = ({
         beforeQuality,
         afterQuality: pub.videoQuality,
         beforeDimensions,
-        afterDimensions: track?.dimensions,
+        afterDimensions: currentTrack?.dimensions,
         simulcasted: pub.simulcasted,
       });
     };
 
+    // 즉시 요청
     requestHighQuality('mount');
+
+    // 트랙이 attach되면 재요청
+    const handleAttached = () => {
+      console.log('[FullScreen] 트랙 attached, 재요청');
+      requestHighQuality('attached');
+    };
+    track?.on('attached', handleAttached);
+
+    // 트랙이 이미 attach된 경우 바로 재요청
+    if (track?.attachedElements?.length > 0) {
+      requestHighQuality('already-attached');
+    }
+
+    // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
+    const retryTimeouts = [500, 1000, 2000].map((delay, i) =>
+      setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay)
+    );
 
     // 🔍 비디오 크기 변경 감지
     const handleVideoDimensionsChanged = () => {
@@ -121,11 +141,13 @@ export const FullScreenVideo = ({
     pub.on('videoQualityChanged', handleVideoQualityChanged);
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
 
-    // Cleanup: remove listener but keep requested quality (do not downgrade)
+    // Cleanup: remove listeners and timers
     return () => {
+      track?.off('attached', handleAttached);
       track?.off('videoDimensionsChanged', handleVideoDimensionsChanged);
       pub.off('videoQualityChanged', handleVideoQualityChanged);
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
+      retryTimeouts.forEach(clearTimeout);
     };
   }, [videoTrackRef, participant.name, room]);
 
