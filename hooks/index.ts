@@ -6,5 +6,3 @@ export type {
 export { useRoomSSE } from './useRoomSSE';
 export { useMultiRoomSession } from './useMultiRoomSession';
 export { useAdminApi } from './useAdminApi';
-export { useTranscripts } from './useTranscripts';
-export type { Transcript } from './useTranscripts';

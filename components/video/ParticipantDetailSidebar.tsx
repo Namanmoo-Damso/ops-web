@@ -8,15 +8,24 @@ import {
   MessageCircle,
   Phone,
 } from 'lucide-react';
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
-import { useTranscripts } from '../../hooks';
+import { useRoomContext } from '@livekit/components-react';
+import { RoomEvent, DataPacket_Kind } from 'livekit-client';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
   onClose: () => void;
   roomName?: string;
   apiBase?: string;
+  isTakeoverActive?: boolean;
+  onToggleTakeover?: () => void;
+};
+
+type Transcript = {
+  role: 'agent' | 'user';
+  text: string;
+  timestamp: number;
 };
 
 const hexToRgba = (hex: string, alpha = 1) => {
@@ -129,18 +138,69 @@ export const ParticipantDetailSidebar = ({
   onClose,
   roomName,
   apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+  isTakeoverActive = false,
+  onToggleTakeover,
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const room = useRoomContext();
 
-  // Fetch real-time transcripts
-  const { transcripts } = useTranscripts({
-    apiBase,
-    roomName: roomName || null,
-    enabled: !!roomName,
-    pollInterval: 2000, // Poll every 2 seconds
-  });
+  // Listen for real-time transcripts via data packets
+  useEffect(() => {
+    console.log('[Sidebar] Room context:', room);
+    console.log('[Sidebar] Room state:', room?.state);
+    console.log('[Sidebar] Room name:', room?.name);
+
+    if (!room) {
+      console.log('[Sidebar] No room context available');
+      return;
+    }
+
+    console.log(
+      '[Sidebar] Setting up DataReceived listener for room:',
+      room.name,
+    );
+
+    const handleData = (
+      payload: Uint8Array,
+      participant?: any,
+      kind?: DataPacket_Kind,
+    ) => {
+      try {
+        const strData = new TextDecoder().decode(payload);
+        console.log(
+          '[Sidebar] Received data:',
+          strData,
+          'kind:',
+          kind,
+          'participant:',
+          participant?.identity,
+        );
+        const data = JSON.parse(strData);
+
+        if (data.type === 'transcript') {
+          console.log('[Sidebar] Processing transcript:', data);
+          setTranscripts(prev => [
+            ...prev,
+            {
+              role: data.role,
+              text: data.text,
+              timestamp: data.timestamp || Date.now(),
+            },
+          ]);
+        }
+      } catch (e) {
+        console.error('[Sidebar] Failed to parse data packet:', e);
+      }
+    };
+
+    room.on(RoomEvent.DataReceived, handleData);
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData);
+    };
+  }, [room]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -431,8 +491,52 @@ export const ParticipantDetailSidebar = ({
                 }}
               >
                 <div className="flex flex-col gap-4">
-                  {/* TODO: Re-enable transcript rendering once transcript UX is finalized */}
-                  {null}
+                  {transcripts.length === 0 ? (
+                    <div className="text-center text-xs text-gray-400 py-4">
+                      대화 내역이 없습니다.
+                    </div>
+                  ) : (
+                    transcripts.map((t, i) => {
+                      const isAgent = t.role === 'agent';
+                      return (
+                        <div
+                          key={i}
+                          style={{
+                            alignSelf: isAgent ? 'flex-start' : 'flex-end',
+                            maxWidth: '85%',
+                            padding: '10px 14px',
+                            borderRadius: '16px',
+                            borderBottomLeftRadius: isAgent ? '2px' : '16px',
+                            borderBottomRightRadius: isAgent ? '16px' : '2px',
+                            background: isAgent ? '#ffffff' : '#4A5D23',
+                            color: isAgent ? '#1e293b' : '#ffffff',
+                            border: isAgent
+                              ? '1px solid rgba(226,232,240,1)'
+                              : 'none',
+                            fontSize: '13px',
+                            lineHeight: '1.5',
+                            boxShadow: isAgent
+                              ? '0 2px 4px rgba(0,0,0,0.02)'
+                              : '0 2px 4px rgba(74,93,35,0.2)',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '10px',
+                              marginBottom: '4px',
+                              color: isAgent
+                                ? 'rgba(100,116,139,0.8)'
+                                : 'rgba(255,255,255,0.8)',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {isAgent ? 'AI Caregiver' : 'Patient'}
+                          </div>
+                          {t.text}
+                        </div>
+                      );
+                    })
+                  )}
                   <div ref={transcriptEndRef} />
                 </div>
               </div>
@@ -450,7 +554,9 @@ export const ParticipantDetailSidebar = ({
           <button
             style={{
               width: '100%',
-              background: 'linear-gradient(135deg, #fb7185 0%, #f43f5e 70%)',
+              background: isTakeoverActive
+                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 70%)'
+                : 'linear-gradient(135deg, #fb7185 0%, #f43f5e 70%)',
               color: '#ffffff',
               fontWeight: 800,
               padding: '16px',
@@ -465,6 +571,12 @@ export const ParticipantDetailSidebar = ({
               boxShadow: '0 18px 35px rgba(244,143,177,0.4)',
               transition: 'all 0.2s',
             }}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.navigator.vibrate?.(10);
+              }
+              onToggleTakeover?.();
+            }}
             onMouseOver={e => {
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow =
@@ -477,7 +589,7 @@ export const ParticipantDetailSidebar = ({
             }}
           >
             <Phone size={20} />
-            긴급 통화 개입 (Takeover)
+            {isTakeoverActive ? '긴급 통화 종료' : '긴급 통화 개입 (Takeover)'}
           </button>
           <p
             style={{
@@ -488,7 +600,9 @@ export const ParticipantDetailSidebar = ({
               fontWeight: 600,
             }}
           >
-            관리자 권한으로 즉시 개입 가능
+            {isTakeoverActive
+              ? '현재 통화 개입 중입니다'
+              : '관리자 권한으로 즉시 개입 가능'}
           </p>
         </div>
       </div>
