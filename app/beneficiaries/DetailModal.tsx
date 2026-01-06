@@ -87,6 +87,10 @@ export default function DetailModal({
     medication: '',
     notes: '',
   });
+  const [guardianForm, setGuardianForm] = useState({
+    relation: '',
+    contact: '',
+  });
   const [isDirty, setIsDirty] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -100,6 +104,13 @@ export default function DetailModal({
     const cleaned = items.map(item => item.trim()).filter(Boolean);
     return cleaned.length ? cleaned.map(item => `#${item}`).join(' ') : '-';
   };
+  const defaultGuardianForm = useMemo(
+    () => ({
+      relation: '',
+      contact: '',
+    }),
+    [],
+  );
   const defaultForm = useMemo(
     () => ({
       name: detail.name ?? beneficiary?.name ?? '',
@@ -130,6 +141,17 @@ export default function DetailModal({
       detail.type,
     ],
   );
+  const managerName = useMemo(() => {
+    if (typeof window === 'undefined') return '관리자';
+    const raw = localStorage.getItem('admin_info');
+    if (!raw) return '관리자';
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed?.name ?? '관리자';
+    } catch {
+      return '관리자';
+    }
+  }, []);
 
   // ESC로 닫기 + 포커스 트랩
   useEffect(() => {
@@ -225,20 +247,27 @@ export default function DetailModal({
 
   const displayName = detail.name ?? beneficiary.name;
   const displayGender = detail.gender ?? beneficiary.gender;
-  const displayType = detail.type ?? beneficiary.type;
   const displayAddress = detail.address ?? beneficiary.address ?? null;
   const displayAge = detail.birthDate
     ? calculateAgeFromBirthDate(detail.birthDate)
     : beneficiary.age;
+  const displayGenderShort =
+    displayGender === 'male' || displayGender === 'm'
+      ? '남'
+      : displayGender === 'female' || displayGender === 'f'
+      ? '여'
+      : '-';
 
   const handleEditStart = () => {
     setForm(defaultForm);
+    setGuardianForm(defaultGuardianForm);
     setIsEditing(true);
     setIsDirty(false);
   };
 
   const handleEditCancel = () => {
     setForm(defaultForm);
+    setGuardianForm(defaultGuardianForm);
     setIsEditing(false);
     setIsDirty(false);
     setSaveError(null);
@@ -331,14 +360,27 @@ export default function DetailModal({
               <div className={styles.titleRow}>
                 <div className={styles.name}>{displayName}</div>
                 <span className={styles.age}>
-                  ({displayAge ?? '-'}세 / {displayGender ?? '-'})
+                  ({displayAge ?? '-'}세 /{' '}
+                  {isEditing ? (
+                    <select
+                      className={styles.genderSelect}
+                      value={form.gender}
+                      onChange={e => handleFieldChange('gender', e.target.value)}
+                    >
+                      <option value="">-</option>
+                      <option value="male">남</option>
+                      <option value="female">여</option>
+                      <option value="other">기타</option>
+                    </select>
+                  ) : (
+                    displayGenderShort
+                  )}
+                  )
                 </span>
-              </div>
-              <div className={styles.metaRow}>
                 <span className={`${styles.tag} ${statusTagClass}`}>
                   ●{' '}
                   {status === 'WARNING'
-                    ? '케어 필요 (Warning)'
+                    ? '케어 필요'
                     : status === 'CAUTION'
                     ? '주의 필요'
                     : '안정적'}
@@ -347,15 +389,23 @@ export default function DetailModal({
             </div>
           </div>
 
-          <div className={styles.actions}>
-            <button type="button" className={styles.ghostButton}>
-              담소일지 (상담 기록)
-            </button>
-            <button
-              type="button"
-              aria-label="닫기"
-              onClick={onClose}
-              className={styles.closeButton}
+            <div className={styles.actions}>
+              <div className={styles.managerToggle}>
+                <span className={styles.managerLabel}>담당자</span>
+                <select
+                  className={styles.managerSelect}
+                  value={managerName}
+                  disabled={!isEditing}
+                >
+                  <option value={managerName}>{managerName}</option>
+                </select>
+                {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
+              </div>
+              <button
+                type="button"
+                aria-label="닫기"
+                onClick={onClose}
+                className={styles.closeButton}
             >
               ×
             </button>
@@ -408,24 +458,6 @@ export default function DetailModal({
                       }
                     />
                   </div>
-                <div className={styles.editField}>
-                  <label className={styles.editLabel}>성별</label>
-                  <select
-                    className={styles.editSelect}
-                    value={isEditing ? form.gender : detail.gender ?? ''}
-                    disabled={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('gender', e.target.value)
-                          : undefined
-                      }
-                    >
-                      <option value="">선택 안 함</option>
-                      <option value="male">남성</option>
-                      <option value="female">여성</option>
-                      <option value="other">기타</option>
-                    </select>
-                  </div>
                 <div className={`${styles.editField} ${styles.spanTwo}`}>
                   <label className={styles.editLabel}>주소</label>
                   <input
@@ -439,28 +471,63 @@ export default function DetailModal({
                       }
                     />
                   </div>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <SectionTitle>보호자 정보</SectionTitle>
+            <div className={styles.card}>
+              <div className={styles.guardianGrid}>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>보호자</label>
-                  <input
-                    className={styles.editInput}
-                    value={isEditing ? form.guardian : detail.guardian ?? '-'}
-                    readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('guardian', e.target.value)
-                          : undefined
+                  <label className={styles.editLabel}>보호자 관계</label>
+                  {isEditing ? (
+                    <select
+                      className={styles.editSelect}
+                      value={guardianForm.relation}
+                      onChange={e =>
+                        setGuardianForm(prev => ({
+                          ...prev,
+                          relation: e.target.value,
+                        }))
                       }
+                    >
+                      <option value="">없음</option>
+                      <option value="자녀">자녀</option>
+                      <option value="지인">지인</option>
+                      <option value="기타">기타</option>
+                    </select>
+                  ) : (
+                    <input
+                      className={styles.editInput}
+                      value={guardianForm.relation || '없음'}
+                      readOnly
                     />
-                  </div>
+                  )}
+                </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>담당자</label>
+                  <label className={styles.editLabel}>보호자 연락처</label>
                   <input
                     className={styles.editInput}
-                    value={beneficiary?.manager ?? '-'}
-                    readOnly
+                    value={
+                      isEditing
+                        ? guardianForm.contact
+                        : guardianForm.contact || '-'
+                    }
+                    readOnly={!isEditing}
+                    onChange={
+                      isEditing
+                        ? e =>
+                            setGuardianForm(prev => ({
+                              ...prev,
+                              contact: e.target.value,
+                            }))
+                        : undefined
+                    }
                   />
                 </div>
               </div>
+              {/* TODO: 보호자 관계/연락처 API 연동 후 저장/표시 로직 추가 */}
             </div>
           </section>
 
@@ -508,7 +575,12 @@ export default function DetailModal({
               </div>
             </div>
             <div className={styles.logsColumn}>
-              <SectionTitle>최근 안부 및 상담 기록</SectionTitle>
+              <div className={styles.logsHeader}>
+                <SectionTitle>담소일지</SectionTitle>
+                <button type="button" className={styles.logMoreButton}>
+                  자세히 보기 →
+                </button>
+              </div>
               <div className={styles.logsCard}>
                 {detail.recentLogs.length === 0 ? (
                   <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
@@ -564,9 +636,6 @@ export default function DetailModal({
             {deleteError && <div className={styles.deleteError}>{deleteError}</div>}
           </div>
           <div className={styles.footerActions}>
-            <div className={styles.textMuted}>
-              최근 통화: {beneficiary.lastCall ?? '정보 없음'}
-            </div>
             {isEditing ? (
               <div className={styles.footerEditActions}>
                 <button
