@@ -45,6 +45,17 @@ export default function CsvUploadModal({
   const [kakaoHint, setKakaoHint] = useState<string | null>(null);
   const hasPending =
     (mode === 'upload' && pendingCsv) || (mode === 'manual' && pendingManual);
+  const [kakaoEditOpen, setKakaoEditOpen] = useState(false);
+  const [modeLocked, setModeLocked] = useState(false);
+  const [kakaoMessage, setKakaoMessage] = useState(
+    [
+      '안녕하세요, 00기관에서 연락드립니다.',
+      '예전에 돌봄을 도와드렸던 기관에서 소식을 전해드립니다.',
+      '아래 링크로 앱을 설치하시면 AI 얼굴 통화를 받을 수 있어요.',
+      '담소 앱 다운로드: damso://invite',
+      '궁금한 점은 기관으로 문의해주세요.',
+    ].join('\n'),
+  );
 
   if (!open) return null;
 
@@ -55,6 +66,8 @@ export default function CsvUploadModal({
     setPendingCsv(null);
     setPendingManual(null);
     setKakaoHint(null);
+    setKakaoEditOpen(false);
+    setModeLocked(false);
     onClose();
   };
 
@@ -62,6 +75,8 @@ export default function CsvUploadModal({
     setPendingCsv({ file, rows });
     setPendingManual(null);
     setKakaoHint(null);
+    setKakaoEditOpen(false);
+    setModeLocked(true);
     setStep('kakao');
   };
 
@@ -69,6 +84,8 @@ export default function CsvUploadModal({
     setPendingManual(payload);
     setPendingCsv(null);
     setKakaoHint(null);
+    setKakaoEditOpen(false);
+    setModeLocked(true);
     setStep('kakao');
   };
 
@@ -155,47 +172,50 @@ export default function CsvUploadModal({
           </button>
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '8px',
-            marginBottom: '14px',
-          }}
-        >
-          {[
-            { key: 'upload', label: 'CSV 업로드' },
-            { key: 'manual', label: '직접 입력' },
-          ].map(option => {
-            const isActive = mode === option.key;
-            return (
-              <button
-                key={option.key}
-                disabled={uploading}
-                onClick={() => {
-                  setMode(option.key as typeof mode);
-                  setStep('form');
-                  setPendingCsv(null);
-                  setPendingManual(null);
-                  setKakaoHint(null);
-                }}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  border: `1px solid ${isActive ? palette.primary : palette.border}`,
-                  backgroundColor: isActive ? palette.soft : palette.panel,
-                  color: isActive ? palette.primaryDark : palette.textMuted,
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  cursor: uploading ? 'not-allowed' : 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        {!modeLocked && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '8px',
+              marginBottom: '14px',
+            }}
+          >
+            {[
+              { key: 'upload', label: 'CSV 업로드' },
+              { key: 'manual', label: '직접 입력' },
+            ].map(option => {
+              const isActive = mode === option.key;
+              return (
+                <button
+                  key={option.key}
+                  disabled={uploading}
+                  onClick={() => {
+                    setMode(option.key as typeof mode);
+                    setStep('form');
+                    setPendingCsv(null);
+                    setPendingManual(null);
+                    setKakaoHint(null);
+                    setModeLocked(true);
+                  }}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: `1px solid ${isActive ? palette.primary : palette.border}`,
+                    backgroundColor: isActive ? palette.soft : palette.panel,
+                    color: isActive ? palette.primaryDark : palette.textMuted,
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: uploading ? 'not-allowed' : 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div style={{ display: step === 'form' ? 'block' : 'none' }}>
           {mode === 'upload' ? (
@@ -233,6 +253,102 @@ export default function CsvUploadModal({
               </div>
             </div>
 
+            <div
+              style={{
+                borderRadius: '14px',
+                border: `1px solid ${palette.border}`,
+                backgroundColor: palette.panel,
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: palette.primaryDark,
+                  }}
+                >
+                  메시지 미리보기
+                </div>
+                <button
+                  onClick={() => setKakaoEditOpen(prev => !prev)}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '999px',
+                    border: `1px solid ${palette.border}`,
+                    backgroundColor: kakaoEditOpen ? palette.primary : palette.background,
+                    color: kakaoEditOpen ? palette.panel : palette.primaryDark,
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = kakaoEditOpen
+                      ? palette.primaryDark
+                      : palette.soft;
+                    e.currentTarget.style.color = kakaoEditOpen
+                      ? palette.panel
+                      : palette.primaryDark;
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = kakaoEditOpen
+                      ? palette.primary
+                      : palette.background;
+                    e.currentTarget.style.color = kakaoEditOpen
+                      ? palette.panel
+                      : palette.primaryDark;
+                  }}
+                >
+                  {kakaoEditOpen ? '수정완료' : '수정하기'}
+                </button>
+              </div>
+              {kakaoEditOpen ? (
+                <textarea
+                  value={kakaoMessage}
+                  onChange={e => setKakaoMessage(e.target.value)}
+                  rows={10}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    padding: '14px 16px',
+                    borderRadius: '12px',
+                    border: `1px solid ${palette.border}`,
+                    backgroundColor: '#fff7c2',
+                    fontSize: '13px',
+                    color: palette.primaryDark,
+                    lineHeight: 1.7,
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    borderRadius: '12px',
+                    border: `1px solid ${palette.border}`,
+                    backgroundColor: palette.background,
+                    padding: '18px',
+                    fontSize: '13px',
+                    color: '#1f2937',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-line',
+                    minHeight: '200px',
+                  }}
+                >
+                  {kakaoMessage}
+                </div>
+              )}
+            </div>
+
             <button
               disabled={uploading}
               onClick={() => {
@@ -242,8 +358,8 @@ export default function CsvUploadModal({
                 width: '100%',
                 padding: '12px 14px',
                 borderRadius: '12px',
-                border: `1px solid ${palette.primary}`,
-                backgroundColor: palette.panel,
+                border: 'none',
+                backgroundColor: '#FFE81D',
                 color: palette.primaryDark,
                 fontSize: '14px',
                 fontWeight: 700,
@@ -252,11 +368,11 @@ export default function CsvUploadModal({
               }}
               onMouseEnter={e => {
                 if (uploading) return;
-                e.currentTarget.style.backgroundColor = palette.soft;
+                e.currentTarget.style.backgroundColor = '#f5de0f';
               }}
               onMouseLeave={e => {
                 if (uploading) return;
-                e.currentTarget.style.backgroundColor = palette.panel;
+                e.currentTarget.style.backgroundColor = '#FFE81D';
               }}
             >
               카카오 알림톡으로 초대장 보내기
