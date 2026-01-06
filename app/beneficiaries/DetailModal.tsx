@@ -408,11 +408,13 @@ export default function DetailModal({
 
         <div className={styles.body}>
           <section className={styles.section}>
-            <SectionTitle>기본 정보</SectionTitle>
             <div className={styles.basicCard}>
+              <div className={styles.cardHeader}>
+                <SectionTitle>기본 정보</SectionTitle>
+              </div>
               <div className={styles.basicGrid}>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>이름 *</label>
+                  <span className={styles.editLabel}>이름 *</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
@@ -425,7 +427,7 @@ export default function DetailModal({
                     />
                   </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>전화번호 *</label>
+                  <span className={styles.editLabel}>전화번호 *</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
@@ -439,7 +441,7 @@ export default function DetailModal({
                     />
                   </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>생년월일</label>
+                  <span className={styles.editLabel}>생년월일</span>
                   <input
                     type="date"
                     className={styles.editInput}
@@ -453,7 +455,7 @@ export default function DetailModal({
                     />
                   </div>
                 <div className={`${styles.editField} ${styles.spanTwo}`}>
-                  <label className={styles.editLabel}>주소</label>
+                  <span className={styles.editLabel}>주소</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.address : displayAddress ?? ''}
@@ -470,11 +472,13 @@ export default function DetailModal({
           </section>
 
           <section className={styles.section}>
-            <SectionTitle>보호자 정보</SectionTitle>
             <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <SectionTitle>보호자 정보</SectionTitle>
+              </div>
               <div className={styles.guardianGrid}>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>보호자 관계</label>
+                  <span className={styles.editLabel}>보호자 관계</span>
                   {isEditing ? (
                     <select
                       className={styles.editSelect}
@@ -500,7 +504,7 @@ export default function DetailModal({
                   )}
                 </div>
                 <div className={styles.editField}>
-                  <label className={styles.editLabel}>보호자 연락처</label>
+                  <span className={styles.editLabel}>보호자 연락처</span>
                   <input
                     className={styles.editInput}
                     value={
@@ -527,23 +531,27 @@ export default function DetailModal({
 
           <section className={styles.healthLogSection}>
             <div className={styles.healthColumn}>
-              <SectionTitle>건강 정보</SectionTitle>
               <div className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <SectionTitle>건강 정보</SectionTitle>
+                </div>
                 <div className={styles.healthGrid}>
-                  <div className={styles.editField}>
-                    <label className={styles.editLabel}>기저질환</label>
-                    <input
-                      className={styles.editInput}
-                      value={
-                        isEditing ? form.diseases : formatTags(detail.diseases)
-                      }
-                      readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('diseases', e.target.value)
-                          : undefined
-                      }
-                    />
+                  <div className={styles.editSection}>
+                    <div className={styles.editField}>
+                      <span className={styles.editLabel}>기저질환</span>
+                      <input
+                        className={styles.editInput}
+                        value={
+                          isEditing ? form.diseases : formatTags(detail.diseases)
+                        }
+                        readOnly={!isEditing}
+                        onChange={
+                          isEditing
+                            ? e => handleFieldChange('diseases', e.target.value)
+                            : undefined
+                        }
+                      />
+                    </div>
                     {isEditing && (
                       <div className={styles.editHelper}>
                         쉼표로 구분하여 입력하세요. (예: 고혈압, 당뇨)
@@ -551,7 +559,7 @@ export default function DetailModal({
                     )}
                   </div>
                   <div className={styles.editField}>
-                    <label className={styles.editLabel}>복약 정보</label>
+                    <span className={styles.editLabel}>복약 정보</span>
                     <input
                       className={styles.editInput}
                       value={
@@ -569,13 +577,13 @@ export default function DetailModal({
               </div>
             </div>
             <div className={styles.logsColumn}>
-              <div className={styles.logsHeader}>
-                <SectionTitle>담소일지</SectionTitle>
-                <button type="button" className={styles.logMoreButton}>
-                  자세히 보기 →
-                </button>
-              </div>
               <div className={styles.logsCard}>
+                <div className={styles.cardHeader}>
+                  <SectionTitle>담소일지</SectionTitle>
+                  <button type="button" className={styles.logMoreButton}>
+                    자세히 보기 →
+                  </button>
+                </div>
                 {detail.recentLogs.length === 0 ? (
                   <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
                 ) : (
@@ -596,8 +604,10 @@ export default function DetailModal({
           </section>
 
           <section className={styles.section}>
-            <SectionTitle>참고 및 특이사항</SectionTitle>
             <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <SectionTitle>참고 및 특이사항</SectionTitle>
+              </div>
               <textarea
                 className={styles.noteTextarea}
                 value={
