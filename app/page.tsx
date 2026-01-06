@@ -15,6 +15,7 @@ import {
   RemoteTrackPublication,
   ConnectionState,
   createLocalAudioTrack,
+  VideoQuality,
 } from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
 import {
@@ -29,11 +30,54 @@ import {
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import styles from './page.module.css';
 
+const requestHighQuality = (
+  trackRef: any,
+  context?: { participantId?: string; roomName?: string; source?: string },
+) => {
+  const pub = trackRef?.publication;
+  if (!pub) return;
+
+  console.debug('[video] request high quality', {
+    participantId: context?.participantId,
+    roomName: context?.roomName,
+    source: context?.source,
+    trackSid: pub.trackSid,
+  });
+
+  try {
+    (pub as any)?.setSubscribed?.(true);
+  } catch {
+    // ignore
+  }
+
+  if (typeof pub.setVideoQuality === 'function') {
+    pub.setVideoQuality(VideoQuality.HIGH);
+  } else if (typeof (pub as any).setPreferredLayer === 'function') {
+    (pub as any).setPreferredLayer(VideoQuality.HIGH);
+  }
+
+  try {
+    const priorityEnum = (Track as any).Priority;
+    const highPriority = priorityEnum?.HIGH ?? undefined;
+    if (
+      highPriority !== undefined &&
+      typeof (pub as any).setPriority === 'function'
+    ) {
+      (pub as any).setPriority(highPriority);
+    }
+  } catch {
+    // ignore
+  }
+
+  pub.setVideoDimensions?.({ width: 1920, height: 1080 });
+};
+
 const LiveTile = ({
   trackRef,
   displayName,
   roomName,
   videoOff,
+  suppressVideo,
   onClick,
   participantId,
 }: {
@@ -41,10 +85,12 @@ const LiveTile = ({
   displayName: string;
   roomName: string;
   videoOff: boolean;
+  suppressVideo?: boolean;
   onClick?: (participantId: string) => void;
   participantId: string;
 }) => {
   const cameraOff = videoOff;
+  const showVideo = !cameraOff && !suppressVideo;
 
   const handleClick = () => {
     if (onClick) {
@@ -59,14 +105,14 @@ const LiveTile = ({
       onClick={handleClick}
     >
       <div className={styles.tileMedia}>
-        {cameraOff ? (
-          <div className={styles.avatarFallback}>
-            {getInitials(displayName)}
-          </div>
-        ) : (
+        {showVideo ? (
           <TrackRefContext.Provider value={trackRef}>
             <VideoTrack className={styles.video} />
           </TrackRefContext.Provider>
+        ) : (
+          <div className={styles.avatarFallback}>
+            {getInitials(displayName)}
+          </div>
         )}
         <div className={styles.tileFooter}>
           <div
@@ -108,11 +154,15 @@ const RoomTracks = ({
   onParticipantsUpdate,
   onTileClick,
   selectedParticipantForAudio,
+  focusedParticipantId,
+  isFullscreenActive,
 }: {
   roomName: string;
   onParticipantsUpdate?: (participants: MockParticipant[]) => void;
   onTileClick?: (participantId: string, videoTrackRef: any) => void;
   selectedParticipantForAudio?: string | null;
+  focusedParticipantId?: string | null;
+  isFullscreenActive?: boolean;
 }) => {
   const allTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
@@ -186,6 +236,22 @@ const RoomTracks = ({
     return !publishing;
   };
 
+  const hasFocusedParticipant =
+    !!isFullscreenActive &&
+    !!focusedParticipantId &&
+    tracks.some(
+      trackRef =>
+        getParticipantId(trackRef.participant) === focusedParticipantId,
+    );
+
+  useEffect(() => {
+    if (!hasFocusedParticipant) return;
+    console.debug('[video] fullscreen focus in room', {
+      roomName,
+      focusedParticipantId,
+    });
+  }, [hasFocusedParticipant, roomName, focusedParticipantId]);
+
   // Update parent with participant list
   useEffect(() => {
     if (onParticipantsUpdate) {
@@ -233,6 +299,8 @@ const RoomTracks = ({
         if (!participant) return null;
         const identity = getParticipantId(participant);
         const displayName = getBaseName(participant);
+        const suppressVideo =
+          !!isFullscreenActive && focusedParticipantId === identity;
         return (
           <LiveTile
             key={identity}
@@ -240,6 +308,7 @@ const RoomTracks = ({
             displayName={displayName}
             roomName={roomName}
             videoOff={isVideoOff(participant)}
+            suppressVideo={suppressVideo}
             onClick={participantId => onTileClick?.(participantId, trackRef)}
             participantId={identity}
           />
@@ -615,6 +684,11 @@ export default function Home() {
         };
 
         const onTileClick = (participantId: string, videoTrackRef: any) => {
+          console.debug('[video] tile click', {
+            participantId,
+            roomName,
+            fullscreenActive: showFullScreenVideo,
+          });
           // If clicking the same participant that's already in fullscreen, close it
           if (
             showFullScreenVideo &&
@@ -627,6 +701,11 @@ export default function Home() {
             setSelectedParticipantForAudio(null);
             setSelectedVideoTrackRef(null);
           } else {
+            requestHighQuality(videoTrackRef, {
+              participantId,
+              roomName,
+              source: 'tile-click',
+            });
             // Open both fullscreen video and detail sidebar, enable audio for this participant
             setSelectedParticipantForAudio(participantId);
             setSelectedRoomName(roomName);
@@ -788,6 +867,12 @@ export default function Home() {
                             selectedParticipantForAudio={
                               slot.selectedParticipantForAudio
                             }
+                            focusedParticipantId={
+                              showFullScreenVideo
+                                ? selectedParticipantForAudio
+                                : null
+                            }
+                            isFullscreenActive={showFullScreenVideo}
                           />
                         </LiveKitRoom>
                       ) : (
