@@ -21,7 +21,18 @@ export const FullScreenVideo = ({
   // Request highest quality immediately
   useEffect(() => {
     const pub = videoTrackRef?.publication;
+    const track = pub?.track;
     if (!pub || !room) return;
+
+    // 🔍 초기 상태 로깅
+    console.log('[FullScreen] 초기 상태:', {
+      participant: participant.name,
+      trackSid: pub.trackSid,
+      dimensions: track?.dimensions,
+      simulcasted: pub.simulcasted,
+      videoQuality: pub.videoQuality,
+      subscribed: pub.subscribed,
+    });
 
     try {
       (pub as any)?.setSubscribed?.(true);
@@ -29,7 +40,10 @@ export const FullScreenVideo = ({
       // ignore
     }
 
-    const requestHighQuality = () => {
+    const requestHighQuality = (source: string) => {
+      const beforeQuality = pub.videoQuality;
+      const beforeDimensions = track?.dimensions;
+
       // Request high-quality layer (modern API)
       if (typeof pub.setVideoQuality === 'function') {
         pub.setVideoQuality(VideoQuality.HIGH);
@@ -54,24 +68,63 @@ export const FullScreenVideo = ({
 
       // Prefer a large render size
       pub.setVideoDimensions?.({ width: 1920, height: 1080 });
+
+      console.log('[FullScreen] HIGH 품질 요청:', {
+        source,
+        trackSid: pub.trackSid,
+        beforeQuality,
+        afterQuality: pub.videoQuality,
+        beforeDimensions,
+        afterDimensions: track?.dimensions,
+        simulcasted: pub.simulcasted,
+      });
     };
 
-    requestHighQuality();
+    requestHighQuality('mount');
+
+    // 🔍 비디오 크기 변경 감지
+    const handleVideoDimensionsChanged = () => {
+      console.log('[FullScreen] 해상도 변경됨:', {
+        participant: participant.name,
+        dimensions: track?.dimensions,
+        videoQuality: pub.videoQuality,
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    // 🔍 품질 변경 감지
+    const handleVideoQualityChanged = (quality: VideoQuality) => {
+      console.log('[FullScreen] 품질 변경됨:', {
+        participant: participant.name,
+        newQuality: quality,
+        dimensions: track?.dimensions,
+        timestamp: new Date().toISOString(),
+      });
+    };
 
     // Keep quality high if track gets resubscribed
-    const handleTrackSubscribed = (track: any, publication: any) => {
+    const handleTrackSubscribed = (subscribedTrack: any, publication: any) => {
       if (
-        track.kind === Track.Kind.Video &&
+        subscribedTrack.kind === Track.Kind.Video &&
         publication.trackSid === pub.trackSid
       ) {
-        requestHighQuality();
+        console.log('[FullScreen] 트랙 재구독:', {
+          trackSid: publication.trackSid,
+          dimensions: subscribedTrack.dimensions,
+        });
+        requestHighQuality('track-subscribed');
       }
     };
 
+    // 이벤트 리스너 등록
+    track?.on('videoDimensionsChanged', handleVideoDimensionsChanged);
+    pub.on('videoQualityChanged', handleVideoQualityChanged);
     room.on(RoomEvent.TrackSubscribed, handleTrackSubscribed);
 
     // Cleanup: remove listener but keep requested quality (do not downgrade)
     return () => {
+      track?.off('videoDimensionsChanged', handleVideoDimensionsChanged);
+      pub.off('videoQualityChanged', handleVideoQualityChanged);
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
     };
   }, [videoTrackRef, participant.name, room]);
