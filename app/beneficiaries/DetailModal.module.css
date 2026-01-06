@@ -46,7 +46,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 28px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--beneficiary-border-color);
   background: #ffffff;
 }
@@ -90,7 +90,7 @@
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
@@ -103,6 +103,17 @@
 .age {
   color: var(--beneficiary-muted);
   font-weight: 700;
+}
+
+.genderSelect {
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--beneficiary-heading);
+  font-weight: 800;
+  font-size: 14px;
+  padding: 4px 8px;
+  margin-left: 4px;
 }
 
 .metaRow {
@@ -156,24 +167,56 @@
 }
 
 .ghostButton {
-  padding: 10px 14px;
+  padding: 12px 20px;
   border-radius: 12px;
   border: 1px solid #E9F0DF;
   background-color: #ffffff;
   color: #4A5D23;
   font-weight: 800;
+  font-size: 18px;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
   cursor: pointer;
 }
 
-.closeButton {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.managerToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
   border: 1px solid #E9F0DF;
-  background-color: #ffffff;
-  color: #64748b;
+  background: #F7F9F2;
+}
+
+.managerLabel {
+  font-size: 14px;
   font-weight: 800;
+  color: #4A5D23;
+}
+
+.managerSelect {
+  border: none;
+  background: transparent;
+  color: #4A5D23;
+  font-weight: 800;
+  font-size: 15px;
+  outline: none;
+  cursor: pointer;
+}
+
+.managerSelect:disabled {
+  cursor: default;
+}
+
+.closeButton {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background-color: transparent;
+  color: #64748b;
+  font-weight: 900;
+  font-size: 28px;
   cursor: pointer;
 }
 
@@ -287,7 +330,7 @@
 }
 
 .editLabel {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   color: #64748b;
 }
@@ -298,7 +341,7 @@
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 16px;
   padding: 12px 16px;
-  font-size: 18px;
+  font-size: 19px;
   color: var(--beneficiary-heading);
   background-color: #F7F9F2;
   width: 100%;
@@ -330,9 +373,10 @@
   background: #4a5d23;
   color: #ffffff;
   border: none;
-  padding: 10px 14px;
+  padding: 12px 18px;
   border-radius: 12px;
   font-weight: 900;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -340,9 +384,10 @@
   background: #F0F5E8;
   color: #4A5D23;
   border: none;
-  padding: 10px 14px;
+  padding: 12px 18px;
   border-radius: 12px;
   font-weight: 800;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -435,6 +480,30 @@
   gap: 10px;
 }
 
+.logMoreButton {
+  padding: 10px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--beneficiary-border-color);
+  background: #F7F9F2;
+  color: #6E7F4F;
+  font-weight: 900;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.logMoreButton:hover {
+  color: #4A5D23;
+  background: #EEF3E6;
+}
+
+.logsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .logCard {
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 18px;
@@ -463,7 +532,7 @@
 .logContent {
   color: #4A5D23;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1.4;
   margin: 0;
 }
@@ -484,12 +553,13 @@
 }
 
 .deleteButton {
-  padding: 10px 14px;
+  padding: 12px 18px;
   border-radius: 12px;
   border: none;
   background-color: #F0F5E8;
   color: #ef4444;
   font-weight: 800;
+  font-size: 16px;
   cursor: pointer;
 }
 
@@ -505,12 +575,13 @@
 }
 
 .editButton {
-  padding: 10px 14px;
+  padding: 12px 18px;
   border-radius: 12px;
   border: 1px solid var(--beneficiary-border-color);
   background-color: #4a5d23;
   color: #ffffff;
   font-weight: 900;
+  font-size: 16px;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
@@ -564,9 +635,10 @@
   background: #F0F5E8;
   color: #4A5D23;
   border: none;
-  padding: 9px 14px;
+  padding: 11px 18px;
   border-radius: 10px;
   font-weight: 800;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -574,9 +646,10 @@
   background: #ef4444;
   color: #ffffff;
   border: none;
-  padding: 9px 14px;
+  padding: 11px 18px;
   border-radius: 10px;
   font-weight: 800;
+  font-size: 15px;
   cursor: pointer;
 }
 
@@ -613,11 +686,17 @@
   border-radius: 20px;
   border: 1px solid var(--beneficiary-border-color);
   background-color: #F7F9F2;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   color: #4A5D23;
   outline: none;
   resize: vertical;
+}
+
+.guardianGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .noteTextarea[readonly] {
