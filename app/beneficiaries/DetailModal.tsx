@@ -89,6 +89,7 @@ export default function DetailModal({
     notes: '',
   });
   const [guardianForm, setGuardianForm] = useState({
+    name: '',
     relation: '',
     contact: '',
   });
@@ -100,6 +101,7 @@ export default function DetailModal({
   const diseaseText = detail.diseases.join(', ');
   const defaultGuardianForm = useMemo(
     () => ({
+      name: '',
       relation: '',
       contact: '',
     }),
@@ -478,6 +480,27 @@ export default function DetailModal({
               </div>
               <div className={styles.guardianGrid}>
                 <div className={styles.editField}>
+                  <span className={styles.editLabel}>보호자 성함</span>
+                  <input
+                    className={styles.editInput}
+                    value={
+                      isEditing
+                        ? guardianForm.name
+                        : guardianForm.name || '홍길동'
+                    }
+                    readOnly={!isEditing}
+                    onChange={
+                      isEditing
+                        ? e =>
+                            setGuardianForm(prev => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                        : undefined
+                    }
+                  />
+                </div>
+                <div className={styles.editField}>
                   <span className={styles.editLabel}>보호자 관계</span>
                   {isEditing ? (
                     <select
@@ -498,7 +521,7 @@ export default function DetailModal({
                   ) : (
                     <input
                       className={styles.editInput}
-                      value={guardianForm.relation || '없음'}
+                      value={guardianForm.relation || '자녀'}
                       readOnly
                     />
                   )}
@@ -510,7 +533,7 @@ export default function DetailModal({
                     value={
                       isEditing
                         ? guardianForm.contact
-                        : guardianForm.contact || '-'
+                        : guardianForm.contact || '010-1234-5678'
                     }
                     readOnly={!isEditing}
                     onChange={
