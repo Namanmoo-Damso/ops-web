@@ -17,6 +17,8 @@ type ParticipantDetailSidebarProps = {
   onClose: () => void;
   roomName?: string;
   apiBase?: string;
+  isTakeoverActive?: boolean;
+  onToggleTakeover?: () => void;
 };
 
 const hexToRgba = (hex: string, alpha = 1) => {
@@ -129,6 +131,8 @@ export const ParticipantDetailSidebar = ({
   onClose,
   roomName,
   apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+  isTakeoverActive = false,
+  onToggleTakeover,
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
@@ -450,7 +454,9 @@ export const ParticipantDetailSidebar = ({
           <button
             style={{
               width: '100%',
-              background: 'linear-gradient(135deg, #fb7185 0%, #f43f5e 70%)',
+              background: isTakeoverActive
+                ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 70%)'
+                : 'linear-gradient(135deg, #fb7185 0%, #f43f5e 70%)',
               color: '#ffffff',
               fontWeight: 800,
               padding: '16px',
@@ -465,6 +471,12 @@ export const ParticipantDetailSidebar = ({
               boxShadow: '0 18px 35px rgba(244,143,177,0.4)',
               transition: 'all 0.2s',
             }}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.navigator.vibrate?.(10);
+              }
+              onToggleTakeover?.();
+            }}
             onMouseOver={e => {
               e.currentTarget.style.transform = 'translateY(-2px)';
               e.currentTarget.style.boxShadow =
@@ -477,7 +489,7 @@ export const ParticipantDetailSidebar = ({
             }}
           >
             <Phone size={20} />
-            긴급 통화 개입 (Takeover)
+            {isTakeoverActive ? '긴급 통화 종료' : '긴급 통화 개입 (Takeover)'}
           </button>
           <p
             style={{
@@ -488,7 +500,9 @@ export const ParticipantDetailSidebar = ({
               fontWeight: 600,
             }}
           >
-            관리자 권한으로 즉시 개입 가능
+            {isTakeoverActive
+              ? '현재 통화 개입 중입니다'
+              : '관리자 권한으로 즉시 개입 가능'}
           </p>
         </div>
       </div>

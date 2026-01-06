@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -8,8 +8,14 @@ import {
   VideoTrack,
   useTracks,
   useLocalParticipant,
+  useRoomContext,
 } from '@livekit/components-react';
-import { Track, RemoteTrackPublication } from 'livekit-client';
+import {
+  Track,
+  RemoteTrackPublication,
+  ConnectionState,
+  createLocalAudioTrack,
+} from 'livekit-client';
 import SidebarLayout from '../components/SidebarLayout';
 import {
   EmptyTile,
@@ -299,28 +305,23 @@ const EmptyState = ({ message }: { message: string }) => (
 );
 
 // Wrapper component to access LiveKit hooks within a room context
+// Mic is controlled exclusively via the takeover button in the
+// ParticipantDetailSidebar, so the mic toggle in the main control bar
+// is effectively disabled and only reflects current takeover state.
 const ControlBarWrapper = ({
   gridSize,
   onGridSizeChange,
   showParticipantList,
   onToggleParticipantList,
+  isTakeoverActive,
 }: {
   gridSize: number;
   onGridSizeChange: (size: number) => void;
   showParticipantList: boolean;
   onToggleParticipantList: () => void;
+  isTakeoverActive: boolean;
 }) => {
-  const { isMicrophoneEnabled, isCameraEnabled, localParticipant } =
-    useLocalParticipant();
-
-  const toggleMicrophone = async () => {
-    if (!localParticipant) return;
-    try {
-      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const { isCameraEnabled, localParticipant } = useLocalParticipant();
 
   const toggleCamera = async () => {
     if (!localParticipant) return;
@@ -333,9 +334,10 @@ const ControlBarWrapper = ({
 
   return (
     <ControlBar
-      isMicrophoneEnabled={isMicrophoneEnabled}
+      // Mic state comes from takeover, and the toggle is disabled
+      isMicrophoneEnabled={isTakeoverActive}
       isCameraEnabled={isCameraEnabled}
-      onToggleMicrophone={toggleMicrophone}
+      onToggleMicrophone={() => {}}
       onToggleCamera={toggleCamera}
       allAudioOff={false}
       allVideoOff={false}
@@ -350,6 +352,153 @@ const ControlBarWrapper = ({
       canControl={true}
     />
   );
+};
+
+// Helper function to mute/unmute AI agent via API
+const muteAgentInRoom = async (
+  roomName: string,
+  mute: boolean,
+): Promise<void> => {
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const adminToken =
+    typeof window !== 'undefined'
+      ? window.localStorage.getItem('admin_access_token')
+      : null;
+
+  if (!adminToken) {
+    console.warn('[muteAgentInRoom] No admin token available');
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${apiBase}/v1/livekit/rooms/${encodeURIComponent(roomName)}/mute-agent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ mute }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error('[muteAgentInRoom] API error:', response.status);
+    } else {
+      console.log(`[muteAgentInRoom] Agent ${mute ? 'muted' : 'unmuted'} in ${roomName}`);
+    }
+  } catch (err) {
+    console.error('[muteAgentInRoom] Failed:', err);
+  }
+};
+
+// Controls the actual LiveKit microphone state based on whether
+// takeover mode is active. When not in takeover, the mic is forced off.
+// Any browser permission errors (e.g. user denied mic access) are caught
+// and ignored so they don't surface as unhandled errors.
+const TakeoverAudioController = ({ active }: { active: boolean }) => {
+  const room = useRoomContext();
+  const audioTrackRef = useRef<any>(null);
+  const isPublishingRef = useRef(false);
+
+  useEffect(() => {
+    const localParticipant = room?.localParticipant;
+    let cancelled = false;
+
+    if (!room || !localParticipant) {
+      return;
+    }
+
+    const ensureMicState = async () => {
+      // Prevent concurrent operations
+      if (isPublishingRef.current) {
+        return;
+      }
+
+      try {
+        const roomState = room.state;
+
+        if (roomState !== ConnectionState.Connected) {
+          return;
+        }
+
+        if (active && !audioTrackRef.current) {
+          isPublishingRef.current = true;
+
+          // Mute the AI agent first
+          await muteAgentInRoom(room.name, true);
+
+          const track = await createLocalAudioTrack({
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          });
+
+          // Check if we were cancelled while creating the track
+          if (cancelled) {
+            track.stop();
+            // Unmute the agent since we're cancelling
+            await muteAgentInRoom(room.name, false);
+            isPublishingRef.current = false;
+            return;
+          }
+
+          await localParticipant.publishTrack(track);
+          audioTrackRef.current = track;
+          isPublishingRef.current = false;
+          console.log('[TakeoverAudioController] Takeover active - admin mic on, agent muted');
+
+        } else if (!active && audioTrackRef.current) {
+          isPublishingRef.current = true;
+
+          const track = audioTrackRef.current;
+          audioTrackRef.current = null;
+
+          try {
+            await localParticipant.unpublishTrack(track);
+          } catch (e) {
+            // Ignore unpublish errors
+          }
+          track.stop();
+
+          // Unmute the AI agent
+          await muteAgentInRoom(room.name, false);
+
+          isPublishingRef.current = false;
+          console.log('[TakeoverAudioController] Takeover ended - admin mic off, agent unmuted');
+        }
+      } catch (err: any) {
+        isPublishingRef.current = false;
+        if (err?.name === 'NotAllowedError') {
+          console.warn('[TakeoverAudioController] Microphone permission denied');
+          // Unmute agent since we couldn't take over
+          await muteAgentInRoom(room.name, false);
+          return;
+        }
+        console.error('[TakeoverAudioController] Error:', err);
+      }
+    };
+
+    void ensureMicState();
+
+    // Cleanup on unmount or when dependencies change
+    return () => {
+      cancelled = true;
+      if (audioTrackRef.current) {
+        const track = audioTrackRef.current;
+        audioTrackRef.current = null;
+        track.stop();
+        // Unmute agent on cleanup
+        muteAgentInRoom(room.name, false);
+      }
+    };
+  }, [active, room]);
+
+  return null;
 };
 
 export default function Home() {
@@ -372,6 +521,7 @@ export default function Home() {
     useState<string | null>(null);
   const [selectedVideoTrackRef, setSelectedVideoTrackRef] = useState<any>(null);
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
+  const [isTakeoverActive, setIsTakeoverActive] = useState(false);
 
   // Collect participants from all rooms or selected   room
   const participantList = useMemo(() => {
@@ -629,6 +779,12 @@ export default function Home() {
                             },
                           }}
                         >
+                          {/* Enable admin mic only in the selected room */}
+                          {selectedRoomName === slot.connection.roomName && (
+                            <TakeoverAudioController
+                              active={isTakeoverActive}
+                            />
+                          )}
                           <RoomTracks
                             roomName={slot.connection.roomName}
                             onParticipantsUpdate={slot.onParticipantsUpdate}
@@ -652,6 +808,7 @@ export default function Home() {
                     onToggleParticipantList={() =>
                       setShowParticipantList(!showParticipantList)
                     }
+                    isTakeoverActive={isTakeoverActive}
                   />
                 </div>
 
@@ -676,7 +833,17 @@ export default function Home() {
                         process.env.NEXT_PUBLIC_API_BASE_URL ||
                         process.env.NEXT_PUBLIC_API_URL
                       }
+                      isTakeoverActive={isTakeoverActive}
+                      onToggleTakeover={() => {
+                        console.log('[Home] Toggling takeover', {
+                          currentState: isTakeoverActive,
+                          newState: !isTakeoverActive,
+                          selectedRoomName,
+                        });
+                        setIsTakeoverActive(prev => !prev);
+                      }}
                       onClose={() => {
+                        setIsTakeoverActive(false);
                         setShowFullScreenVideo(false);
                         setShowDetailSidebar(false);
                         setDetailParticipant(null);
@@ -797,7 +964,10 @@ export default function Home() {
                       process.env.NEXT_PUBLIC_API_BASE_URL ||
                       process.env.NEXT_PUBLIC_API_URL
                     }
+                    isTakeoverActive={isTakeoverActive}
+                    onToggleTakeover={() => setIsTakeoverActive(prev => !prev)}
                     onClose={() => {
+                      setIsTakeoverActive(false);
                       setShowFullScreenVideo(false);
                       setShowDetailSidebar(false);
                       setDetailParticipant(null);
