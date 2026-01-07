@@ -1,4 +1,5 @@
-import { InputHTMLAttributes, forwardRef } from 'react';
+import { InputHTMLAttributes, forwardRef, useId } from 'react';
+import { cn } from './utils';
 
 /**
  * Input Component
@@ -28,45 +29,42 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref,
   ) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const generatedId = useId();
+    const inputId = id || generatedId;
     const hasError = Boolean(error);
 
     const containerClassName = fullWidth ? 'w-full' : '';
 
-    const inputBaseStyles = `
-      w-full
-      px-4 py-2.5
-      text-base
-      rounded-xl
-      border
-      transition-all duration-150
-      disabled:opacity-50 disabled:cursor-not-allowed
-      disabled:bg-[var(--color-bg-elevated-1)]
-      focus:outline-none focus:ring-2
-    `.trim().replace(/\s+/g, ' ');
+    const inputBaseStyles = cn(
+      'w-full px-4 py-2.5 text-base rounded-xl border',
+      'transition-all duration-150',
+      'disabled:opacity-50 disabled:cursor-not-allowed',
+      'disabled:bg-[var(--color-bg-elevated-1)]',
+      'focus:outline-none focus:ring-2',
+    );
 
     const inputVariantStyles = hasError
-      ? `
-          border-[var(--color-danger-border)]
-          bg-[var(--color-danger-soft)]
-          text-[var(--color-text-primary)]
-          focus:ring-red-200
-          focus:border-[var(--color-danger-main)]
-        `.trim().replace(/\s+/g, ' ')
-      : `
-          border-[var(--color-border)]
-          bg-white
-          text-[var(--color-text-primary)]
-          focus:ring-[var(--color-primary-light)]/30
-          focus:border-[var(--color-primary)]
-          hover:border-[var(--color-border-strong)]
-        `.trim().replace(/\s+/g, ' ');
+      ? cn(
+          'border-[var(--color-danger-border)]',
+          'bg-[var(--color-danger-soft)]',
+          'text-[var(--color-text-primary)]',
+          'focus:ring-red-200',
+          'focus:border-[var(--color-danger-main)]',
+        )
+      : cn(
+          'border-[var(--color-border)]',
+          'bg-white',
+          'text-[var(--color-text-primary)]',
+          'focus:ring-[var(--color-primary-light)]/30',
+          'focus:border-[var(--color-primary)]',
+          'hover:border-[var(--color-border-strong)]',
+        );
 
-    const combinedInputClassName = `
-      ${inputBaseStyles}
-      ${inputVariantStyles}
-      ${className}
-    `.trim().replace(/\s+/g, ' ');
+    const combinedInputClassName = cn(
+      inputBaseStyles,
+      inputVariantStyles,
+      className,
+    );
 
     return (
       <div className={containerClassName}>

@@ -1,4 +1,5 @@
 import { HTMLAttributes, ReactNode, forwardRef } from 'react';
+import { cn } from './utils';
 
 /**
  * Card Component
@@ -35,11 +36,11 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     },
     ref,
   ) => {
-    const baseStyles = `
-      bg-white
-      border border-[var(--color-border)]
-      transition-all duration-150
-    `.trim().replace(/\s+/g, ' ');
+    const baseStyles = cn(
+      'bg-white',
+      'border border-[var(--color-border)]',
+      'transition-all duration-150',
+    );
 
     const radiusStyles: Record<CardRadius, string> = {
       default: 'rounded-3xl',  // 24px - DESIGN_GUIDE_V2
@@ -54,31 +55,33 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     };
 
     const hoverStyles = hoverable
-      ? `
-          hover:shadow-md
-          hover:border-[var(--color-border-strong)]
-          cursor-pointer
-        `.trim().replace(/\s+/g, ' ')
+      ? cn(
+          'hover:shadow-md',
+          'hover:border-[var(--color-border-strong)]',
+          'cursor-pointer',
+        )
       : 'shadow-sm';
 
-    const combinedClassName = `
-      ${baseStyles}
-      ${radiusStyles[radius]}
-      ${paddingStyles[padding]}
-      ${hoverStyles}
-      ${className}
-    `.trim().replace(/\s+/g, ' ');
+    const combinedClassName = cn(
+      baseStyles,
+      radiusStyles[radius],
+      paddingStyles[padding],
+      hoverStyles,
+      className,
+    );
 
-    const contentPadding = padding === 'none' ? 'p-5' : '';
+    // Only apply content padding when padding='none' AND no header/footer
+    const needsContentPadding = padding === 'none' && !header && !footer;
+    const contentPadding = needsContentPadding ? 'p-5' : '';
 
     return (
       <div ref={ref} className={combinedClassName} {...props}>
         {header && (
           <div
-            className={`
-              border-b border-[var(--color-border)]
-              ${padding === 'none' ? 'px-5 pt-5 pb-4' : 'pb-4 mb-4'}
-            `.trim().replace(/\s+/g, ' ')}
+            className={cn(
+              'border-b border-[var(--color-border)]',
+              padding === 'none' ? 'px-5 pt-5 pb-4' : 'pb-4 mb-4',
+            )}
           >
             {header}
           </div>
@@ -86,10 +89,10 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
         <div className={contentPadding}>{children}</div>
         {footer && (
           <div
-            className={`
-              border-t border-[var(--color-border)]
-              ${padding === 'none' ? 'px-5 pb-5 pt-4' : 'pt-4 mt-4'}
-            `.trim().replace(/\s+/g, ' ')}
+            className={cn(
+              'border-t border-[var(--color-border)]',
+              padding === 'none' ? 'px-5 pb-5 pt-4' : 'pt-4 mt-4',
+            )}
           >
             {footer}
           </div>
