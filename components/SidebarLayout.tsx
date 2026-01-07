@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useCallback, useState, type CSSProperties } from 'react';
 import { palette, shadows } from '../app/theme';
+
+// NOTE: 현재는 palette, shadows를 기존대로 사용하지만,
+// 향후 공통 UI 컴포넌트 작업 시 CSS 변수로 전환 예정
 import AuthGuard from './AuthGuard';
 import { useSessionMonitor } from '../hooks/useSessionMonitor';
 import CsvUploadModal from './CsvUploadModal';
