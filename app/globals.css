@@ -1,42 +1,14 @@
-:root {
-  /* Light theme (default) */
-  --bg: #f7f9f2;
-  --bg-elev-1: #f0f5e8;
-  --bg-elev-2: #e9f0df;
-  --panel: rgba(255, 255, 255, 0.95);
-  --panel-strong: #ffffff;
-  --border: #e9f0df;
-  --border-strong: #c2d5a8;
-  --secondary: #c2d5a8;
-  --text-primary: #4a5d23;
-  --text-secondary: #4a5d23;
-  --text-muted: #64748b;
-  --accent: #8fa963;
-  --accent-strong: #4a5d23;
-  --accent-soft: rgba(143, 169, 99, 0.16);
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-strong: 0 8px 32px rgba(0, 0, 0, 0.12);
+/**
+ * Global Styles
+ *
+ * Import Design System Theme
+ * 모든 CSS 변수는 styles/theme.css에서 관리됩니다.
+ */
+@import '../styles/theme.css';
 
-  /* Video grid specific (darker for video visibility) */
-  --video-bg: #1e293b;
-  --video-tile-bg: linear-gradient(
-    140deg,
-    rgba(30, 41, 59, 0.95),
-    rgba(15, 23, 42, 0.9)
-  );
-  --video-tile-empty: linear-gradient(
-    160deg,
-    rgba(30, 41, 59, 0.9),
-    rgba(15, 23, 42, 0.9)
-  );
-  --video-text: #f8fafc;
-  --video-text-secondary: #94a3b8;
-  --video-border: rgba(148, 163, 184, 0.2);
-}
-
+/* ========================================
+   CSS Reset
+   ======================================== */
 * {
   box-sizing: border-box;
   padding: 0;
@@ -50,9 +22,12 @@ body {
   overflow-x: hidden;
 }
 
+/* ========================================
+   Base Styles
+   ======================================== */
 body {
-  color: var(--text-primary);
-  background: var(--bg);
+  color: var(--color-text-primary);
+  background: var(--color-bg);
   font-family:
     var(--font-space-grotesk),
     -apple-system,
@@ -60,6 +35,9 @@ body {
     'Segoe UI',
     Roboto,
     sans-serif;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -71,4 +49,21 @@ a {
 
 button {
   font-family: inherit;
+}
+
+/* ========================================
+   Typography Helpers
+   ======================================== */
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-black);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
 }

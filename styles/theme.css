@@ -1,0 +1,205 @@
+/**
+ * Theme CSS Variables
+ *
+ * Design Tokens를 CSS 변수로 변환
+ * 모든 컴포넌트에서 일관성 있게 사용 가능
+ */
+
+:root {
+  /* ========================================
+     Colors - Nature Palette
+     ======================================== */
+  --color-primary: #8fa963;
+  --color-primary-dark: #4a5d23;
+  --color-primary-light: #c2d5a8;
+
+  /* Background */
+  --color-bg: #f7f9f2;
+  --color-bg-elevated-1: #f0f5e8;
+  --color-bg-elevated-2: #e9f0df;
+
+  /* Semantic */
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-safe: #10b981;
+
+  /* Panel */
+  --color-panel: #ffffff;
+  --color-panel-strong: #ffffff;
+
+  /* Border */
+  --color-border: #e9f0df;
+  --color-border-strong: #c2d5a8;
+
+  /* Text */
+  --color-text-primary: #4a5d23;
+  --color-text-secondary: #4a5d23;
+  --color-text-muted: #64748b;
+  --color-text-soft: #94a3b8;
+
+  /* Accent */
+  --color-accent: #8fa963;
+  --color-accent-strong: #4a5d23;
+  --color-accent-soft: rgba(143, 169, 99, 0.16);
+
+  /* Status Colors */
+  --color-danger-main: #ef4444;
+  --color-danger-soft: #fef2f2;
+  --color-danger-border: #fca5a5;
+
+  --color-warning-main: #f59e0b;
+  --color-warning-soft: #fff7ed;
+
+  --color-success-main: #22c55e;
+  --color-success-soft: #ecfdf5;
+  --color-success-dark: #059669;
+
+  /* ========================================
+     Typography
+     ======================================== */
+  --font-size-h1: 30px;
+  --font-size-h2: 22px;
+  --font-size-body: 16px;
+  --font-size-value: 18px;
+  --font-size-label: 16px;
+  --font-size-caption: 14px;
+  --font-size-small: 12px;
+
+  --font-weight-black: 900;
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* ========================================
+     Spacing
+     ======================================== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 28px;
+  --spacing-4xl: 32px;
+
+  /* ========================================
+     Border Radius
+     ======================================== */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-4xl: 32px;
+  --radius-full: 9999px;
+
+  /* ========================================
+     Shadows
+     ======================================== */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 2px 8px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.18);
+  --shadow-raised: 0 6px 16px rgba(15, 23, 42, 0.08);
+  --shadow-lifted: 0 6px 18px rgba(15, 23, 42, 0.08);
+  --shadow-floating: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  --shadow-danger-glow: 0 10px 30px rgba(220, 38, 38, 0.1);
+  --shadow-danger-strong: 0 10px 30px rgba(220, 38, 38, 0.18);
+
+  /* ========================================
+     Overlays
+     ======================================== */
+  --overlay-scrim: rgba(15, 23, 42, 0.4);
+  --overlay-modal-backdrop: rgba(0, 0, 0, 0.5);
+
+  /* ========================================
+     Component Specific
+     ======================================== */
+
+  /* Button */
+  --button-min-height: 40px;
+  --button-font-size: 16px;
+  --button-font-size-large: 18px;
+  --button-radius: var(--radius-md);
+
+  /* Card */
+  --card-radius: var(--radius-2xl);
+  --card-radius-large: var(--radius-4xl);
+  --card-padding: var(--spacing-xl);
+  --card-padding-large: var(--spacing-3xl);
+  --card-shadow: var(--shadow-sm);
+
+  /* Modal */
+  --modal-size-sm: 600px;
+  --modal-size-md: 800px;
+  --modal-size-lg: 1000px;
+  --modal-size-xl: 1200px;
+  --modal-max-width: 1200px;
+  --modal-background: #fbfdf9;
+  --modal-radius: var(--radius-xl);
+  --modal-label-font-size: var(--font-size-label);
+  --modal-label-font-weight: var(--font-weight-semibold);
+  --modal-value-font-size: var(--font-size-value);
+  --modal-value-font-weight: var(--font-weight-bold);
+
+  /* Sidebar */
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
+
+  /* ========================================
+     Breakpoints (for reference)
+     ======================================== */
+  --breakpoint-mobile: 768px;
+  --breakpoint-tablet: 1024px;
+  --breakpoint-desktop: 1280px;
+}
+
+/* ========================================
+   Legacy Support (기존 변수와 호환)
+   ⚠️ DEPRECATED: 향후 Phase 5 페이지 리팩토링 완료 후 제거 예정
+   새 코드에서는 --color-*, --font-*, --spacing-* 등 명시적 변수 사용 권장
+   ======================================== */
+:root {
+  /* 기존 globals.css 호환 - 하위 호환성 유지 */
+  --bg: var(--color-bg);
+  --bg-elev-1: var(--color-bg-elevated-1);
+  --bg-elev-2: var(--color-bg-elevated-2);
+  --panel: var(--color-panel);
+  --panel-strong: var(--color-panel-strong);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --secondary: var(--color-primary-light);
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --accent: var(--color-accent);
+  --accent-strong: var(--color-accent-strong);
+  --accent-soft: var(--color-accent-soft);
+  --danger: var(--color-danger-main);
+  --success: var(--color-success-main);
+  --warning: var(--color-warning-main);
+  --shadow: var(--shadow-sm);
+  --shadow-strong: var(--shadow-lg);
+
+  /* Video grid specific (기존 유지) */
+  --video-bg: #1e293b;
+  --video-tile-bg: linear-gradient(
+    140deg,
+    rgba(30, 41, 59, 0.95),
+    rgba(15, 23, 42, 0.9)
+  );
+  --video-tile-empty: linear-gradient(
+    160deg,
+    rgba(30, 41, 59, 0.9),
+    rgba(15, 23, 42, 0.9)
+  );
+  --video-text: #f8fafc;
+  --video-text-secondary: #94a3b8;
+  --video-border: rgba(148, 163, 184, 0.2);
+}
