@@ -136,6 +136,10 @@
   --card-shadow: var(--shadow-sm);
 
   /* Modal */
+  --modal-size-sm: 600px;
+  --modal-size-md: 800px;
+  --modal-size-lg: 1000px;
+  --modal-size-xl: 1200px;
   --modal-max-width: 1200px;
   --modal-background: #fbfdf9;
   --modal-radius: var(--radius-xl);
@@ -158,9 +162,11 @@
 
 /* ========================================
    Legacy Support (기존 변수와 호환)
+   ⚠️ DEPRECATED: 향후 Phase 5 페이지 리팩토링 완료 후 제거 예정
+   새 코드에서는 --color-*, --font-*, --spacing-* 등 명시적 변수 사용 권장
    ======================================== */
 :root {
-  /* 기존 globals.css 호환 */
+  /* 기존 globals.css 호환 - 하위 호환성 유지 */
   --bg: var(--color-bg);
   --bg-elev-1: var(--color-bg-elevated-1);
   --bg-elev-2: var(--color-bg-elevated-2);

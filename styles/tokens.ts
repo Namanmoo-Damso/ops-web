@@ -166,16 +166,6 @@ export const breakpoints = {
 } as const;
 
 /**
- * Modal Sizes (DESIGN_GUIDE_V2)
- */
-export const modalSizes = {
-  sm: '600px',
-  md: '800px',
-  lg: '1000px',
-  xl: '1200px',
-} as const;
-
-/**
  * Component Specific Tokens
  */
 export const components = {
@@ -201,7 +191,13 @@ export const components = {
   },
 
   modal: {
-    maxWidth: modalSizes.xl,         // 1200px
+    sizes: {
+      sm: '600px',
+      md: '800px',
+      lg: '1000px',
+      xl: '1200px',
+    },
+    maxWidth: '1200px',              // 기본값 (DESIGN_GUIDE_V2)
     background: '#FBFDF9',           // 크림 톤
     borderRadius: borderRadius.xl,   // 20px
     label: {
@@ -231,7 +227,6 @@ export const tokens = {
   shadows,
   overlays,
   breakpoints,
-  modalSizes,
   components,
 } as const;
 
