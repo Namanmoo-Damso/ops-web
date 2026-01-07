@@ -4,6 +4,7 @@ import { cn } from './utils';
 /**
  * Card Component
  *
+ * shadcn/ui 패턴 준수: forwardRef, variant props, cn() 유틸리티, displayName
  * DESIGN_GUIDE_V2 준수:
  * - Radius: 24~32px 범위
  * - Shadow: shadow-sm 기본, 강조 시 shadow-md

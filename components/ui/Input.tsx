@@ -4,6 +4,7 @@ import { cn } from './utils';
 /**
  * Input Component
  *
+ * shadcn/ui 패턴 준수: forwardRef, cn() 유틸리티, displayName, 접근성 (useId, ARIA)
  * DESIGN_GUIDE_V2 준수:
  * - Body 16px 기본
  * - 명확한 피드백 (focus, error)

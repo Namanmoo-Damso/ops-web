@@ -1,11 +1,11 @@
 import { HTMLAttributes, ReactNode, forwardRef } from 'react';
+import { cn } from './utils';
 
 /**
  * Badge Component
  *
- * DESIGN_GUIDE_V2 준수:
- * - 상태 정보 전달
- * - 은은한 배경 (bg-secondary/20) + 진한 텍스트 컬러
+ * shadcn/ui 패턴 준수: forwardRef, variant props, displayName
+ * DESIGN_GUIDE_V2 준수: 은은한 배경, 진한 텍스트 컬러
  */
 
 type BadgeVariant = 'default' | 'warning' | 'danger' | 'success' | 'info';
@@ -31,44 +31,44 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
     },
     ref,
   ) => {
-    const baseStyles = `
-      inline-flex items-center gap-1.5
-      font-bold
-      rounded-full
-      border
-      transition-colors duration-150
-    `.trim().replace(/\s+/g, ' ');
+    const baseStyles = cn(
+      'inline-flex items-center gap-1.5',
+      'font-bold',
+      'rounded-full',
+      'border',
+      'transition-colors duration-150',
+    );
 
     const variantStyles: Record<BadgeVariant, string> = {
-      default: `
-        bg-[var(--color-accent-soft)]
-        text-[var(--color-accent-strong)]
-        border-[var(--color-primary-light)]
-      `.trim().replace(/\s+/g, ' '),
+      default: cn(
+        'bg-[var(--color-accent-soft)]',
+        'text-[var(--color-accent-strong)]',
+        'border-[var(--color-primary-light)]',
+      ),
 
-      warning: `
-        bg-[var(--color-warning-soft)]
-        text-[#c2410c]
-        border-[#fed7aa]
-      `.trim().replace(/\s+/g, ' '),
+      warning: cn(
+        'bg-[var(--color-warning-soft)]',
+        'text-[#c2410c]',
+        'border-[#fed7aa]',
+      ),
 
-      danger: `
-        bg-[var(--color-danger-soft)]
-        text-[var(--color-danger-main)]
-        border-[var(--color-danger-border)]
-      `.trim().replace(/\s+/g, ' '),
+      danger: cn(
+        'bg-[var(--color-danger-soft)]',
+        'text-[var(--color-danger-main)]',
+        'border-[var(--color-danger-border)]',
+      ),
 
-      success: `
-        bg-[var(--color-success-soft)]
-        text-[var(--color-success-dark)]
-        border-[#a7f3d0]
-      `.trim().replace(/\s+/g, ' '),
+      success: cn(
+        'bg-[var(--color-success-soft)]',
+        'text-[var(--color-success-dark)]',
+        'border-[#a7f3d0]',
+      ),
 
-      info: `
-        bg-[#e0ecff]
-        text-[var(--color-primary)]
-        border-[#cbdafe]
-      `.trim().replace(/\s+/g, ' '),
+      info: cn(
+        'bg-[#e0ecff]',
+        'text-[var(--color-primary)]',
+        'border-[#cbdafe]',
+      ),
     };
 
     const sizeStyles: Record<BadgeSize, string> = {
@@ -85,18 +85,18 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
       info: 'bg-[var(--color-primary)]',
     };
 
-    const combinedClassName = `
-      ${baseStyles}
-      ${variantStyles[variant]}
-      ${sizeStyles[size]}
-      ${className}
-    `.trim().replace(/\s+/g, ' ');
+    const combinedClassName = cn(
+      baseStyles,
+      variantStyles[variant],
+      sizeStyles[size],
+      className,
+    );
 
     return (
       <span ref={ref} className={combinedClassName} {...props}>
         {dot && (
           <span
-            className={`w-1.5 h-1.5 rounded-full ${dotColors[variant]}`}
+            className={cn('w-1.5 h-1.5 rounded-full', dotColors[variant])}
             aria-hidden="true"
           />
         )}

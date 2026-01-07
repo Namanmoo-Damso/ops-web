@@ -5,6 +5,7 @@ import LoadingSpinner from './LoadingSpinner';
 /**
  * Button Component
  *
+ * shadcn/ui 패턴 준수: forwardRef, variant props, cn() 유틸리티, displayName
  * DESIGN_GUIDE_V2 준수:
  * - 높이: 최소 h-10 (40px) 이상
  * - 크기: 기본 16~18px

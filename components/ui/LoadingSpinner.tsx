@@ -1,7 +1,8 @@
 /**
  * LoadingSpinner Component
  *
- * Button 등에서 사용하는 간단한 로딩 스피너
+ * shadcn/ui 패턴 준수: displayName
+ * DESIGN_GUIDE_V2 준수: Button 등에서 사용하는 로딩 스피너
  */
 
 export interface LoadingSpinnerProps {
@@ -9,7 +10,7 @@ export interface LoadingSpinnerProps {
   className?: string;
 }
 
-export default function LoadingSpinner({ size = 16, className = '' }: LoadingSpinnerProps) {
+function LoadingSpinner({ size = 16, className = '' }: LoadingSpinnerProps) {
   return (
     <svg
       className={`animate-spin ${className}`}
@@ -35,3 +36,7 @@ export default function LoadingSpinner({ size = 16, className = '' }: LoadingSpi
     </svg>
   );
 }
+
+LoadingSpinner.displayName = 'LoadingSpinner';
+
+export default LoadingSpinner;
