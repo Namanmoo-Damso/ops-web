@@ -19,6 +19,8 @@ function LoadingSpinner({ size = 16, className = '' }: LoadingSpinnerProps) {
       viewBox="0 0 24 24"
       width={size}
       height={size}
+      aria-label="로딩 중"
+      role="status"
     >
       <circle
         className="opacity-25"

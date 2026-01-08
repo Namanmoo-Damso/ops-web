@@ -69,12 +69,16 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 
-        // 첫 번째 요소에 포커스
-        firstElement?.focus();
+        // 첫 번째 요소에 포커스 (요소가 없으면 모달 자체에 포커스)
+        if (firstElement) {
+          firstElement.focus();
+        } else {
+          modalRef.current.focus();
+        }
 
-        // Tab 키 focus trap
+        // Tab 키 focus trap (포커스 가능한 요소가 있을 때만)
         const handleTab = (e: KeyboardEvent) => {
-          if (e.key !== 'Tab') return;
+          if (e.key !== 'Tab' || !firstElement) return;
 
           if (e.shiftKey) {
             // Shift + Tab

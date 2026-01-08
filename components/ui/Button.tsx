@@ -96,6 +96,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         className={combinedClassName}
         disabled={disabled || loading}
+        aria-busy={loading}
         {...props}
       >
         {loading && <LoadingSpinner className="-ml-1 mr-2" />}
