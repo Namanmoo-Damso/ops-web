@@ -12,9 +12,8 @@ import {
   SearchIcon,
   UsersIcon,
 } from './icons';
-import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useApi } from '../../hooks/useApi';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const SEARCH_DEBOUNCE_MS = 400;
 const RESEND_ALL_DELAY_MS = 400;
 const RESEND_ONE_DELAY_MS = 300;
@@ -89,25 +88,9 @@ export default function MyWardsPage() {
     return { total, linked, pending, rate };
   }, []);
 
-  const { data, loading, error } = useAuthedFetch<MyWardsApiResponse>({
+  const { data, loading, error } = useApi<MyWardsApiResponse>({
     deps: [refreshKey],
-    fetcher: async ({ token, signal }) => {
-      const response = await fetch(`${API_BASE}/v1/admin/my-wards`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal,
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        throw new AuthError('인증이 만료되었습니다.');
-      }
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      return (await response.json()) as MyWardsApiResponse;
-    },
+    fetcher: (client, signal) => client.get('/v1/admin/my-wards', { signal }),
   });
 
   useEffect(() => {
@@ -620,16 +603,16 @@ export default function MyWardsPage() {
                     pointerEvents: 'none',
                   }}
                 >
-              <SearchIcon size={18} />
-            </div>
-            <input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="이름 · 이메일 · 전화번호 검색"
-              aria-label="이름, 이메일 또는 전화번호 검색"
-              style={{
-                width: '100%',
-                padding: '10px 12px 10px 36px',
+                  <SearchIcon size={18} />
+                </div>
+                <input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="이름 · 이메일 · 전화번호 검색"
+                  aria-label="이름, 이메일 또는 전화번호 검색"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px 10px 36px',
                     borderRadius: '10px',
                     border: borderStyle,
                     backgroundColor: palette.background,
@@ -642,10 +625,10 @@ export default function MyWardsPage() {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-            <table
-              style={{ width: '100%', borderCollapse: 'collapse' }}
-              aria-label="대상자 연동 테이블"
-            >
+              <table
+                style={{ width: '100%', borderCollapse: 'collapse' }}
+                aria-label="대상자 연동 테이블"
+              >
                 <thead>
                   <tr
                     style={{
@@ -757,12 +740,12 @@ export default function MyWardsPage() {
                       </td>
                       <td style={{ padding: '14px 12px', textAlign: 'center' }}>
                         {!ward.isRegistered ? (
-                        <button
-                          onClick={() => handleResendOne(ward)}
-                          disabled={resendingId !== null || resendingAll}
-                          aria-label={`${ward.name} 재발송`}
-                          style={{
-                            padding: '8px 12px',
+                          <button
+                            onClick={() => handleResendOne(ward)}
+                            disabled={resendingId !== null || resendingAll}
+                            aria-label={`${ward.name} 재발송`}
+                            style={{
+                              padding: '8px 12px',
                               borderRadius: '10px',
                               border: 'none',
                               backgroundColor:
@@ -803,56 +786,26 @@ export default function MyWardsPage() {
                       </td>
                     </tr>
                   ))}
+                  {filteredWards.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        style={{
+                          padding: '40px',
+                          textAlign: 'center',
+                          color: palette.textMuted,
+                          fontSize: '14px',
+                        }}
+                      >
+                        {searchQuery
+                          ? '검색 결과가 없습니다.'
+                          : '표시할 대상자가 없습니다.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-
-            {filteredWards.length === 0 && (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: palette.primaryDark,
-                }}
-              >
-                <div
-                  style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    backgroundColor: palette.soft,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: totals.total === 0 ? palette.secondary : palette.primaryDark,
-                    margin: '0 auto 12px',
-                  }}
-                >
-                  <CheckCircleIcon size={26} />
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    color: palette.primaryDark,
-                  }}
-                >
-                  {totals.total === 0
-                    ? '등록된 대상자가 없습니다'
-                    : '모든 대상자가 연동되었습니다'}
-                </div>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    color: palette.textSoft,
-                    marginTop: '4px',
-                  }}
-                >
-                  {totals.total === 0
-                    ? '대상자를 등록하고 연동을 시작하세요.'
-                    : '현재 조치가 필요한 대상자가 없습니다.'}
-                </div>
-              </div>
-            )}
           </section>
         </div>
       )}

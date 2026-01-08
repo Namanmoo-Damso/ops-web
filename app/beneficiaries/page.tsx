@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { palette, shadows } from '../theme';
-import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
-import { useAdminApi } from '../../hooks/useAdminApi';
+import { useApi } from '../../hooks/useApi';
+import { apiClient } from '../../lib/api-client';
+import { useAuth } from '../../hooks/useAuth';
 import DetailModal, {
   type BeneficiaryDetail,
   type BeneficiaryUpdatePayload,
@@ -67,7 +68,7 @@ const EMPTY_DETAIL: BeneficiaryDetail = {
 };
 
 export default function BeneficiariesPage() {
-  const { getApiBase, requireAdminToken, clearAdminSession } = useAdminApi();
+  const { logout } = useAuth();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'risk'>('all');
@@ -99,43 +100,19 @@ export default function BeneficiariesPage() {
     setDetailOverride(null);
   }, [selectedId]);
 
-  const { data, loading, error } = useAuthedFetch<BeneficiariesApiResponse>({
+  const { data, loading, error, refetch } = useApi<BeneficiariesApiResponse>({
     deps: [debouncedSearch, filter, page, pageSize, refreshKey],
-    fetcher: async ({ token, signal }) => {
-      const apiBase = getApiBase();
-
+    fetcher: (client, signal) => {
       const params = new URLSearchParams();
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
       if (filter === 'risk') params.set('riskOnly', 'true');
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
 
-      const response = await fetch(
-        `${apiBase}/v1/admin/beneficiaries?${params.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal,
-        },
+      return client.get<BeneficiariesApiResponse>(
+        `/v1/admin/beneficiaries?${params.toString()}`,
+        { signal }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        throw new AuthError('인증이 만료되었습니다.');
-      }
-
-      if (!response.ok) {
-        console.error(
-          'Failed to fetch beneficiaries list.',
-          response.status,
-          response.statusText,
-        );
-        throw new Error(
-          '대상자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-        );
-      }
-
-      return (await response.json()) as BeneficiariesApiResponse;
     },
   });
 
@@ -143,38 +120,15 @@ export default function BeneficiariesPage() {
     data: detailResponse,
     loading: detailLoading,
     error: detailError,
-  } = useAuthedFetch<BeneficiaryDetailResponse | null>({
+  } = useApi<BeneficiaryDetailResponse>({
     deps: [selectedId],
-    fetcher: async ({ token, signal }) => {
-      if (!selectedId) return null;
-      const apiBase = getApiBase();
-
-      const response = await fetch(
-        `${apiBase}/v1/admin/beneficiaries/${selectedId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          signal,
-        },
+    skip: !selectedId,
+    fetcher: (client, signal) => {
+      if (!selectedId) throw new Error('No selected ID');
+      return client.get<BeneficiaryDetailResponse>(
+        `/v1/admin/beneficiaries/${selectedId}`,
+        { signal }
       );
-
-      if (response.status === 401 || response.status === 403) {
-        throw new AuthError('인증이 만료되었습니다.');
-      }
-
-      if (!response.ok) {
-        console.error(
-          'Failed to fetch beneficiary detail.',
-          response.status,
-          response.statusText,
-        );
-        throw new Error(
-          '상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-        );
-      }
-
-      return (await response.json()) as BeneficiaryDetailResponse;
     },
   });
 
@@ -182,42 +136,13 @@ export default function BeneficiariesPage() {
     setDeleteLoading(true);
     setDeleteError(null);
     try {
-      const apiBase = getApiBase();
-      const token = requireAdminToken();
-      const response = await fetch(
-        `${apiBase}/v1/admin/beneficiaries/${id}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      if (response.status === 401 || response.status === 403) {
-        throw new AuthError('인증이 만료되었습니다.');
-      }
-
-      if (!response.ok) {
-        console.error(
-          'Failed to delete beneficiary.',
-          response.status,
-          response.statusText,
-        );
-        throw new Error(
-          '대상자 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
-        );
-      }
+      await apiClient.delete(`/v1/admin/beneficiaries/${id}`);
 
       setSelectedId(null);
       setRefreshKey(prev => prev + 1);
     } catch (err) {
-      if (err instanceof AuthError) {
-        clearAdminSession();
-        window.location.replace('/login');
-        return;
-      }
       console.error('Delete beneficiary failed.', err);
+      // apiClient handles AuthError (redirects), so we verify other errors here
       setDeleteError('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setDeleteLoading(false);
@@ -229,45 +154,15 @@ export default function BeneficiariesPage() {
     payload: BeneficiaryUpdatePayload,
   ): Promise<BeneficiaryDetailPayload | null> => {
     try {
-      const apiBase = getApiBase();
-      const token = requireAdminToken();
-      const response = await fetch(
-        `${apiBase}/v1/admin/beneficiaries/${id}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        },
+      const result = await apiClient.put<BeneficiaryDetailResponse>(
+        `/v1/admin/beneficiaries/${id}`,
+        payload
       );
 
-      if (response.status === 401 || response.status === 403) {
-        throw new AuthError('인증이 만료되었습니다.');
-      }
-
-      if (!response.ok) {
-        console.error(
-          'Failed to update beneficiary.',
-          response.status,
-          response.statusText,
-        );
-        throw new Error(
-          '정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.',
-        );
-      }
-
-      const result = (await response.json()) as BeneficiaryDetailResponse;
       setDetailOverride(result.data);
       setRefreshKey(prev => prev + 1);
       return result.data;
     } catch (err) {
-      if (err instanceof AuthError) {
-        clearAdminSession();
-        window.location.replace('/login');
-        return null;
-      }
       console.error('Update beneficiary failed.', err);
       throw new Error('정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
@@ -298,8 +193,8 @@ export default function BeneficiariesPage() {
     return typeof data?.total === 'number'
       ? data.total
       : Array.isArray(data?.data)
-      ? data.data.length
-      : 0;
+        ? data.data.length
+        : 0;
   }, [data?.data, data?.total]);
 
   // 검색어 기준 1차 필터링 (서버가 검색을 지원하지 않는 경우 대비)
@@ -344,9 +239,9 @@ export default function BeneficiariesPage() {
     const detail =
       detailOverride?.id === selectedId
         ? detailOverride
-        : detailResponse?.data.id === selectedId
-        ? detailResponse.data
-        : EMPTY_DETAIL;
+        : detailResponse?.data?.id === selectedId
+          ? detailResponse.data
+          : EMPTY_DETAIL;
     return { base, detail, detailLoading, detailError };
   }, [
     detailError,
@@ -369,6 +264,7 @@ export default function BeneficiariesPage() {
           riskCount={riskCount}
         />
         <BeneficiaryTable
+          search={search}
           items={filteredList}
           totalCount={totalCount}
           selectedId={selectedId}
@@ -552,6 +448,7 @@ function FilterBar({
 }
 
 type BeneficiaryTableProps = {
+  search: string;
   items: Beneficiary[];
   totalCount: number;
   selectedId: string | null;
@@ -564,6 +461,7 @@ type BeneficiaryTableProps = {
 };
 
 function BeneficiaryTable({
+  search,
   items,
   totalCount,
   selectedId,
@@ -798,6 +696,14 @@ function BeneficiaryTable({
                         fontSize: '12px',
                         cursor: 'pointer',
                       }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.backgroundColor = palette.soft;
+                        e.currentTarget.style.color = palette.primaryDark;
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.backgroundColor = palette.panel;
+                        e.currentTarget.style.color = palette.textSoft;
+                      }}
                     >
                       관리
                     </button>
@@ -805,125 +711,78 @@ function BeneficiaryTable({
                 </tr>
               );
             })}
+            {items.length === 0 && !loading && (
+              <tr>
+                <td
+                  colSpan={6}
+                  style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    color: palette.textMuted,
+                    fontSize: '14px',
+                  }}
+                >
+                  {search
+                    ? '검색 결과가 없습니다.'
+                    : '표시할 대상자가 없습니다.'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {items.length === 0 && !loading && !error && (
-        <div
-          style={{
-            padding: '40px',
-            textAlign: 'center',
-            color: palette.primaryDark,
-          }}
-        >
-          <div
-            style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '14px',
-              backgroundColor: palette.soft,
-              display: 'grid',
-              placeItems: 'center',
-              margin: '0 auto 12px',
-              color: palette.textSoft,
-            }}
-            aria-hidden="true"
-          >
-            🔍
-          </div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: '16px',
-              color: palette.primaryDark,
-            }}
-          >
-            조건에 맞는 대상자가 없습니다
-          </div>
-          <div
-            style={{
-              fontSize: '13px',
-              color: palette.textSoft,
-              marginTop: '6px',
-            }}
-          >
-            검색어나 필터를 조정해 다시 확인해주세요.
-          </div>
-        </div>
-      )}
-
-      <Pagination
-        page={page}
-        pageTotal={pageTotal}
-        loading={loading}
-        onPageChange={onPageChange}
-      />
-    </div>
-  );
-}
-
-type StatusBadgeProps = { status: Beneficiary['status'] };
-
-type PaginationProps = {
-  page: number;
-  pageTotal: number;
-  loading: boolean;
-  onPageChange: (page: number) => void;
-};
-
-function Pagination({
-  page,
-  pageTotal,
-  loading,
-  onPageChange,
-}: PaginationProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '16px',
-        borderTop: borderStyle,
-        backgroundColor: palette.background,
-      }}
-    >
-      <div style={{ color: palette.textMuted, fontSize: '12px', fontWeight: 700 }}>
-        페이지 {page} / {pageTotal}
-      </div>
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div
+        style={{
+          borderTop: borderStyle,
+          padding: '14px 16px',
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '8px',
+          backgroundColor: palette.background,
+        }}
+      >
         <button
-          type="button"
           onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page <= 1 || loading}
+          disabled={page === 1}
           style={{
             padding: '8px 12px',
-            borderRadius: '10px',
+            borderRadius: '8px',
             border: borderStyle,
-            backgroundColor: palette.panel,
-            color: page <= 1 || loading ? palette.secondary : palette.primaryDark,
-            fontWeight: 700,
-            cursor: page <= 1 || loading ? 'not-allowed' : 'pointer',
+            backgroundColor: page === 1 ? palette.soft : palette.panel,
+            color: page === 1 ? palette.textMuted : palette.primaryDark,
+            cursor: page === 1 ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+            fontWeight: 600,
           }}
-          aria-label="이전 페이지"
         >
           이전
         </button>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 12px',
+            fontSize: '14px',
+            fontWeight: 700,
+            color: palette.primaryDark,
+          }}
+        >
+          {page} / {pageTotal}
+        </div>
         <button
-          type="button"
           onClick={() => onPageChange(Math.min(pageTotal, page + 1))}
-          disabled={page >= pageTotal || loading}
+          disabled={page === pageTotal}
           style={{
             padding: '8px 12px',
-            borderRadius: '10px',
+            borderRadius: '8px',
             border: borderStyle,
-            backgroundColor: palette.panel,
-            color: page >= pageTotal || loading ? palette.secondary : palette.primaryDark,
-            fontWeight: 700,
-            cursor: page >= pageTotal || loading ? 'not-allowed' : 'pointer',
+            backgroundColor: page === pageTotal ? palette.soft : palette.panel,
+            color: page === pageTotal ? palette.textMuted : palette.primaryDark,
+            cursor: page === pageTotal ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+            fontWeight: 600,
           }}
-          aria-label="다음 페이지"
         >
           다음
         </button>
@@ -932,29 +791,21 @@ function Pagination({
   );
 }
 
-function StatusBadge({ status }: StatusBadgeProps) {
-  const baseStyle: CSSProperties = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '6px 10px',
-    borderRadius: '999px',
-    fontWeight: 700,
-    fontSize: '12px',
-    border: '1px solid transparent',
-  };
-
+function StatusBadge({ status }: { status: string }) {
   if (status === 'WARNING') {
     return (
       <span
         style={{
-          ...baseStyle,
+          display: 'inline-flex',
+          padding: '4px 8px',
+          borderRadius: '999px',
           backgroundColor: palette.dangerSoft,
           color: palette.danger,
-          borderColor: '#fecdd3',
+          fontSize: '11px',
+          fontWeight: 800,
         }}
       >
-        ● 위험 감지
+        위험
       </span>
     );
   }
@@ -962,53 +813,62 @@ function StatusBadge({ status }: StatusBadgeProps) {
     return (
       <span
         style={{
-          ...baseStyle,
-          backgroundColor: palette.warningSoft,
-          color: '#c2410c',
-          borderColor: '#fed7aa',
+          display: 'inline-flex',
+          padding: '4px 8px',
+          borderRadius: '999px',
+          backgroundColor: '#fffbeb',
+          color: '#d97706',
+          fontSize: '11px',
+          fontWeight: 800,
+          border: '1px solid #fcd34d',
         }}
       >
-        ● 주의 필요
+        주의
       </span>
     );
   }
   return (
     <span
       style={{
-        ...baseStyle,
-        backgroundColor: '#e0ecff',
-        color: palette.primary,
-        borderColor: '#cbdafe',
+        display: 'inline-flex',
+        padding: '4px 8px',
+        borderRadius: '999px',
+        backgroundColor: '#e9f0df',
+        color: palette.primaryDark,
+        fontSize: '11px',
+        fontWeight: 700,
       }}
     >
-      ● 양호
+      정상
     </span>
   );
 }
 
-type ProfileCircleProps = {
-  status: Beneficiary['status'];
-  name: string;
-};
+function ProfileCircle({ status, name }: { status: string; name: string }) {
+  const initial = name.slice(0, 1);
+  const bgColor =
+    status === 'WARNING'
+      ? palette.danger
+      : status === 'CAUTION'
+        ? '#f59e0b'
+        : palette.primary;
 
-function ProfileCircle({ status, name }: ProfileCircleProps) {
-  const isWarning = status === 'WARNING';
   return (
     <div
-      aria-hidden="true"
       style={{
-        width: '40px',
-        height: '40px',
-        borderRadius: '999px',
-        backgroundColor: isWarning ? palette.danger : palette.textSoft,
-        color: palette.panel,
+        width: '36px',
+        height: '36px',
+        borderRadius: '50%',
+        backgroundColor: bgColor,
         display: 'grid',
         placeItems: 'center',
-        fontWeight: 800,
+        color: '#fff',
+        fontWeight: 700,
         fontSize: '14px',
+        flexShrink: 0,
       }}
     >
-      {name ? name.charAt(0) : '?'}
+      {initial}
     </div>
   );
 }
