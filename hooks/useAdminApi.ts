@@ -5,6 +5,13 @@ import { AuthError } from './useAuthedFetch';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
+/**
+ * @deprecated This hook is deprecated. Use `useAuth` from '@/hooks/useAuth' instead.
+ * 
+ * - For token access: `const { token } = useAuth();`
+ * - For logout: `const { logout } = useAuth();`
+ * - For API calls: Use `apiClient` from '@/lib/api-client'
+ */
 export const useAdminApi = () => {
   return useMemo(() => {
     const getApiBase = () => {
