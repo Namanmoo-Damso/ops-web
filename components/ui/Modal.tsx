@@ -1,4 +1,5 @@
-import { HTMLAttributes, ReactNode, forwardRef, useEffect, useCallback } from 'react';
+import { HTMLAttributes, ReactNode, forwardRef, useEffect, useCallback, useRef, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from './utils';
 
 /**
@@ -41,6 +42,10 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
     },
     ref,
   ) => {
+    const modalRef = useRef<HTMLDivElement>(null);
+    const titleId = useId();
+    const descriptionId = useId();
+
     // ESC 키 핸들러
     const handleEscape = useCallback(
       (e: KeyboardEvent) => {
@@ -50,6 +55,51 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
       },
       [closeOnEsc, onClose],
     );
+
+    // Focus trap 및 초기 포커스
+    useEffect(() => {
+      if (open && modalRef.current) {
+        // 이전 포커스 요소 저장
+        const previouslyFocused = document.activeElement as HTMLElement;
+
+        // 모달 내 포커스 가능한 요소들
+        const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        // 첫 번째 요소에 포커스
+        firstElement?.focus();
+
+        // Tab 키 focus trap
+        const handleTab = (e: KeyboardEvent) => {
+          if (e.key !== 'Tab') return;
+
+          if (e.shiftKey) {
+            // Shift + Tab
+            if (document.activeElement === firstElement) {
+              e.preventDefault();
+              lastElement?.focus();
+            }
+          } else {
+            // Tab
+            if (document.activeElement === lastElement) {
+              e.preventDefault();
+              firstElement?.focus();
+            }
+          }
+        };
+
+        document.addEventListener('keydown', handleTab);
+
+        return () => {
+          document.removeEventListener('keydown', handleTab);
+          // 모달 닫힐 때 이전 포커스 복원
+          previouslyFocused?.focus();
+        };
+      }
+    }, [open]);
 
     // ESC 키 리스너 등록
     useEffect(() => {
@@ -116,22 +166,22 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
       'flex items-center justify-end gap-3',
     );
 
-    return (
+    const modalContent = (
       <div
         className={overlayStyles}
         onClick={handleOverlayClick}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'modal-title' : undefined}
-        aria-describedby={description ? 'modal-description' : undefined}
+        aria-labelledby={title ? titleId : undefined}
+        aria-describedby={description ? descriptionId : undefined}
       >
-        <div ref={ref} className={modalStyles} {...props}>
+        <div ref={modalRef} className={modalStyles} {...props}>
           {/* Header */}
           {(title || description) && (
             <div className={headerStyles}>
               {title && (
                 <h2
-                  id="modal-title"
+                  id={titleId}
                   className="text-2xl font-black text-[var(--color-text-primary)]"
                 >
                   {title}
@@ -139,7 +189,7 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
               )}
               {description && (
                 <p
-                  id="modal-description"
+                  id={descriptionId}
                   className="mt-2 text-sm text-[var(--color-text-muted)]"
                 >
                   {description}
@@ -156,6 +206,10 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
         </div>
       </div>
     );
+
+    // Portal을 사용하여 body에 직접 렌더링
+    if (typeof window === 'undefined') return null;
+    return createPortal(modalContent, document.body);
   },
 );
 

@@ -1,4 +1,4 @@
-import { HTMLAttributes, ReactNode, forwardRef } from 'react';
+import { HTMLAttributes, forwardRef } from 'react';
 import { cn } from './utils';
 
 /**
@@ -10,10 +10,7 @@ import { cn } from './utils';
  * - 명확한 border
  */
 
-export interface TableProps extends HTMLAttributes<HTMLTableElement> {
-  striped?: boolean;
-  hoverable?: boolean;
-}
+export interface TableProps extends HTMLAttributes<HTMLTableElement> {}
 
 export interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> {}
 export interface TableBodyProps extends HTMLAttributes<HTMLTableSectionElement> {}
@@ -28,7 +25,7 @@ export interface TableHeadProps extends HTMLAttributes<HTMLTableCellElement> {
 export interface TableCellProps extends HTMLAttributes<HTMLTableCellElement> {}
 
 const Table = forwardRef<HTMLTableElement, TableProps>(
-  ({ striped = false, hoverable = true, className = '', children, ...props }, ref) => {
+  ({ className = '', children, ...props }, ref) => {
     const tableStyles = cn(
       'w-full',
       'border-collapse',
@@ -125,11 +122,21 @@ const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
       }
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if ((e.key === 'Enter' || e.key === ' ') && sortable && onSort) {
+        e.preventDefault();
+        onSort();
+      }
+    };
+
     return (
       <th
         ref={ref}
         className={headStyles}
         onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        tabIndex={sortable ? 0 : undefined}
+        role={sortable ? 'button' : undefined}
         aria-sort={
           sorted === 'asc'
             ? 'ascending'
@@ -142,7 +149,7 @@ const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
         <div className="flex items-center gap-2">
           {children}
           {sortable && (
-            <span className="text-xs text-[var(--color-text-muted)]">
+            <span className="text-xs text-[var(--color-text-muted)]" aria-hidden="true">
               {sorted === 'asc' ? '↑' : sorted === 'desc' ? '↓' : '↕'}
             </span>
           )}
