@@ -2,10 +2,9 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '../../hooks/useAuth';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-// OAuth 설정
+// OAuth 설정 - 서버 컴포넌트나 env에서 관리하는 것이 좋지만 일단 유지
 const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
@@ -36,129 +35,34 @@ function LoadingScreen() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAuthenticated } = useAuth();
+
   const REDIRECT_URI =
     typeof window !== 'undefined'
       ? `${window.location.origin}/login/callback`
       : '';
-  const [isLoading, setIsLoading] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
 
-  // 초기화 로깅
-  useEffect(() => {
-    console.log('[Login] Component initialized');
-    console.log('[Login] API_BASE:', API_BASE);
-    console.log(
-      '[Login] KAKAO_CLIENT_ID:',
-      KAKAO_CLIENT_ID ? 'set' : 'NOT SET',
-    );
-    console.log(
-      '[Login] GOOGLE_CLIENT_ID:',
-      GOOGLE_CLIENT_ID ? 'set' : 'NOT SET',
-    );
-    console.log(
-      '[Login] searchParams:',
-      Object.fromEntries(searchParams.entries()),
-    );
-  }, [searchParams]);
-
   // 이미 로그인되어 있으면 대시보드로 이동
+  // AuthContext handles this partly, but being explicit here is fine if not using protected routes wrapper on login page.
   useEffect(() => {
-    const accessToken = localStorage.getItem('admin_access_token');
-    if (accessToken) {
+    if (isAuthenticated) {
       router.replace('/dashboard');
     }
-  }, [router]);
+  }, [isAuthenticated, router]);
 
-  // OAuth 콜백 처리
+  // OAuth Error 처리
   useEffect(() => {
-    const provider = searchParams.get('provider');
-    const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
 
     if (errorParam) {
       setError('OAuth 인증이 취소되었습니다.');
-      return;
-    }
-
-    if (provider && code) {
-      handleOAuthCallback(provider, code);
     }
   }, [searchParams]);
 
-  const handleOAuthCallback = async (provider: string, code: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // 서버 측에서 authorization code를 access token으로 교환하고 로그인 처리
-      const redirectUri = `${window.location.origin}/login/callback?provider=${provider}`;
-      console.log('[Login] OAuth callback:', {
-        provider,
-        code: code.substring(0, 10) + '...',
-        redirectUri,
-      });
-
-      const response = await fetch(`${API_BASE}/admin/auth/oauth/code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, code, redirectUri }),
-      });
-
-      const responseText = await response.text();
-      console.log(
-        '[Login] Response status:',
-        response.status,
-        'body:',
-        responseText,
-      );
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        console.error(
-          '[Login] Failed to parse response as JSON:',
-          responseText,
-        );
-        throw new Error(
-          `Invalid JSON response: ${responseText.substring(0, 100)}`,
-        );
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || `HTTP ${response.status}: 로그인에 실패했습니다.`,
-        );
-      }
-
-      // 토큰 저장
-      console.log('[Login] Login successful, saving tokens');
-      localStorage.setItem('admin_access_token', data.accessToken);
-      localStorage.setItem('admin_refresh_token', data.refreshToken);
-      localStorage.setItem('admin_info', JSON.stringify(data.admin));
-
-      // 조직이 없으면 조직 선택 페이지로, 있으면 대시보드로 이동
-      if (!data.admin.organizationId) {
-        router.replace('/select-organization');
-      } else {
-        router.replace('/dashboard');
-      }
-    } catch (err) {
-      console.error('[Login] OAuth error:', err);
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleKakaoLogin = () => {
     try {
-      console.log(
-        '[Login] Kakao login clicked, client_id:',
-        KAKAO_CLIENT_ID ? 'set' : 'NOT SET',
-      );
-      console.log('[Login] REDIRECT_URI:', REDIRECT_URI);
-
       if (!KAKAO_CLIENT_ID) {
         setError('카카오 클라이언트 ID가 설정되지 않았습니다.');
         return;
@@ -173,7 +77,6 @@ function LoginContent() {
       kakaoAuthUrl.searchParams.set('response_type', 'code');
       kakaoAuthUrl.searchParams.set('scope', 'profile_nickname,account_email');
 
-      console.log('[Login] Redirecting to Kakao:', kakaoAuthUrl.toString());
       window.location.href = kakaoAuthUrl.toString();
     } catch (err) {
       console.error('[Login] Kakao login error:', err);
@@ -183,12 +86,6 @@ function LoginContent() {
 
   const handleGoogleLogin = () => {
     try {
-      console.log(
-        '[Login] Google login clicked, client_id:',
-        GOOGLE_CLIENT_ID ? 'set' : 'NOT SET',
-      );
-      console.log('[Login] REDIRECT_URI:', REDIRECT_URI);
-
       if (!GOOGLE_CLIENT_ID) {
         setError('Google 클라이언트 ID가 설정되지 않았습니다.');
         return;
@@ -207,7 +104,6 @@ function LoginContent() {
       googleAuthUrl.searchParams.set('access_type', 'offline');
       googleAuthUrl.searchParams.set('prompt', 'consent');
 
-      console.log('[Login] Redirecting to Google:', googleAuthUrl.toString());
       window.location.href = googleAuthUrl.toString();
     } catch (err) {
       console.error('[Login] Google login error:', err);
@@ -276,78 +172,65 @@ function LoginContent() {
           </div>
         )}
 
-        {/* Loading State */}
-        {isLoading ? (
-          <div
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+        >
+          {/* Kakao Login */}
+          <button
+            onClick={handleKakaoLogin}
             style={{
-              textAlign: 'center',
-              padding: '24px',
-              color: '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '14px 20px',
+              backgroundColor: '#FEE500',
+              color: '#191919',
+              border: 'none',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s',
             }}
+            onMouseOver={e => (e.currentTarget.style.opacity = '0.9')}
+            onMouseOut={e => (e.currentTarget.style.opacity = '1')}
           >
-            로그인 처리 중...
-          </div>
-        ) : (
-          <div
-            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-          >
-            {/* Kakao Login */}
-            <button
-              onClick={handleKakaoLogin}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                width: '100%',
-                padding: '14px 20px',
-                backgroundColor: '#FEE500',
-                color: '#191919',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'opacity 0.2s',
-              }}
-              onMouseOver={e => (e.currentTarget.style.opacity = '0.9')}
-              onMouseOut={e => (e.currentTarget.style.opacity = '1')}
-            >
-              <KakaoIcon />
-              카카오로 로그인
-            </button>
+            <KakaoIcon />
+            카카오로 로그인
+          </button>
 
-            {/* Google Login */}
-            <button
-              onClick={handleGoogleLogin}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                width: '100%',
-                padding: '14px 20px',
-                backgroundColor: 'white',
-                color: '#4A5D23',
-                border: '1px solid #E9F0DF',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseOver={e =>
-                (e.currentTarget.style.backgroundColor = '#F7F9F2')
-              }
-              onMouseOut={e =>
-                (e.currentTarget.style.backgroundColor = 'white')
-              }
-            >
-              <GoogleIcon />
-              Google로 로그인
-            </button>
-          </div>
-        )}
+          {/* Google Login */}
+          <button
+            onClick={handleGoogleLogin}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '14px 20px',
+              backgroundColor: 'white',
+              color: '#4A5D23',
+              border: '1px solid #E9F0DF',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseOver={e =>
+              (e.currentTarget.style.backgroundColor = '#F7F9F2')
+            }
+            onMouseOut={e =>
+              (e.currentTarget.style.backgroundColor = 'white')
+            }
+          >
+            <GoogleIcon />
+            Google로 로그인
+          </button>
+        </div>
       </div>
     </div>
   );

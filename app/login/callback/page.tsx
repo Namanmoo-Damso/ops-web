@@ -2,9 +2,16 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { apiClient, AuthError } from '../../../lib/api-client';
+import { useAuth } from '../../../hooks/useAuth';
+import type { AdminInfo } from '../../../types/admin';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
+// API response types
+interface OAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  admin: AdminInfo;
+}
 
 export default function OAuthCallbackPage() {
   return (
@@ -33,6 +40,7 @@ function LoadingSpinner() {
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -55,32 +63,19 @@ function CallbackContent() {
       }
 
       try {
-        // 서버에서 authorization code를 access token으로 교환 후 로그인 처리
         const redirectUri = `${window.location.origin}/login/callback?provider=${provider}`;
-        console.log('[Callback] Sending to server:', {
-          provider,
-          code: code.substring(0, 10) + '...',
-          redirectUri,
-        });
 
-        const response = await fetch(`${API_BASE}/admin/auth/oauth/code`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ provider, code, redirectUri }),
-        });
+        // Use apiClient with skipAuth: true
+        const data = await apiClient.post<OAuthResponse>(
+          '/admin/auth/oauth/code',
+          { provider, code, redirectUri },
+          { skipAuth: true }
+        );
 
-        const data = await response.json();
+        // Use AuthContext login
+        login(data.accessToken, data.refreshToken, data.admin);
 
-        if (!response.ok) {
-          throw new Error(data.message || '로그인에 실패했습니다.');
-        }
-
-        // 토큰 저장
-        localStorage.setItem('admin_access_token', data.accessToken);
-        localStorage.setItem('admin_refresh_token', data.refreshToken);
-        localStorage.setItem('admin_info', JSON.stringify(data.admin));
-
-        // 조직이 없으면 조직 선택 페이지로, 있으면 대시보드로 이동
+        // Redirect appropriately
         if (!data.admin.organizationId) {
           router.replace('/select-organization');
         } else {
@@ -88,12 +83,16 @@ function CallbackContent() {
         }
       } catch (err) {
         setStatus('error');
-        setError((err as Error).message);
+        if (err instanceof AuthError) {
+          setError('인증 오류가 발생했습니다.');
+        } else {
+          setError((err as Error).message);
+        }
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, login]);
 
   if (status === 'error') {
     return (
