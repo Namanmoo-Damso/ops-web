@@ -289,7 +289,7 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
                                     height: '36px',
                                     borderRadius: borderRadius.sm,
                                     background: `linear-gradient(135deg, ${colors.primary.main}, ${colors.primary.light})`,
-                                    boxShadow: '0 0 0 3px rgba(143, 169, 99, 0.18)',
+                                    boxShadow: `0 0 0 3px ${colors.accent.soft}`,
                                 }}
                             />
                             <span
