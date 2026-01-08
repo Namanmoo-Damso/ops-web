@@ -227,8 +227,9 @@
 - [x] `types/models.ts` - Beneficiary, Ward, Organization 등
 - [x] `types/common.ts` - Status, LoadingState 등
 - [x] 기존 any 타입 제거
-- [x] `RoomConnection` 타입 정의
+- [x] `RoomConnection` 타입 정의 (`types/room.ts`로 이동)
 - [x] `AdminInfo` → `Admin` 모델로 리팩토링
+- [x] `BeneficiarySummary` Status 타입 정제
 
 **브랜치**: `refactor/#issue번호/api-types`
 

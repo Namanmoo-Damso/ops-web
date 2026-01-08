@@ -56,7 +56,9 @@ export interface BeneficiarySummary {
     name: string;
     address?: string | null;
     manager?: string | null;
-    status: Status | 'WARNING' | 'NORMAL' | 'CAUTION';
+    // API returns numeric status 0, 1, 2 but mapped to strings in frontend for now
+    // TODO: Align API to return consistent Status enum
+    status: 'WARNING' | 'NORMAL' | 'CAUTION';
     lastCall?: string | null;
     age?: number | null;
     gender?: string | null;

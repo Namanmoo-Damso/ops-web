@@ -28,7 +28,7 @@ import {
   type MockParticipant,
 } from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
-import type { RoomConnection } from '../hooks/useMultiRoomSession';
+import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
 
 const requestHighQuality = (

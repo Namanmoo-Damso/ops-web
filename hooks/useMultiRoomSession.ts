@@ -1,13 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Room } from '../types/room';
+import type { Room, RoomConnection } from '../types/room';
 import type { Admin } from '../types/models';
 
-export type RoomConnection = {
-  roomName: string;
-  token: string;
-  serverUrl: string;
-  connected: boolean;
-};
+
 
 type UseMultiRoomSessionOptions = {
   apiBase: string;
