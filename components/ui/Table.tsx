@@ -1,4 +1,4 @@
-import { HTMLAttributes, forwardRef } from 'react';
+import { HTMLAttributes, TdHTMLAttributes, forwardRef } from 'react';
 import { cn } from './utils';
 
 /**
@@ -10,10 +10,10 @@ import { cn } from './utils';
  * - 명확한 border
  */
 
-export interface TableProps extends HTMLAttributes<HTMLTableElement> {}
+export interface TableProps extends HTMLAttributes<HTMLTableElement> { }
 
-export interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> {}
-export interface TableBodyProps extends HTMLAttributes<HTMLTableSectionElement> {}
+export interface TableHeaderProps extends HTMLAttributes<HTMLTableSectionElement> { }
+export interface TableBodyProps extends HTMLAttributes<HTMLTableSectionElement> { }
 export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
   selected?: boolean;
 }
@@ -22,20 +22,13 @@ export interface TableHeadProps extends HTMLAttributes<HTMLTableCellElement> {
   sorted?: 'asc' | 'desc' | false;
   onSort?: () => void;
 }
-export interface TableCellProps extends HTMLAttributes<HTMLTableCellElement> {}
+export interface TableCellProps extends TdHTMLAttributes<HTMLTableCellElement> { }
 
 const Table = forwardRef<HTMLTableElement, TableProps>(
   ({ className = '', children, ...props }, ref) => {
-    const tableStyles = cn(
-      'w-full',
-      'border-collapse',
-      'text-base',  // DESIGN_GUIDE_V2: 16px body
-      className,
-    );
-
     return (
-      <div className="w-full overflow-x-auto">
-        <table ref={ref} className={tableStyles} {...props}>
+      <div className="ui-table-container">
+        <table ref={ref} className={cn('ui-table', className)} {...props}>
           {children}
         </table>
       </div>
@@ -47,14 +40,8 @@ Table.displayName = 'Table';
 
 const TableHeader = forwardRef<HTMLTableSectionElement, TableHeaderProps>(
   ({ className = '', children, ...props }, ref) => {
-    const headerStyles = cn(
-      'border-b border-[var(--color-border)]',
-      'bg-[var(--color-bg-elevated-1)]',
-      className,
-    );
-
     return (
-      <thead ref={ref} className={headerStyles} {...props}>
+      <thead ref={ref} className={cn('ui-table-header', className)} {...props}>
         {children}
       </thead>
     );
@@ -77,16 +64,12 @@ TableBody.displayName = 'TableBody';
 
 const TableRow = forwardRef<HTMLTableRowElement, TableRowProps>(
   ({ selected = false, className = '', children, ...props }, ref) => {
-    const rowStyles = cn(
-      'border-b border-[var(--color-border)]',
-      'transition-colors duration-150',
-      'hover:bg-[var(--color-bg-elevated-1)]',
-      selected && 'bg-[var(--color-primary-light)]/20',
-      className,
-    );
-
     return (
-      <tr ref={ref} className={rowStyles} {...props}>
+      <tr
+        ref={ref}
+        className={cn('ui-table-row', selected && 'selected', className)}
+        {...props}
+      >
         {children}
       </tr>
     );
@@ -107,15 +90,6 @@ const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
     },
     ref,
   ) => {
-    const headStyles = cn(
-      'px-4 py-3',
-      'text-left',
-      'font-semibold',  // DESIGN_GUIDE_V2
-      'text-[var(--color-text-primary)]',
-      sortable && 'cursor-pointer select-none hover:bg-[var(--color-bg-elevated-2)]',
-      className,
-    );
-
     const handleClick = () => {
       if (sortable && onSort) {
         onSort();
@@ -132,7 +106,11 @@ const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
     return (
       <th
         ref={ref}
-        className={headStyles}
+        className={cn(
+          'ui-table-head',
+          sortable && 'sortable',
+          className
+        )}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         tabIndex={sortable ? 0 : undefined}
@@ -146,10 +124,10 @@ const TableHead = forwardRef<HTMLTableCellElement, TableHeadProps>(
         }
         {...props}
       >
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {children}
           {sortable && (
-            <span className="text-xs text-[var(--color-text-muted)]" aria-hidden="true">
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }} aria-hidden="true">
               {sorted === 'asc' ? '↑' : sorted === 'desc' ? '↓' : '↕'}
             </span>
           )}
@@ -163,14 +141,8 @@ TableHead.displayName = 'TableHead';
 
 const TableCell = forwardRef<HTMLTableCellElement, TableCellProps>(
   ({ className = '', children, ...props }, ref) => {
-    const cellStyles = cn(
-      'px-4 py-3',
-      'text-[var(--color-text-primary)]',
-      className,
-    );
-
     return (
-      <td ref={ref} className={cellStyles} {...props}>
+      <td ref={ref} className={cn('ui-table-cell', className)} {...props}>
         {children}
       </td>
     );

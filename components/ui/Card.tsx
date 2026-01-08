@@ -70,11 +70,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           <div
             className={cn(
               'ui-card-header',
-              padding === 'none' ? 'px-5 pt-5 pb-4' : 'pb-4 mb-4', // Keep using some util classes if available or convert? 
-              // Wait, if no Tailwind, these padding classes won't work either. 
-              // But headers are rarely used in current refactor. I'll rely on inline styles for granular adjustments if needed
-              // or add them to CSS. For now let's use style prop for these specifics if they break.
-              // Actually, I should just use the padding classes I defined.
+              padding === 'none' ? 'px-5 pt-5 pb-4' : 'pb-4 mb-4',
             )}
             style={{ padding: padding === 'none' ? '20px 20px 16px' : undefined, marginBottom: padding === 'none' ? undefined : '16px', paddingBottom: '16px' }}
           >

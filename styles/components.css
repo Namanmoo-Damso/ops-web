@@ -281,6 +281,123 @@
     opacity: 0.25;
 }
 
-.ui-spinner-path {
-    opacity: 0.75;
+
+/* --- Table --- */
+.ui-table-container {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.ui-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-body);
+}
+
+.ui-table-header {
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg-elevated-1);
+}
+
+.ui-table-row {
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 150ms ease;
+}
+
+.ui-table-row:hover {
+    background-color: var(--color-bg-elevated-1);
+}
+
+.ui-table-row.selected {
+    background-color: rgba(143, 169, 99, 0.2);
+    /* var(--color-primary-light) with opacity */
+}
+
+.ui-table-head {
+    padding: var(--spacing-md) var(--spacing-lg);
+    text-align: left;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+}
+
+.ui-table-head:first-child,
+.ui-table-cell:first-child {
+    padding-left: 32px;
+}
+
+.ui-table-head:last-child,
+.ui-table-cell:last-child {
+    padding-right: 32px;
+}
+
+.ui-table-head.sortable:hover {
+    background-color: var(--color-bg-elevated-2);
+    cursor: pointer;
+    user-select: none;
+}
+
+
+/* --- Input --- */
+.ui-input-container {
+    width: 100%;
+}
+
+.ui-input-label {
+    display: block;
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.ui-input {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: var(--font-size-body);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    background-color: white;
+    color: var(--color-text-primary);
+    transition: all 150ms ease;
+    outline: none;
+}
+
+.ui-input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--color-bg-elevated-1);
+}
+
+.ui-input:focus {
+    box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.3);
+    border-color: var(--color-primary);
+}
+
+.ui-input:hover:not(:disabled):not(:focus) {
+    border-color: var(--color-border-strong);
+}
+
+/* Error State */
+.ui-input-error {
+    border-color: var(--color-danger-border);
+    background-color: var(--color-danger-soft);
+}
+
+.ui-input-error:focus {
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+    border-color: var(--color-danger-main);
+}
+
+.ui-input-msg {
+    margin-top: 6px;
+    font-size: 14px;
+}
+
+.ui-input-msg.error {
+    color: var(--color-danger-main);
+    font-weight: 500;
+}
+
+.ui-input-msg.helper {
+    color: var(--color-text-muted);
 }

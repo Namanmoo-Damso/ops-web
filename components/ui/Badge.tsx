@@ -69,7 +69,7 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
             aria-hidden="true"
           />
         )}
-        {icon && <span className="flex-shrink-0">{icon}</span>}
+        {icon && <span style={{ flexShrink: 0 }}>{icon}</span>}
         {children}
       </span>
     );
