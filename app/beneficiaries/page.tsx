@@ -16,6 +16,7 @@ import DetailModal, {
 // Components
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -256,12 +257,12 @@ export default function BeneficiariesPage() {
 
           <Table>
             <colgroup>
-              <col style={{ width: '25%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '30%' }} />
+              <col style={{ width: '22%' }} />
               <col style={{ width: '15%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '10%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '13%' }} />
+              <col style={{ width: '12%' }} />
             </colgroup>
             <TableHeader className="beneficiary-table-header">
               <TableRow>
@@ -412,63 +413,22 @@ function FilterBar({
 }
 
 function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
-  // Note: Reusing styles from dashboard.css or beneficiaries.css if possible, or keeping inline for specific badge logic
-  // Actually we have ui-badge now.
-  // Let's use ui-badge if appropriate, but the logic here handles specific colors.
-  // Let's stick to simple inline or dedicated component for now to match exactly.
-  // Or better: Use Badge component?
-  // Phase 1-2 says Badge supports variants.
-  // warning -> warning, caution -> warning (conceptually)?
+  const variantMap = {
+    WARNING: 'danger',
+    CAUTION: 'warning',
+    NORMAL: 'success',
+  } as const;
 
-  if (status === 'WARNING') {
-    return (
-      <span
-        style={{
-          display: 'inline-flex',
-          padding: '4px 8px',
-          borderRadius: '999px',
-          backgroundColor: 'var(--color-danger-soft)',
-          color: 'var(--color-danger-main)',
-          fontSize: '11px',
-          fontWeight: 800,
-        }}
-      >
-        위험
-      </span>
-    );
-  }
-  if (status === 'CAUTION') {
-    return (
-      <span
-        style={{
-          display: 'inline-flex',
-          padding: '4px 8px',
-          borderRadius: '999px',
-          backgroundColor: 'var(--color-warning-soft)',
-          color: '#c2410c',
-          fontSize: '11px',
-          fontWeight: 800,
-          border: '1px solid #fed7aa',
-        }}
-      >
-        주의
-      </span>
-    );
-  }
+  const labelMap = {
+    WARNING: '위험',
+    CAUTION: '주의',
+    NORMAL: '정상',
+  };
+
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        padding: '4px 8px',
-        borderRadius: '999px',
-        backgroundColor: '#e9f0df',
-        color: 'var(--color-primary-dark)',
-        fontSize: '11px',
-        fontWeight: 700,
-      }}
-    >
-      정상
-    </span>
+    <Badge variant={variantMap[status]} size="sm" dot>
+      {labelMap[status]}
+    </Badge>
   );
 }
 
