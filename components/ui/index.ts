@@ -20,6 +20,29 @@ export type { BadgeProps } from './Badge';
 export { default as LoadingSpinner } from './LoadingSpinner';
 export type { LoadingSpinnerProps } from './LoadingSpinner';
 
+export { default as Modal } from './Modal';
+export type { ModalProps } from './Modal';
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from './Table';
+export type {
+  TableProps,
+  TableHeaderProps,
+  TableBodyProps,
+  TableRowProps,
+  TableHeadProps,
+  TableCellProps,
+} from './Table';
+
+export { default as EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
+
 /**
  * NOTE: Icon 컴포넌트는 Phase 5 페이지 리팩토링 시 추가 예정
  * 현재 components/Icons.tsx는 비디오 전용이므로 별도 유지
