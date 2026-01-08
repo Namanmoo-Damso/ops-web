@@ -628,7 +628,7 @@ export default function MyWardsPage() {
                     style={{
                       backgroundColor: "var(--color-bg)",
                       color: "var(--color-primary-dark)",
-                      fontSize: '12px',
+                      fontSize: '16px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                       borderBottom: "1px solid var(--color-border)",
