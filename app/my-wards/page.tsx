@@ -13,8 +13,6 @@ import {
 } from './icons';
 import { useApi } from '../../hooks/useApi';
 import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
-import Input from '../../components/ui/Input';
 
 const SEARCH_DEBOUNCE_MS = 400;
 const RESEND_ALL_DELAY_MS = 400;
