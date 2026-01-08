@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { apiClient, AuthError } from '../../../lib/api-client';
+import { apiClient } from '../../../lib/api-client';
 import { useAuth } from '../../../hooks/useAuth';
 import type { AdminInfo } from '../../../types/admin';
 
@@ -48,46 +48,55 @@ function CallbackContent() {
     const handleCallback = async () => {
       const provider = searchParams.get('provider');
       const code = searchParams.get('code');
+      const state = searchParams.get('state');
       const errorParam = searchParams.get('error');
 
       if (errorParam) {
         setStatus('error');
-        setError('OAuth 인증이 취소되었습니다.');
+        setError('로그인 과정에서 오류가 발생했습니다.');
         return;
       }
 
       if (!provider || !code) {
         setStatus('error');
-        setError('잘못된 콜백 요청입니다.');
+        setError('잘못된 요청입니다.');
         return;
       }
+
+      // CSRF State Verification
+      const savedState = sessionStorage.getItem('oauth_state');
+      if (!state || state !== savedState) {
+        setStatus('error');
+        setError('보안 검증에 실패했습니다. (State Mismatch)');
+        // Clear state to preventing replay
+        sessionStorage.removeItem('oauth_state');
+        return;
+      }
+
+      // Clear state after usage
+      sessionStorage.removeItem('oauth_state');
 
       try {
         const redirectUri = `${window.location.origin}/login/callback?provider=${provider}`;
 
-        // Use apiClient with skipAuth: true
         const data = await apiClient.post<OAuthResponse>(
           '/admin/auth/oauth/code',
-          { provider, code, redirectUri },
+          { provider, code, redirectUri }, // Ensure request is exactly as server expects
           { skipAuth: true }
         );
 
-        // Use AuthContext login
         login(data.accessToken, data.refreshToken, data.admin);
 
-        // Redirect appropriately
         if (!data.admin.organizationId) {
           router.replace('/select-organization');
         } else {
           router.replace('/dashboard');
         }
       } catch (err) {
+        console.error('[Callback] Login failed'); // Log for dev
         setStatus('error');
-        if (err instanceof AuthError) {
-          setError('인증 오류가 발생했습니다.');
-        } else {
-          setError((err as Error).message);
-        }
+        // Generic error message
+        setError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     };
 

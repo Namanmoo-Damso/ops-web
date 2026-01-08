@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 
-// OAuth 설정 - 서버 컴포넌트나 env에서 관리하는 것이 좋지만 일단 유지
+// OAuth 설정
 const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
@@ -37,77 +37,86 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
 
-  const REDIRECT_URI =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/login/callback`
-      : '';
-
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 이미 로그인되어 있으면 대시보드로 이동
-  // AuthContext handles this partly, but being explicit here is fine if not using protected routes wrapper on login page.
   useEffect(() => {
     if (isAuthenticated) {
       router.replace('/dashboard');
     }
   }, [isAuthenticated, router]);
 
-  // OAuth Error 처리
   useEffect(() => {
     const errorParam = searchParams.get('error');
-
     if (errorParam) {
-      setError('OAuth 인증이 취소되었습니다.');
+      // Show generic message instead of raw error
+      setError('로그인 과정에서 오류가 발생했습니다. 다시 시도해주세요.');
     }
   }, [searchParams]);
+
+  // Generate and store state for CSRF protection
+  const generateState = () => {
+    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem('oauth_state', state);
+    return state;
+  };
+
+  const getRedirectUri = () => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/login/callback`;
+  };
 
   const handleKakaoLogin = () => {
     try {
       if (!KAKAO_CLIENT_ID) {
-        setError('카카오 클라이언트 ID가 설정되지 않았습니다.');
-        return;
+        throw new Error('Configuration Missing');
       }
+
+      setIsLoading(true);
+      const state = generateState();
+      const redirectUri = getRedirectUri();
 
       const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
       kakaoAuthUrl.searchParams.set('client_id', KAKAO_CLIENT_ID);
-      kakaoAuthUrl.searchParams.set(
-        'redirect_uri',
-        `${REDIRECT_URI}?provider=kakao`,
-      );
+      kakaoAuthUrl.searchParams.set('redirect_uri', `${redirectUri}?provider=kakao`);
       kakaoAuthUrl.searchParams.set('response_type', 'code');
       kakaoAuthUrl.searchParams.set('scope', 'profile_nickname,account_email');
+      kakaoAuthUrl.searchParams.set('state', state);
 
       window.location.href = kakaoAuthUrl.toString();
     } catch (err) {
-      console.error('[Login] Kakao login error:', err);
-      setError((err as Error).message);
+      console.error('[Login] Kakao login error'); // Log internal, don't expose
+      setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
     try {
       if (!GOOGLE_CLIENT_ID) {
-        setError('Google 클라이언트 ID가 설정되지 않았습니다.');
-        return;
+        throw new Error('Configuration Missing');
       }
+
+      setIsLoading(true);
+      const state = generateState();
+      const redirectUri = getRedirectUri();
 
       const googleAuthUrl = new URL(
         'https://accounts.google.com/o/oauth2/v2/auth',
       );
       googleAuthUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
-      googleAuthUrl.searchParams.set(
-        'redirect_uri',
-        `${REDIRECT_URI}?provider=google`,
-      );
+      googleAuthUrl.searchParams.set('redirect_uri', `${redirectUri}?provider=google`);
       googleAuthUrl.searchParams.set('response_type', 'code');
       googleAuthUrl.searchParams.set('scope', 'email profile');
       googleAuthUrl.searchParams.set('access_type', 'offline');
       googleAuthUrl.searchParams.set('prompt', 'consent');
+      googleAuthUrl.searchParams.set('state', state);
 
       window.location.href = googleAuthUrl.toString();
     } catch (err) {
-      console.error('[Login] Google login error:', err);
-      setError((err as Error).message);
+      console.error('[Login] Google login error');
+      setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
+      setIsLoading(false);
     }
   };
 
@@ -132,7 +141,6 @@ function LoginContent() {
           boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         }}
       >
-        {/* Logo/Title */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1
             style={{
@@ -155,7 +163,6 @@ function LoginContent() {
           </p>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div
             style={{
@@ -172,65 +179,69 @@ function LoginContent() {
           </div>
         )}
 
-        <div
-          style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-        >
-          {/* Kakao Login */}
-          <button
-            onClick={handleKakaoLogin}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '14px 20px',
-              backgroundColor: '#FEE500',
-              color: '#191919',
-              border: 'none',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'opacity 0.2s',
-            }}
-            onMouseOver={e => (e.currentTarget.style.opacity = '0.9')}
-            onMouseOut={e => (e.currentTarget.style.opacity = '1')}
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+            이동 중...
+          </div>
+        ) : (
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
-            <KakaoIcon />
-            카카오로 로그인
-          </button>
+            <button
+              onClick={handleKakaoLogin}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '14px 20px',
+                backgroundColor: '#FEE500',
+                color: '#191919',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+              }}
+              onMouseOver={e => (e.currentTarget.style.opacity = '0.9')}
+              onMouseOut={e => (e.currentTarget.style.opacity = '1')}
+            >
+              <KakaoIcon />
+              카카오로 로그인
+            </button>
 
-          {/* Google Login */}
-          <button
-            onClick={handleGoogleLogin}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '14px 20px',
-              backgroundColor: 'white',
-              color: '#4A5D23',
-              border: '1px solid #E9F0DF',
-              borderRadius: '12px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-            }}
-            onMouseOver={e =>
-              (e.currentTarget.style.backgroundColor = '#F7F9F2')
-            }
-            onMouseOut={e =>
-              (e.currentTarget.style.backgroundColor = 'white')
-            }
-          >
-            <GoogleIcon />
-            Google로 로그인
-          </button>
-        </div>
+            <button
+              onClick={handleGoogleLogin}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '14px 20px',
+                backgroundColor: 'white',
+                color: '#4A5D23',
+                border: '1px solid #E9F0DF',
+                borderRadius: '12px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseOver={e =>
+                (e.currentTarget.style.backgroundColor = '#F7F9F2')
+              }
+              onMouseOut={e =>
+                (e.currentTarget.style.backgroundColor = 'white')
+              }
+            >
+              <GoogleIcon />
+              Google로 로그인
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
