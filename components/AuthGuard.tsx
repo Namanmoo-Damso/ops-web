@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '../hooks/useAuth';
+import { colors, spacing, typography } from '../styles/tokens';
 
 type AuthGuardProps = {
   children: React.ReactNode;
@@ -10,34 +12,41 @@ type AuthGuardProps = {
 // 인증이 필요없는 페이지들
 const PUBLIC_PATHS = ['/login', '/login/callback'];
 
+/**
+ * AuthGuard component
+ * 
+ * Protects routes that require authentication.
+ * Redirects to login if not authenticated.
+ */
 export default function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     // 공개 페이지는 인증 체크하지 않음
     if (PUBLIC_PATHS.includes(pathname)) {
-      setIsChecking(false);
-      setIsAuthenticated(true);
       return;
     }
 
-    const accessToken = localStorage.getItem('admin_access_token');
+    // 로딩 중이면 아직 판단하지 않음
+    if (isLoading) {
+      return;
+    }
 
-    if (!accessToken) {
+    // 인증되지 않으면 로그인 페이지로 리다이렉트
+    if (!isAuthenticated) {
       router.replace('/login');
-      return;
     }
+  }, [pathname, router, isLoading, isAuthenticated]);
 
-    // 토큰이 있으면 인증됨
-    setIsAuthenticated(true);
-    setIsChecking(false);
-  }, [pathname, router]);
+  // 공개 페이지는 바로 렌더링
+  if (PUBLIC_PATHS.includes(pathname)) {
+    return <>{children}</>;
+  }
 
-  // 체크 중일 때 로딩 표시
-  if (isChecking) {
+  // 로딩 중일 때 로딩 표시
+  if (isLoading) {
     return (
       <div
         style={{
@@ -45,7 +54,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: '#F7F9F2',
+          backgroundColor: colors.background.main,
         }}
       >
         <div
@@ -53,15 +62,15 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            gap: '16px',
+            gap: spacing.lg,
           }}
         >
           <div
             style={{
               width: '40px',
               height: '40px',
-              border: '3px solid #E9F0DF',
-              borderTopColor: '#8FA963',
+              border: `3px solid ${colors.border.main}`,
+              borderTopColor: colors.primary.main,
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
             }}
@@ -71,7 +80,9 @@ export default function AuthGuard({ children }: AuthGuardProps) {
               to { transform: rotate(360deg); }
             }
           `}</style>
-          <p style={{ color: '#64748b', fontSize: '14px' }}>로딩 중...</p>
+          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.caption }}>
+            로딩 중...
+          </p>
         </div>
       </div>
     );
