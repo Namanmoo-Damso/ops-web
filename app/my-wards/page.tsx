@@ -300,8 +300,8 @@ export default function MyWardsPage() {
           {totals.pending > 0 && (
             <div
               style={{
-                background: '#fff4f4',
-                border: '1px solid #fecdd3',
+                background: palette.dangerSoft,
+                border: `1px solid ${palette.dangerBorder}`,
                 borderRadius: '16px',
                 padding: '18px 20px',
                 display: 'flex',
@@ -699,7 +699,7 @@ export default function MyWardsPage() {
                               gap: '6px',
                               padding: '6px 10px',
                               borderRadius: '999px',
-                              backgroundColor: '#e9f0df',
+                              backgroundColor: palette.soft,
                               color: palette.primaryDark,
                               fontSize: '12px',
                               fontWeight: 700,
