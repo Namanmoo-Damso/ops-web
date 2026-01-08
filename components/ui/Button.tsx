@@ -36,58 +36,26 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) => {
-    const baseStyles = cn(
-      'inline-flex items-center justify-center',
-      'font-semibold rounded-xl',
-      'transition-all duration-150',
-      'disabled:opacity-50 disabled:cursor-not-allowed',
-      'focus:outline-none focus:ring-2 focus:ring-offset-2',
-    );
+    const baseStyles = cn('ui-btn');
 
     const variantStyles: Record<ButtonVariant, string> = {
-      primary: cn(
-        'bg-[var(--color-primary)] text-white',
-        'hover:bg-[var(--color-primary-dark)]',
-        'active:scale-95',
-        'focus:ring-[var(--color-primary-light)]',
-        'shadow-sm',
-      ),
-      secondary: cn(
-        'bg-[var(--color-bg-elevated-1)]',
-        'text-[var(--color-text-primary)]',
-        'border border-[var(--color-border)]',
-        'hover:bg-[var(--color-bg-elevated-2)]',
-        'hover:border-[var(--color-border-strong)]',
-        'active:scale-95',
-        'focus:ring-[var(--color-primary-light)]',
-      ),
-      danger: cn(
-        'bg-[var(--color-danger-main)] text-white',
-        'hover:bg-red-600',
-        'active:scale-95',
-        'focus:ring-red-300',
-        'shadow-sm',
-      ),
-      ghost: cn(
-        'bg-transparent',
-        'text-[var(--color-text-primary)]',
-        'hover:bg-[var(--color-bg-elevated-1)]',
-        'active:bg-[var(--color-bg-elevated-2)]',
-        'focus:ring-[var(--color-primary-light)]',
-      ),
+      primary: 'ui-btn-primary',
+      secondary: 'ui-btn-secondary',
+      danger: 'ui-btn-danger',
+      ghost: 'ui-btn-ghost',
     };
 
     const sizeStyles: Record<ButtonSize, string> = {
-      sm: 'h-9 px-3 text-sm',      // 36px
-      md: 'h-10 px-4 text-base',   // 40px - DESIGN_GUIDE_V2 기본
-      lg: 'h-12 px-6 text-lg',     // 48px
+      sm: 'ui-btn-sm',
+      md: 'ui-btn-md',
+      lg: 'ui-btn-lg',
     };
 
     const combinedClassName = cn(
       baseStyles,
       variantStyles[variant],
       sizeStyles[size],
-      fullWidth && 'w-full',
+      fullWidth && 'ui-btn-full',
       className,
     );
 

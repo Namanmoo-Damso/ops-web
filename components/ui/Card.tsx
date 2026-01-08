@@ -37,52 +37,46 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     },
     ref,
   ) => {
-    const baseStyles = cn(
-      'bg-white',
-      'border border-[var(--color-border)]',
-      'transition-all duration-150',
-    );
+    const baseStyles = cn('ui-card', className);
 
     const radiusStyles: Record<CardRadius, string> = {
-      default: 'rounded-3xl',  // 24px - DESIGN_GUIDE_V2
-      large: 'rounded-[32px]', // 32px
+      default: 'ui-card-radius-default',
+      large: 'ui-card-radius-large',
     };
 
     const paddingStyles: Record<CardPadding, string> = {
-      none: '',
-      sm: 'p-4',   // 16px
-      md: 'p-5',   // 20px - DESIGN_GUIDE_V2 기본
-      lg: 'p-7',   // 28px
+      none: 'ui-card-padding-none',
+      sm: 'ui-card-padding-sm',
+      md: 'ui-card-padding-md',
+      lg: 'ui-card-padding-lg',
     };
 
-    const hoverStyles = hoverable
-      ? cn(
-          'hover:shadow-md',
-          'hover:border-[var(--color-border-strong)]',
-          'cursor-pointer',
-        )
-      : 'shadow-sm';
+    const hoverStyles = hoverable ? 'ui-card-hoverable' : '';
 
     const combinedClassName = cn(
       baseStyles,
       radiusStyles[radius],
       paddingStyles[padding],
       hoverStyles,
-      className,
     );
 
     // Only apply content padding when padding='none' AND no header/footer
     const needsContentPadding = padding === 'none' && !header && !footer;
-    const contentPadding = needsContentPadding ? 'p-5' : '';
+    const contentPadding = needsContentPadding ? 'ui-card-padding-md' : '';
 
     return (
       <div ref={ref} className={combinedClassName} {...props}>
         {header && (
           <div
             className={cn(
-              'border-b border-[var(--color-border)]',
-              padding === 'none' ? 'px-5 pt-5 pb-4' : 'pb-4 mb-4',
+              'ui-card-header',
+              padding === 'none' ? 'px-5 pt-5 pb-4' : 'pb-4 mb-4', // Keep using some util classes if available or convert? 
+              // Wait, if no Tailwind, these padding classes won't work either. 
+              // But headers are rarely used in current refactor. I'll rely on inline styles for granular adjustments if needed
+              // or add them to CSS. For now let's use style prop for these specifics if they break.
+              // Actually, I should just use the padding classes I defined.
             )}
+            style={{ padding: padding === 'none' ? '20px 20px 16px' : undefined, marginBottom: padding === 'none' ? undefined : '16px', paddingBottom: '16px' }}
           >
             {header}
           </div>
@@ -90,10 +84,8 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
         <div className={contentPadding}>{children}</div>
         {footer && (
           <div
-            className={cn(
-              'border-t border-[var(--color-border)]',
-              padding === 'none' ? 'px-5 pb-5 pt-4' : 'pt-4 mt-4',
-            )}
+            className={cn('ui-card-footer')}
+            style={{ padding: padding === 'none' ? '16px 20px 20px' : undefined, marginTop: padding === 'none' ? undefined : '16px', paddingTop: '16px' }}
           >
             {footer}
           </div>
