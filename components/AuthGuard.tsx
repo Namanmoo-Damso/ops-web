@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
-import { colors, spacing, typography } from '../styles/tokens';
+import { LoadingSpinner } from './ui';
+import { colors } from '../styles/tokens';
 
 type AuthGuardProps = {
   children: React.ReactNode;
@@ -45,7 +46,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     return <>{children}</>;
   }
 
-  // 로딩 중일 때 로딩 표시
+  // 로딩 중일 때 로딩 표시 - LoadingSpinner 컴포넌트 사용
   if (isLoading) {
     return (
       <div
@@ -57,33 +58,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           backgroundColor: colors.background.main,
         }}
       >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: spacing.lg,
-          }}
-        >
-          <div
-            style={{
-              width: '40px',
-              height: '40px',
-              border: `3px solid ${colors.border.main}`,
-              borderTopColor: colors.primary.main,
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-            }}
-          />
-          <style>{`
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-          `}</style>
-          <p style={{ color: colors.text.muted, fontSize: typography.fontSize.caption }}>
-            로딩 중...
-          </p>
-        </div>
+        <LoadingSpinner size={40} />
       </div>
     );
   }

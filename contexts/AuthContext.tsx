@@ -52,8 +52,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const [user, setUser] = useState<AdminInfo | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
-    // Initialize auth state from localStorage
+    // Initialize auth state from localStorage (client-side only)
     useEffect(() => {
+        // SSR safety check
+        if (typeof window === 'undefined') {
+            return;
+        }
+
         const storedToken = localStorage.getItem(STORAGE_KEYS.accessToken);
         const storedUserInfo = localStorage.getItem(STORAGE_KEYS.userInfo);
 
