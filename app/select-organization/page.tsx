@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PROVINCES, getSigunguList, getDongList } from './korea-regions';
+import type { Admin } from '../../types/models';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -23,7 +24,7 @@ export default function SelectOrganizationPage() {
 
     const adminInfo = localStorage.getItem('admin_info');
     if (adminInfo) {
-      const admin = JSON.parse(adminInfo);
+      const admin = JSON.parse(adminInfo) as Admin;
       if (admin.organizationId) {
         router.replace('/dashboard');
       }
@@ -102,7 +103,7 @@ export default function SelectOrganizationPage() {
       // admin_info 업데이트
       const adminInfo = localStorage.getItem('admin_info');
       if (adminInfo) {
-        const admin = JSON.parse(adminInfo);
+        const admin = JSON.parse(adminInfo) as Admin;
         admin.organizationId = organization.id;
         admin.organizationName = organization.name;
         localStorage.setItem('admin_info', JSON.stringify(admin));

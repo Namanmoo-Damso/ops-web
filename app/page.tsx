@@ -28,6 +28,7 @@ import {
   type MockParticipant,
 } from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
+import type { RoomConnection } from '../hooks/useMultiRoomSession';
 import styles from './page.module.css';
 
 const requestHighQuality = (
@@ -385,17 +386,17 @@ const ControlBarWrapper = ({
       // Mic state comes from takeover, and the toggle is disabled
       isMicrophoneEnabled={isTakeoverActive}
       isCameraEnabled={isCameraEnabled}
-      onToggleMicrophone={() => {}}
+      onToggleMicrophone={() => { }}
       onToggleCamera={toggleCamera}
       allAudioOff={false}
       allVideoOff={false}
-      onToggleAllAudio={() => {}}
-      onToggleAllVideo={() => {}}
+      onToggleAllAudio={() => { }}
+      onToggleAllVideo={() => { }}
       showParticipantList={showParticipantList}
       onToggleParticipantList={onToggleParticipantList}
       gridSize={gridSize}
       onGridSizeChange={onGridSizeChange}
-      onLeaveRoom={() => {}}
+      onLeaveRoom={() => { }}
       connected={true}
       canControl={true}
     />
@@ -648,7 +649,7 @@ export default function Home() {
     const result: Array<{
       type: 'connection' | 'empty';
       key: string;
-      connection?: any;
+      connection?: RoomConnection;
       onParticipantsUpdate?: (participants: MockParticipant[]) => void;
       onTileClick?: (participantId: string, videoTrackRef: any) => void;
       selectedParticipantForAudio?: string | null;
@@ -780,9 +781,8 @@ export default function Home() {
               }}
             >
               <div
-                className={`${styles.content} ${
-                  !showParticipantList ? styles.contentFullWidth : ''
-                }`}
+                className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
+                  }`}
               >
                 {/* Error State */}
                 {error && (
@@ -821,7 +821,7 @@ export default function Home() {
                     }}
                   >
                     {gridSlots.map(slot =>
-                      slot.type === 'connection' ? (
+                      slot.type === 'connection' && slot.connection ? (
                         <LiveKitRoom
                           key={slot.key}
                           serverUrl={slot.connection.serverUrl}
@@ -945,8 +945,8 @@ export default function Home() {
                       setShowParticipantList(false);
                       setSelectedRoomName(null);
                     }}
-                    onMuteAll={() => {}}
-                    onInvite={() => {}}
+                    onMuteAll={() => { }}
+                    onInvite={() => { }}
                     inviteBusy={false}
                     inviteStatus={null}
                     connected={true}
@@ -957,9 +957,8 @@ export default function Home() {
             </LiveKitRoom>
           ) : (
             <div
-              className={`${styles.content} ${
-                !showParticipantList ? styles.contentFullWidth : ''
-              }`}
+              className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
+                }`}
             >
               {/* Error State */}
               {error && (
@@ -1006,19 +1005,19 @@ export default function Home() {
                 <ControlBar
                   isMicrophoneEnabled={false}
                   isCameraEnabled={false}
-                  onToggleMicrophone={() => {}}
-                  onToggleCamera={() => {}}
+                  onToggleMicrophone={() => { }}
+                  onToggleCamera={() => { }}
                   allAudioOff={false}
                   allVideoOff={false}
-                  onToggleAllAudio={() => {}}
-                  onToggleAllVideo={() => {}}
+                  onToggleAllAudio={() => { }}
+                  onToggleAllVideo={() => { }}
                   showParticipantList={showParticipantList}
                   onToggleParticipantList={() =>
                     setShowParticipantList(!showParticipantList)
                   }
                   gridSize={gridSize}
                   onGridSizeChange={setGridSize}
-                  onLeaveRoom={() => {}}
+                  onLeaveRoom={() => { }}
                   connected={false}
                   canControl={false}
                 />
@@ -1069,8 +1068,8 @@ export default function Home() {
                     setShowParticipantList(false);
                     setSelectedRoomName(null);
                   }}
-                  onMuteAll={() => {}}
-                  onInvite={() => {}}
+                  onMuteAll={() => { }}
+                  onInvite={() => { }}
                   inviteBusy={false}
                   inviteStatus={null}
                   connected={false}

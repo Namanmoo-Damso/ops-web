@@ -6,6 +6,8 @@ import { palette, shadows } from '../theme';
 import { useApi } from '../../hooks/useApi';
 import { apiClient, AuthError } from '../../lib/api-client';
 import { useAuth } from '../../hooks/useAuth';
+import type { DataListResponse } from '../../types/api';
+import type { BeneficiarySummary } from '../../types/models';
 import DetailModal, {
   type BeneficiaryDetail,
   type BeneficiaryUpdatePayload,
@@ -25,23 +27,6 @@ type Beneficiary = {
   manager: string | null;
   status: 'WARNING' | 'NORMAL' | 'CAUTION';
   lastCall: string | null;
-};
-
-type ApiBeneficiary = {
-  id: number | string;
-  name: string;
-  address: string | null;
-  manager: string | null;
-  status: 'WARNING' | 'NORMAL' | 'CAUTION';
-  lastCall: string | null;
-  age?: number | null;
-  gender?: string | null;
-  type?: string | null;
-};
-
-type BeneficiariesApiResponse = {
-  data: ApiBeneficiary[];
-  total?: number;
 };
 
 type BeneficiaryDetailPayload = BeneficiaryDetail & {
@@ -100,7 +85,7 @@ export default function BeneficiariesPage() {
     setDetailOverride(null);
   }, [selectedId]);
 
-  const { data, loading, error, refetch } = useApi<BeneficiariesApiResponse>({
+  const { data, loading, error, refetch } = useApi<DataListResponse<BeneficiarySummary>>({
     deps: [debouncedSearch, filter, page, pageSize, refreshKey],
     fetcher: (client, signal) => {
       const params = new URLSearchParams();
@@ -109,7 +94,7 @@ export default function BeneficiariesPage() {
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
 
-      return client.get<BeneficiariesApiResponse>(
+      return client.get<DataListResponse<BeneficiarySummary>>(
         `/v1/admin/beneficiaries?${params.toString()}`,
         { signal }
       );
@@ -171,7 +156,7 @@ export default function BeneficiariesPage() {
 
   const items = useMemo<Beneficiary[]>(() => {
     const apiItems = Array.isArray(data?.data) ? data?.data : [];
-    return apiItems.map((item: ApiBeneficiary, index: number) => {
+    return apiItems.map((item: BeneficiarySummary, index: number) => {
       const normalizedStatus =
         item.status === 'WARNING' || item.status === 'CAUTION'
           ? item.status

@@ -9,7 +9,7 @@ import { useSessionMonitor } from '../../hooks/useSessionMonitor';
 import CsvUploadModal from '../CsvUploadModal';
 import { CleanRow } from '../CsvUploadPanel';
 import { ManualWardPayload } from '../ManualWardForm';
-import { AdminInfo } from '../../types/admin';
+import { Admin } from '../../types/models';
 import Sidebar, { SIDEBAR_WIDTH_VALUE } from './Sidebar';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -119,7 +119,7 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
             async (_file: File, rows: CleanRow[]) => {
                 if (uploading) return;
                 const adminInfoRaw = localStorage.getItem('admin_info');
-                const adminInfo: AdminInfo | null = adminInfoRaw
+                const adminInfo: Admin | null = adminInfoRaw
                     ? JSON.parse(adminInfoRaw)
                     : null;
                 const organizationId = adminInfo?.organizationId;
@@ -203,7 +203,7 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
                     throw new Error('이미 등록 작업이 진행 중입니다.');
                 }
                 const adminInfoRaw = localStorage.getItem('admin_info');
-                const adminInfo: AdminInfo | null = adminInfoRaw
+                const adminInfo: Admin | null = adminInfoRaw
                     ? JSON.parse(adminInfoRaw)
                     : null;
                 const organizationId = adminInfo?.organizationId;

@@ -4,13 +4,13 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '../../../lib/api-client';
 import { useAuth } from '../../../hooks/useAuth';
-import type { AdminInfo } from '../../../types/admin';
+import type { Admin } from '../../../types/models';
 
 // API response types
 interface OAuthResponse {
   accessToken: string;
   refreshToken: string;
-  admin: AdminInfo;
+  admin: Admin;
 }
 
 export default function OAuthCallbackPage() {

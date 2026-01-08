@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Room } from '../types/room';
+import type { Admin } from '../types/models';
 
-type RoomConnection = {
+export type RoomConnection = {
   roomName: string;
   token: string;
   serverUrl: string;
@@ -43,7 +44,7 @@ export function useMultiRoomSession({
         });
 
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as { admin: Admin };
           const adminId = data.admin?.id || '';
           setAdminIdentity(`admin_${adminId}`);
         }
