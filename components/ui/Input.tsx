@@ -1,6 +1,5 @@
 import { InputHTMLAttributes, forwardRef, useId } from 'react';
 import { cn } from './utils';
-
 /**
  * Input Component
  *
@@ -34,53 +33,17 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || generatedId;
     const hasError = Boolean(error);
 
-    const containerClassName = fullWidth ? 'w-full' : '';
-
-    const inputBaseStyles = cn(
-      'w-full px-4 py-2.5 text-base rounded-xl border',
-      'transition-all duration-150',
-      'disabled:opacity-50 disabled:cursor-not-allowed',
-      'disabled:bg-[var(--color-bg-elevated-1)]',
-      'focus:outline-none focus:ring-2',
-    );
-
-    const inputVariantStyles = hasError
-      ? cn(
-          'border-[var(--color-danger-border)]',
-          'bg-[var(--color-danger-soft)]',
-          'text-[var(--color-text-primary)]',
-          'focus:ring-red-200',
-          'focus:border-[var(--color-danger-main)]',
-        )
-      : cn(
-          'border-[var(--color-border)]',
-          'bg-white',
-          'text-[var(--color-text-primary)]',
-          'focus:ring-[var(--color-primary-light)]/30',
-          'focus:border-[var(--color-primary)]',
-          'hover:border-[var(--color-border-strong)]',
-        );
-
-    const combinedInputClassName = cn(
-      inputBaseStyles,
-      inputVariantStyles,
-      className,
-    );
-
     return (
-      <div className={containerClassName}>
+      <div className={cn('ui-input-container', className)} style={{ width: fullWidth ? '100%' : undefined }}>
         {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-semibold text-[var(--color-text-primary)] mb-2"
-          >
+          <label htmlFor={inputId} className="ui-input-label">
             {label}
           </label>
         )}
         <input
           ref={ref}
           id={inputId}
-          className={combinedInputClassName}
+          className={cn('ui-input', hasError && 'ui-input-error')}
           aria-invalid={hasError}
           aria-describedby={
             error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
@@ -88,18 +51,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p
-            id={`${inputId}-error`}
-            className="mt-1.5 text-sm font-medium text-[var(--color-danger-main)]"
-          >
+          <p id={`${inputId}-error`} className="ui-input-msg error">
             {error}
           </p>
         )}
         {helperText && !error && (
-          <p
-            id={`${inputId}-helper`}
-            className="mt-1.5 text-sm text-[var(--color-text-muted)]"
-          >
+          <p id={`${inputId}-helper`} className="ui-input-msg helper">
             {helperText}
           </p>
         )}

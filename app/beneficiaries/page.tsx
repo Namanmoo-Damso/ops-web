@@ -1,33 +1,25 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import SidebarLayout from '../../components/SidebarLayout';
-import { palette, shadows } from '../theme';
+import { useEffect, useState, useMemo } from 'react';
+import DashboardLayout from '../../components/layouts/DashboardLayout';
+
 import { useApi } from '../../hooks/useApi';
 import { apiClient, AuthError } from '../../lib/api-client';
 import { useAuth } from '../../hooks/useAuth';
 import type { DataListResponse } from '../../types/api';
-import type { BeneficiarySummary } from '../../types/models';
 import DetailModal, {
   type BeneficiaryDetail,
   type BeneficiaryUpdatePayload,
+  type BeneficiarySummary,
 } from './DetailModal';
+
+// Components
+import Input from '../../components/ui/Input';
+import Button from '../../components/ui/Button';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
 const DEFAULT_PAGE_SIZE = 20;
-const borderStyle = `1px solid ${palette.border}`;
-
-type Beneficiary = {
-  id: string;
-  name: string;
-  age: number | null;
-  gender: string | null;
-  type: string | null;
-  address: string | null;
-  manager: string | null;
-  status: 'WARNING' | 'NORMAL' | 'CAUTION';
-  lastCall: string | null;
-};
 
 type BeneficiaryDetailPayload = BeneficiaryDetail & {
   id: string;
@@ -154,7 +146,7 @@ export default function BeneficiariesPage() {
     }
   };
 
-  const items = useMemo<Beneficiary[]>(() => {
+  const items = useMemo<BeneficiarySummary[]>(() => {
     const apiItems = Array.isArray(data?.data) ? data?.data : [];
     return apiItems.map((item: BeneficiarySummary, index: number) => {
       const normalizedStatus =
@@ -162,15 +154,9 @@ export default function BeneficiariesPage() {
           ? item.status
           : 'NORMAL';
       return {
+        ...item,
         id: String(item.id ?? `row-${index}`),
-        name: item.name || '이름 없음',
-        age: item.age ?? null,
-        gender: item.gender ?? null,
-        type: item.type ?? null,
-        address: item.address ?? null,
-        manager: item.manager ?? null,
-        status: normalizedStatus,
-        lastCall: item.lastCall ?? null,
+        status: normalizedStatus as 'WARNING' | 'NORMAL' | 'CAUTION',
       };
     });
   }, [data?.data]);
@@ -239,9 +225,8 @@ export default function BeneficiariesPage() {
   ]);
 
   return (
-    <SidebarLayout>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <PageHeader />
+    <DashboardLayout title="전체 대상자 관리">
+      <div className="beneficiaries-container">
         <FilterBar
           search={search}
           onSearchChange={setSearch}
@@ -249,62 +234,134 @@ export default function BeneficiariesPage() {
           onFilterChange={setFilter}
           riskCount={riskCount}
         />
-        <BeneficiaryTable
-          search={search}
-          items={filteredList}
-          totalCount={totalCount}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          loading={loading}
-          error={error}
-          page={page}
-          onPageChange={setPage}
-          pageTotal={pageTotal}
-        />
+
+        <div className="beneficiary-table-container">
+          <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-primary-dark)' }}>
+              전체 {totalCount}명 중 <span>{items.length}</span>명 표시
+            </div>
+          </div>
+
+          {loading && (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              데이터를 불러오는 중입니다...
+            </div>
+          )}
+
+          {error && !loading && (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-danger-main)' }}>
+              {error}
+            </div>
+          )}
+
+          <Table>
+            <colgroup>
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '30%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '10%' }} />
+              <col style={{ width: '10%' }} />
+            </colgroup>
+            <TableHeader className="beneficiary-table-header">
+              <TableRow>
+                <TableHead className="beneficiary-table-head">이름 / 기본정보</TableHead>
+                <TableHead className="beneficiary-table-head">현재 상태</TableHead>
+                <TableHead className="beneficiary-table-head">거주지</TableHead>
+                <TableHead className="beneficiary-table-head">담당자</TableHead>
+                <TableHead className="beneficiary-table-head text-center">최근 안부</TableHead>
+                <TableHead className="beneficiary-table-head text-right">관리</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredList.map(item => (
+                <TableRow
+                  key={item.id}
+                  onClick={() => setSelectedId(String(item.id))}
+                  selected={selectedId === String(item.id)}
+                  className="beneficiary-table-row"
+                >
+                  <TableCell className="beneficiary-table-cell">
+                    <div className="beneficiary-user-cell">
+                      <ProfileCircle status={item.status} name={item.name} />
+                      <div>
+                        <div className="beneficiary-user-name">{item.name}</div>
+                        <div className="beneficiary-user-meta">
+                          {item.age ?? '-'}세 / {item.gender ?? '-'} / {item.type ?? '-'}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="beneficiary-table-cell">
+                    <StatusBadge status={item.status} />
+                  </TableCell>
+                  <TableCell className="beneficiary-table-cell">{item.address ?? '-'}</TableCell>
+                  <TableCell className="beneficiary-table-cell">{item.manager ?? '-'}</TableCell>
+                  <TableCell className="beneficiary-table-cell text-center">{item.lastCall ?? '-'}</TableCell>
+                  <TableCell className="beneficiary-table-cell text-right">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setSelectedId(String(item.id));
+                      }}
+                    >
+                      관리
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredList.length === 0 && !loading && (
+                <TableRow>
+                  <TableCell colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
+                    {search ? '검색 결과가 없습니다.' : '표시할 대상자가 없습니다.'}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+
+          <div className="table-footer">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+            >
+              이전
+            </Button>
+            <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: 700 }}>
+              {page} / {pageTotal}
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setPage(Math.min(pageTotal, page + 1))}
+              disabled={page === pageTotal}
+            >
+              다음
+            </Button>
+          </div>
+        </div>
+
         {selectedData && (
           <DetailModal
             beneficiary={selectedData.base}
             detail={selectedData.detail}
             onClose={() => setSelectedId(null)}
-            onDelete={() => handleDelete(selectedData.base.id)}
+            onDelete={() => handleDelete(String(selectedData.base.id))}
             deleting={deleteLoading}
             deleteError={deleteError}
-            onUpdate={payload => handleUpdate(selectedData.base.id, payload)}
+            onUpdate={payload => handleUpdate(String(selectedData.base.id), payload)}
           />
         )}
       </div>
-    </SidebarLayout>
+    </DashboardLayout>
   );
 }
 
 // --- Components ---
-
-function PageHeader() {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px',
-        flexWrap: 'wrap',
-        marginBottom: '18px',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div>
-          <div
-            style={{ fontSize: '22px', fontWeight: 800, color: palette.primaryDark }}
-            role="heading"
-            aria-level={1}
-          >
-            전체 대상자 관리
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 type FilterBarProps = {
   search: string;
@@ -322,109 +379,30 @@ function FilterBar({
   riskCount,
 }: FilterBarProps) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        flexWrap: 'wrap',
-        justifyContent: 'flex-end',
-        marginBottom: '12px',
-      }}
-    >
-      <div style={{ position: 'relative', minWidth: '240px' }}>
-        <label
-          htmlFor="beneficiary-search"
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            width: '1px',
-            height: '1px',
-            overflow: 'hidden',
-          }}
-        >
-          대상자 검색
-        </label>
-        <input
-          id="beneficiary-search"
-          placeholder="이름, 주소, 담당자 검색"
+    <div className="filter-bar">
+      <div className="filter-search-container">
+        <Input
           value={search}
-          onChange={e => onSearchChange(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+          placeholder="이름 또는 상태로 검색..."
           aria-label="이름, 주소 또는 담당자 검색"
-          style={{
-            width: '100%',
-            padding: '10px 12px 10px 14px',
-            borderRadius: '12px',
-            border: borderStyle,
-            backgroundColor: palette.background,
-            fontSize: '14px',
-            color: palette.primaryDark,
-            outline: 'none',
-          }}
         />
       </div>
-      <div
-        style={{
-          display: 'flex',
-          backgroundColor: palette.soft,
-          padding: '6px',
-          borderRadius: '12px',
-          gap: '6px',
-        }}
-        role="group"
-        aria-label="대상자 필터"
-      >
+      <div className="filter-group" role="group" aria-label="대상자 필터">
         <button
+          className={`filter-button ${filter === 'all' ? 'active' : ''}`}
           onClick={() => onFilterChange('all')}
           aria-pressed={filter === 'all'}
-          aria-label="전체 대상자 보기"
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            border: 'none',
-            backgroundColor: filter === 'all' ? palette.panel : 'transparent',
-            color: filter === 'all' ? palette.primaryDark : palette.textSoft,
-            fontWeight: 700,
-            fontSize: '13px',
-            boxShadow:
-              filter === 'all' ? shadows.raised : 'none',
-            cursor: 'pointer',
-          }}
         >
           전체
         </button>
         <button
+          className={`filter-button ${filter === 'risk' ? 'active risk' : ''}`}
           onClick={() => onFilterChange('risk')}
           aria-pressed={filter === 'risk'}
-          aria-label="위험군만 보기"
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            border: 'none',
-            backgroundColor: filter === 'risk' ? palette.panel : 'transparent',
-            color: filter === 'risk' ? palette.danger : palette.textSoft,
-            fontWeight: 700,
-            fontSize: '13px',
-            boxShadow:
-              filter === 'risk' ? shadows.raised : 'none',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            gap: '6px',
-            alignItems: 'center',
-          }}
         >
           위험군
-          <span
-            style={{
-              backgroundColor: palette.dangerSoft,
-              color: palette.danger,
-              borderRadius: '999px',
-              padding: '2px 8px',
-              fontSize: '12px',
-              fontWeight: 800,
-            }}
-            aria-label={`검색 결과 중 위험군 ${riskCount}명`}
-          >
+          <span className="risk-badge">
             {riskCount}
           </span>
         </button>
@@ -433,351 +411,15 @@ function FilterBar({
   );
 }
 
-type BeneficiaryTableProps = {
-  search: string;
-  items: Beneficiary[];
-  totalCount: number;
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-  loading: boolean;
-  error: string | null;
-  page: number;
-  onPageChange: (page: number) => void;
-  pageTotal: number;
-};
-
-function BeneficiaryTable({
-  search,
-  items,
-  totalCount,
-  selectedId,
-  onSelect,
-  loading,
-  error,
-  page,
-  onPageChange,
-  pageTotal,
-}: BeneficiaryTableProps) {
-  return (
-    <div
-      style={{
-        background: palette.panel,
-        border: borderStyle,
-        borderRadius: '16px',
-        boxShadow: shadows.lifted,
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          padding: '14px 16px',
-          borderBottom: borderStyle,
-          backgroundColor: palette.background,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: palette.primaryDark,
-            fontWeight: 700,
-            fontSize: '13px',
-          }}
-        >
-          전체 {totalCount}명 중{' '}
-          <span style={{ color: palette.primaryDark }}>{items.length}</span>명 표시
-        </div>
-        <div style={{ color: palette.textSoft, fontSize: '12px' }}>
-          행 또는 관리 버튼 클릭 시 상세 모달을 확인할 수 있습니다.
-        </div>
-      </div>
-
-      {loading && (
-        <div
-          style={{
-            padding: '32px',
-            textAlign: 'center',
-            color: palette.textMuted,
-            fontWeight: 700,
-          }}
-        >
-          데이터를 불러오는 중입니다...
-        </div>
-      )}
-
-      {error && !loading && (
-        <div
-          style={{
-            padding: '32px',
-            textAlign: 'center',
-            color: palette.danger,
-            fontWeight: 700,
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-      <div style={{ overflowX: 'auto' }}>
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            minWidth: '900px',
-          }}
-          aria-label="전체 대상자 목록"
-        >
-          <thead>
-            <tr
-              style={{
-                backgroundColor: palette.background,
-                color: palette.primaryDark,
-                fontSize: '12px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                borderBottom: borderStyle,
-              }}
-            >
-              <th style={{ textAlign: 'left', padding: '14px 16px' }}>
-                이름 / 기본정보
-              </th>
-              <th style={{ textAlign: 'left', padding: '14px 12px' }}>
-                현재 상태
-              </th>
-              <th style={{ textAlign: 'left', padding: '14px 12px' }}>
-                거주지
-              </th>
-              <th style={{ textAlign: 'left', padding: '14px 12px' }}>
-                담당자
-              </th>
-              <th style={{ textAlign: 'left', padding: '14px 12px' }}>
-                최근 안부
-              </th>
-              <th style={{ textAlign: 'right', padding: '14px 12px' }}>관리</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map(item => {
-              const isSelected = selectedId === item.id;
-              return (
-                <tr
-                  key={item.id}
-                  onClick={() => onSelect(item.id)}
-                  style={{
-                    borderBottom: '1px solid #F0F5E8',
-                    backgroundColor: isSelected ? palette.background : palette.panel,
-                    transition: 'background-color 120ms ease',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = palette.background;
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!isSelected) {
-                      e.currentTarget.style.backgroundColor = palette.panel;
-                    }
-                  }}
-                >
-                  <td style={{ padding: '14px 16px' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                      }}
-                    >
-                      <ProfileCircle status={item.status} name={item.name} />
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontWeight: 800,
-                            fontSize: '15px',
-                            color: palette.primaryDark,
-                          }}
-                        >
-                          {item.name}
-                        </div>
-                        <div
-                          style={{
-                            color: palette.textSoft,
-                            fontSize: '12px',
-                            fontWeight: 700,
-                          }}
-                        >
-                          {item.age ?? '-'}세 / {item.gender ?? '-'} /{' '}
-                          {item.type ?? '-'}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 12px' }}>
-                    <StatusBadge status={item.status} />
-                  </td>
-                  <td
-                    style={{
-                      padding: '14px 12px',
-                      color: palette.primaryDark,
-                      fontWeight: 600,
-                      maxWidth: '240px',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                    title={item.address ?? undefined}
-                  >
-                    {item.address ?? '-'}
-                  </td>
-                  <td
-                    style={{
-                      padding: '14px 12px',
-                      color: palette.primaryDark,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {item.manager ?? '-'}
-                  </td>
-                  <td
-                    style={{
-                      padding: '14px 12px',
-                      color: palette.textMuted,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {item.lastCall ?? '-'}
-                  </td>
-                  <td
-                    style={{
-                      padding: '14px 12px',
-                      textAlign: 'right',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      aria-label={`${item.name} 관리`}
-                      onClick={e => {
-                        e.stopPropagation();
-                        onSelect(item.id);
-                      }}
-                      style={{
-                        padding: '8px 10px',
-                        borderRadius: '10px',
-                        border: borderStyle,
-                        backgroundColor: palette.panel,
-                        color: palette.textSoft,
-                        fontWeight: 700,
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.backgroundColor = palette.soft;
-                        e.currentTarget.style.color = palette.primaryDark;
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.backgroundColor = palette.panel;
-                        e.currentTarget.style.color = palette.textSoft;
-                      }}
-                    >
-                      관리
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-            {items.length === 0 && !loading && (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{
-                    padding: '40px',
-                    textAlign: 'center',
-                    color: palette.textMuted,
-                    fontSize: '14px',
-                  }}
-                >
-                  {search
-                    ? '검색 결과가 없습니다.'
-                    : '표시할 대상자가 없습니다.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <div
-        style={{
-          borderTop: borderStyle,
-          padding: '14px 16px',
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '8px',
-          backgroundColor: palette.background,
-        }}
-      >
-        <button
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          disabled={page === 1}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '8px',
-            border: borderStyle,
-            backgroundColor: page === 1 ? palette.soft : palette.panel,
-            color: page === 1 ? palette.textMuted : palette.primaryDark,
-            cursor: page === 1 ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            fontWeight: 600,
-          }}
-        >
-          이전
-        </button>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 12px',
-            fontSize: '14px',
-            fontWeight: 700,
-            color: palette.primaryDark,
-          }}
-        >
-          {page} / {pageTotal}
-        </div>
-        <button
-          onClick={() => onPageChange(Math.min(pageTotal, page + 1))}
-          disabled={page === pageTotal}
-          style={{
-            padding: '8px 12px',
-            borderRadius: '8px',
-            border: borderStyle,
-            backgroundColor: page === pageTotal ? palette.soft : palette.panel,
-            color: page === pageTotal ? palette.textMuted : palette.primaryDark,
-            cursor: page === pageTotal ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            fontWeight: 600,
-          }}
-        >
-          다음
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
+  // Note: Reusing styles from dashboard.css or beneficiaries.css if possible, or keeping inline for specific badge logic
+  // Actually we have ui-badge now.
+  // Let's use ui-badge if appropriate, but the logic here handles specific colors.
+  // Let's stick to simple inline or dedicated component for now to match exactly.
+  // Or better: Use Badge component?
+  // Phase 1-2 says Badge supports variants.
+  // warning -> warning, caution -> warning (conceptually)?
+
   if (status === 'WARNING') {
     return (
       <span
@@ -785,8 +427,8 @@ function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
           display: 'inline-flex',
           padding: '4px 8px',
           borderRadius: '999px',
-          backgroundColor: palette.dangerSoft,
-          color: palette.danger,
+          backgroundColor: 'var(--color-danger-soft)',
+          color: 'var(--color-danger-main)',
           fontSize: '11px',
           fontWeight: 800,
         }}
@@ -802,11 +444,11 @@ function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
           display: 'inline-flex',
           padding: '4px 8px',
           borderRadius: '999px',
-          backgroundColor: palette.warningSoft,
-          color: palette.warning,
+          backgroundColor: 'var(--color-warning-soft)',
+          color: '#c2410c',
           fontSize: '11px',
           fontWeight: 800,
-          border: `1px solid ${palette.warning}`,
+          border: '1px solid #fed7aa',
         }}
       >
         주의
@@ -820,7 +462,7 @@ function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
         padding: '4px 8px',
         borderRadius: '999px',
         backgroundColor: '#e9f0df',
-        color: palette.primaryDark,
+        color: 'var(--color-primary-dark)',
         fontSize: '11px',
         fontWeight: 700,
       }}
@@ -838,29 +480,15 @@ function ProfileCircle({
   name: string;
 }) {
   const initial = name ? name.slice(0, 1) : '?';
-  const bgColor =
-    status === 'WARNING'
-      ? palette.danger
-      : status === 'CAUTION'
-        ? '#f59e0b'
-        : palette.primary;
+  let className = 'profile-circle';
+  if (status === 'WARNING') className += ' warning';
+  else if (status === 'CAUTION') className += ' caution';
+  else className += ' normal';
 
   return (
-    <div
-      style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '50%',
-        backgroundColor: bgColor,
-        display: 'grid',
-        placeItems: 'center',
-        color: '#fff',
-        fontWeight: 700,
-        fontSize: '14px',
-        flexShrink: 0,
-      }}
-    >
+    <div className={className}>
       {initial}
     </div>
   );
 }
+

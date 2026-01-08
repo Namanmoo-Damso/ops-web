@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
 import { formatTags } from '../../utils/formatters';
+import Button from '../../components/ui/Button';
+import Badge from '../../components/ui/Badge';
+import type { BeneficiarySummary } from '../../types/models';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -40,17 +43,8 @@ export type BeneficiaryUpdatePayload = {
   notes: string | null;
 };
 
-export type BeneficiarySummary = {
-  id: string;
-  name: string;
-  age: number | null;
-  gender: string | null;
-  type: string | null;
-  address: string | null;
-  manager: string | null;
-  status: 'WARNING' | 'NORMAL' | 'CAUTION';
-  lastCall: string | null;
-};
+// Re-export for backward compatibility
+export type { BeneficiarySummary } from '../../types/models';
 
 type DetailModalProps = {
   beneficiary: BeneficiarySummary | undefined;
@@ -235,11 +229,10 @@ export default function DetailModal({
     status === 'WARNING'
       ? styles.tagWarning
       : status === 'CAUTION'
-      ? styles.tagCaution
-      : styles.tagNormal;
-  const headerClassName = `${styles.header} ${
-    isWarning ? styles.headerWarning : ''
-  }`.trim();
+        ? styles.tagCaution
+        : styles.tagNormal;
+  const headerClassName = `${styles.header} ${isWarning ? styles.headerWarning : ''
+    }`.trim();
 
   const displayName = detail.name ?? beneficiary.name;
   const displayGender = detail.gender ?? beneficiary.gender;
@@ -251,8 +244,8 @@ export default function DetailModal({
     displayGender === 'male' || displayGender === 'm'
       ? '남'
       : displayGender === 'female' || displayGender === 'f'
-      ? '여'
-      : '-';
+        ? '여'
+        : '-';
 
   const handleEditStart = () => {
     setForm(defaultForm);
@@ -346,9 +339,8 @@ export default function DetailModal({
           <div className={styles.userRow}>
             <div
               aria-hidden="true"
-              className={`${styles.avatar} ${
-                isWarning ? styles.avatarWarning : styles.avatarDefault
-              }`}
+              className={`${styles.avatar} ${isWarning ? styles.avatarWarning : styles.avatarDefault
+                }`}
             >
               {displayName ? displayName.charAt(0) : '?'}
             </div>
@@ -378,30 +370,30 @@ export default function DetailModal({
                   {status === 'WARNING'
                     ? '케어 필요'
                     : status === 'CAUTION'
-                    ? '주의 필요'
-                    : '안정적'}
+                      ? '주의 필요'
+                      : '안정적'}
                 </span>
               </div>
             </div>
           </div>
 
-            <div className={styles.actions}>
-              <div className={styles.managerToggle}>
-                <span className={styles.managerLabel}>담당자</span>
-                <select
-                  className={styles.managerSelect}
-                  value={managerName}
-                  disabled={!isEditing}
-                >
-                  <option value={managerName}>{managerName}</option>
-                </select>
-                {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
-              </div>
-              <button
-                type="button"
-                aria-label="닫기"
-                onClick={onClose}
-                className={styles.closeButton}
+          <div className={styles.actions}>
+            <div className={styles.managerToggle}>
+              <span className={styles.managerLabel}>담당자</span>
+              <select
+                className={styles.managerSelect}
+                value={managerName}
+                disabled={!isEditing}
+              >
+                <option value={managerName}>{managerName}</option>
+              </select>
+              {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
+            </div>
+            <button
+              type="button"
+              aria-label="닫기"
+              onClick={onClose}
+              className={styles.closeButton}
             >
               ×
             </button>
@@ -421,54 +413,54 @@ export default function DetailModal({
                     className={styles.editInput}
                     value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
                     readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('name', e.target.value)
-                          : undefined
-                      }
-                    />
-                  </div>
+                    onChange={
+                      isEditing
+                        ? e => handleFieldChange('name', e.target.value)
+                        : undefined
+                    }
+                  />
+                </div>
                 <div className={styles.editField}>
                   <span className={styles.editLabel}>전화번호 *</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
                     readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('phoneNumber', e.target.value)
-                          : undefined
-                      }
-                      placeholder={isEditing ? '' : '-'}
-                    />
-                  </div>
+                    onChange={
+                      isEditing
+                        ? e => handleFieldChange('phoneNumber', e.target.value)
+                        : undefined
+                    }
+                    placeholder={isEditing ? '' : '-'}
+                  />
+                </div>
                 <div className={styles.editField}>
                   <span className={styles.editLabel}>생년월일</span>
                   <input
                     type="date"
                     className={styles.editInput}
                     value={isEditing ? form.birthDate : detail.birthDate ?? ''}
-                      readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('birthDate', e.target.value)
-                          : undefined
-                      }
-                    />
-                  </div>
+                    readOnly={!isEditing}
+                    onChange={
+                      isEditing
+                        ? e => handleFieldChange('birthDate', e.target.value)
+                        : undefined
+                    }
+                  />
+                </div>
                 <div className={`${styles.editField} ${styles.spanTwo}`}>
                   <span className={styles.editLabel}>주소</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.address : displayAddress ?? ''}
                     readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('address', e.target.value)
-                          : undefined
-                      }
-                    />
-                  </div>
+                    onChange={
+                      isEditing
+                        ? e => handleFieldChange('address', e.target.value)
+                        : undefined
+                    }
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -492,10 +484,10 @@ export default function DetailModal({
                     onChange={
                       isEditing
                         ? e =>
-                            setGuardianForm(prev => ({
-                              ...prev,
-                              name: e.target.value,
-                            }))
+                          setGuardianForm(prev => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
                         : undefined
                     }
                   />
@@ -539,10 +531,10 @@ export default function DetailModal({
                     onChange={
                       isEditing
                         ? e =>
-                            setGuardianForm(prev => ({
-                              ...prev,
-                              contact: e.target.value,
-                            }))
+                          setGuardianForm(prev => ({
+                            ...prev,
+                            contact: e.target.value,
+                          }))
                         : undefined
                     }
                   />
@@ -654,48 +646,53 @@ export default function DetailModal({
 
         <div className={styles.footer}>
           <div className={styles.footerLeft}>
-            <button
+            <Button
               type="button"
+              variant="secondary"
               className={styles.deleteButton}
               onClick={handleDeleteClick}
               disabled={!onDelete || deleting || isEditing || saveLoading}
             >
               {deleting ? '삭제 중...' : '대상자 삭제'}
-            </button>
+            </Button>
             {deleteError && <div className={styles.deleteError}>{deleteError}</div>}
           </div>
           <div className={styles.footerActions}>
             {isEditing ? (
               <div className={styles.footerEditActions}>
-                <button
+                <Button
                   type="button"
+                  variant="primary"
                   className={styles.editSave}
                   onClick={handleSave}
                   disabled={saveLoading}
+                  loading={saveLoading}
                 >
                   {saveLoading ? '저장 중...' : '저장하기'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="secondary"
                   className={styles.editCancel}
                   onClick={handleEditCancel}
                   disabled={saveLoading}
                 >
                   취소
-                </button>
+                </Button>
                 {saveError && <div className={styles.editError}>{saveError}</div>}
                 {saveSuccess && (
                   <div className={styles.editSuccess}>{saveSuccess}</div>
                 )}
               </div>
             ) : (
-              <button
+              <Button
                 type="button"
+                variant="primary"
                 className={styles.editButton}
                 onClick={handleEditStart}
               >
                 정보 수정
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -729,23 +726,25 @@ export default function DetailModal({
               <div className={styles.confirmError}>{deleteError}</div>
             )}
             <div className={styles.confirmActions}>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 className={styles.confirmCancel}
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={deleting}
               >
                 취소
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                ref={confirmPrimaryRef}
+                variant="danger"
                 className={styles.confirmDelete}
                 onClick={handleDeleteConfirm}
                 disabled={deleting}
+                loading={deleting}
               >
                 {deleting ? '삭제 중...' : '삭제하기'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
