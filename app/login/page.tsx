@@ -2,8 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { useAuth } from '../../hooks/useAuth';
 
 // OAuth 설정
 const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
@@ -36,182 +35,88 @@ function LoadingScreen() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const REDIRECT_URI =
-    typeof window !== 'undefined'
-      ? `${window.location.origin}/login/callback`
-      : '';
-  const [isLoading, setIsLoading] = useState(false);
+  const { isAuthenticated } = useAuth();
+
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 초기화 로깅
   useEffect(() => {
-    console.log('[Login] Component initialized');
-    console.log('[Login] API_BASE:', API_BASE);
-    console.log(
-      '[Login] KAKAO_CLIENT_ID:',
-      KAKAO_CLIENT_ID ? 'set' : 'NOT SET',
-    );
-    console.log(
-      '[Login] GOOGLE_CLIENT_ID:',
-      GOOGLE_CLIENT_ID ? 'set' : 'NOT SET',
-    );
-    console.log(
-      '[Login] searchParams:',
-      Object.fromEntries(searchParams.entries()),
-    );
-  }, [searchParams]);
-
-  // 이미 로그인되어 있으면 대시보드로 이동
-  useEffect(() => {
-    const accessToken = localStorage.getItem('admin_access_token');
-    if (accessToken) {
+    if (isAuthenticated) {
       router.replace('/dashboard');
     }
-  }, [router]);
+  }, [isAuthenticated, router]);
 
-  // OAuth 콜백 처리
   useEffect(() => {
-    const provider = searchParams.get('provider');
-    const code = searchParams.get('code');
     const errorParam = searchParams.get('error');
-
     if (errorParam) {
-      setError('OAuth 인증이 취소되었습니다.');
-      return;
-    }
-
-    if (provider && code) {
-      handleOAuthCallback(provider, code);
+      // Show generic message instead of raw error
+      setError('로그인 과정에서 오류가 발생했습니다. 다시 시도해주세요.');
     }
   }, [searchParams]);
 
-  const handleOAuthCallback = async (provider: string, code: string) => {
-    setIsLoading(true);
-    setError(null);
+  // Generate and store state for CSRF protection
+  const generateState = () => {
+    const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    sessionStorage.setItem('oauth_state', state);
+    return state;
+  };
 
-    try {
-      // 서버 측에서 authorization code를 access token으로 교환하고 로그인 처리
-      const redirectUri = `${window.location.origin}/login/callback?provider=${provider}`;
-      console.log('[Login] OAuth callback:', {
-        provider,
-        code: code.substring(0, 10) + '...',
-        redirectUri,
-      });
-
-      const response = await fetch(`${API_BASE}/admin/auth/oauth/code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, code, redirectUri }),
-      });
-
-      const responseText = await response.text();
-      console.log(
-        '[Login] Response status:',
-        response.status,
-        'body:',
-        responseText,
-      );
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch {
-        console.error(
-          '[Login] Failed to parse response as JSON:',
-          responseText,
-        );
-        throw new Error(
-          `Invalid JSON response: ${responseText.substring(0, 100)}`,
-        );
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || `HTTP ${response.status}: 로그인에 실패했습니다.`,
-        );
-      }
-
-      // 토큰 저장
-      console.log('[Login] Login successful, saving tokens');
-      localStorage.setItem('admin_access_token', data.accessToken);
-      localStorage.setItem('admin_refresh_token', data.refreshToken);
-      localStorage.setItem('admin_info', JSON.stringify(data.admin));
-
-      // 조직이 없으면 조직 선택 페이지로, 있으면 대시보드로 이동
-      if (!data.admin.organizationId) {
-        router.replace('/select-organization');
-      } else {
-        router.replace('/dashboard');
-      }
-    } catch (err) {
-      console.error('[Login] OAuth error:', err);
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
+  const getRedirectUri = () => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/login/callback`;
   };
 
   const handleKakaoLogin = () => {
     try {
-      console.log(
-        '[Login] Kakao login clicked, client_id:',
-        KAKAO_CLIENT_ID ? 'set' : 'NOT SET',
-      );
-      console.log('[Login] REDIRECT_URI:', REDIRECT_URI);
-
       if (!KAKAO_CLIENT_ID) {
-        setError('카카오 클라이언트 ID가 설정되지 않았습니다.');
-        return;
+        throw new Error('Configuration Missing');
       }
+
+      setIsLoading(true);
+      const state = generateState();
+      const redirectUri = getRedirectUri();
 
       const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
       kakaoAuthUrl.searchParams.set('client_id', KAKAO_CLIENT_ID);
-      kakaoAuthUrl.searchParams.set(
-        'redirect_uri',
-        `${REDIRECT_URI}?provider=kakao`,
-      );
+      kakaoAuthUrl.searchParams.set('redirect_uri', `${redirectUri}?provider=kakao`);
       kakaoAuthUrl.searchParams.set('response_type', 'code');
       kakaoAuthUrl.searchParams.set('scope', 'profile_nickname,account_email');
+      kakaoAuthUrl.searchParams.set('state', state);
 
-      console.log('[Login] Redirecting to Kakao:', kakaoAuthUrl.toString());
       window.location.href = kakaoAuthUrl.toString();
     } catch (err) {
-      console.error('[Login] Kakao login error:', err);
-      setError((err as Error).message);
+      console.error('[Login] Kakao login error'); // Log internal, don't expose
+      setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
+      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = () => {
     try {
-      console.log(
-        '[Login] Google login clicked, client_id:',
-        GOOGLE_CLIENT_ID ? 'set' : 'NOT SET',
-      );
-      console.log('[Login] REDIRECT_URI:', REDIRECT_URI);
-
       if (!GOOGLE_CLIENT_ID) {
-        setError('Google 클라이언트 ID가 설정되지 않았습니다.');
-        return;
+        throw new Error('Configuration Missing');
       }
+
+      setIsLoading(true);
+      const state = generateState();
+      const redirectUri = getRedirectUri();
 
       const googleAuthUrl = new URL(
         'https://accounts.google.com/o/oauth2/v2/auth',
       );
       googleAuthUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
-      googleAuthUrl.searchParams.set(
-        'redirect_uri',
-        `${REDIRECT_URI}?provider=google`,
-      );
+      googleAuthUrl.searchParams.set('redirect_uri', `${redirectUri}?provider=google`);
       googleAuthUrl.searchParams.set('response_type', 'code');
       googleAuthUrl.searchParams.set('scope', 'email profile');
       googleAuthUrl.searchParams.set('access_type', 'offline');
       googleAuthUrl.searchParams.set('prompt', 'consent');
+      googleAuthUrl.searchParams.set('state', state);
 
-      console.log('[Login] Redirecting to Google:', googleAuthUrl.toString());
       window.location.href = googleAuthUrl.toString();
     } catch (err) {
-      console.error('[Login] Google login error:', err);
-      setError((err as Error).message);
+      console.error('[Login] Google login error');
+      setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
+      setIsLoading(false);
     }
   };
 
@@ -236,7 +141,6 @@ function LoginContent() {
           boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
         }}
       >
-        {/* Logo/Title */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h1
             style={{
@@ -259,7 +163,6 @@ function LoginContent() {
           </p>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div
             style={{
@@ -276,22 +179,14 @@ function LoginContent() {
           </div>
         )}
 
-        {/* Loading State */}
         {isLoading ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '24px',
-              color: '#64748b',
-            }}
-          >
-            로그인 처리 중...
+          <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+            이동 중...
           </div>
         ) : (
           <div
             style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
           >
-            {/* Kakao Login */}
             <button
               onClick={handleKakaoLogin}
               style={{
@@ -317,7 +212,6 @@ function LoginContent() {
               카카오로 로그인
             </button>
 
-            {/* Google Login */}
             <button
               onClick={handleGoogleLogin}
               style={{

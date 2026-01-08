@@ -2,9 +2,16 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { apiClient } from '../../../lib/api-client';
+import { useAuth } from '../../../hooks/useAuth';
+import type { AdminInfo } from '../../../types/admin';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
+// API response types
+interface OAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  admin: AdminInfo;
+}
 
 export default function OAuthCallbackPage() {
   return (
@@ -33,6 +40,7 @@ function LoadingSpinner() {
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -40,60 +48,60 @@ function CallbackContent() {
     const handleCallback = async () => {
       const provider = searchParams.get('provider');
       const code = searchParams.get('code');
+      const state = searchParams.get('state');
       const errorParam = searchParams.get('error');
 
       if (errorParam) {
         setStatus('error');
-        setError('OAuth 인증이 취소되었습니다.');
+        setError('로그인 과정에서 오류가 발생했습니다.');
         return;
       }
 
       if (!provider || !code) {
         setStatus('error');
-        setError('잘못된 콜백 요청입니다.');
+        setError('잘못된 요청입니다.');
         return;
       }
 
+      // CSRF State Verification
+      const savedState = sessionStorage.getItem('oauth_state');
+      if (!state || state !== savedState) {
+        setStatus('error');
+        setError('보안 검증에 실패했습니다. (State Mismatch)');
+        // Clear state to preventing replay
+        sessionStorage.removeItem('oauth_state');
+        return;
+      }
+
+      // Clear state after usage
+      sessionStorage.removeItem('oauth_state');
+
       try {
-        // 서버에서 authorization code를 access token으로 교환 후 로그인 처리
         const redirectUri = `${window.location.origin}/login/callback?provider=${provider}`;
-        console.log('[Callback] Sending to server:', {
-          provider,
-          code: code.substring(0, 10) + '...',
-          redirectUri,
-        });
 
-        const response = await fetch(`${API_BASE}/admin/auth/oauth/code`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ provider, code, redirectUri }),
-        });
+        const data = await apiClient.post<OAuthResponse>(
+          '/admin/auth/oauth/code',
+          { provider, code, redirectUri }, // Ensure request is exactly as server expects
+          { skipAuth: true }
+        );
 
-        const data = await response.json();
+        login(data.accessToken, data.refreshToken, data.admin);
 
-        if (!response.ok) {
-          throw new Error(data.message || '로그인에 실패했습니다.');
-        }
-
-        // 토큰 저장
-        localStorage.setItem('admin_access_token', data.accessToken);
-        localStorage.setItem('admin_refresh_token', data.refreshToken);
-        localStorage.setItem('admin_info', JSON.stringify(data.admin));
-
-        // 조직이 없으면 조직 선택 페이지로, 있으면 대시보드로 이동
         if (!data.admin.organizationId) {
           router.replace('/select-organization');
         } else {
           router.replace('/dashboard');
         }
       } catch (err) {
+        console.error('[Callback] Login failed'); // Log for dev
         setStatus('error');
-        setError((err as Error).message);
+        // Generic error message
+        setError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, login]);
 
   if (status === 'error') {
     return (
