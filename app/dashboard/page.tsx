@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type ReactElement } from 'react';
+import { useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import {
   ArrowRight,
   CheckCircle2,
@@ -13,24 +14,28 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import Link from 'next/link';
-import SidebarLayout from '../../components/SidebarLayout';
-import { useApi } from '../../hooks/useApi';
-import styles from './dashboard.module.css';
-import {
-  type FeatureCardProps,
-  type HeroCopy,
-  type MyWardsStatsResponse,
-  type StatCardProps,
-  type StatTone,
-} from './types';
 
-const toneClass: Record<StatTone, string> = {
-  dark: styles.toneDark,
-  muted: styles.toneMuted,
-  primary: styles.tonePrimary,
-  warning: styles.toneWarning,
+import DashboardLayout from '../../components/layouts/DashboardLayout';
+import { useApi } from '../../hooks/useApi';
+import { Button, Card, Badge } from '../../components/ui';
+import { colors, spacing, typography } from '../../styles/tokens';
+
+// --- Types ---
+
+type MyWardsStatsResponse = {
+  stats?: {
+    total: number;
+    registered: number;
+  };
 };
+
+type HeroCopy = {
+  title: string;
+  desc: ReactNode;
+  action: ReactNode;
+};
+
+// --- Page Component ---
 
 export default function DashboardPage() {
   const [csvModalOpen, setCsvModalOpen] = useState(false);
@@ -65,13 +70,9 @@ export default function DashboardPage() {
         </>
       ),
       action: (
-        <button
-          className={styles.heroAction}
-          type="button"
-          onClick={() => refetch()}
-        >
+        <Button variant="secondary" onClick={() => refetch()}>
           다시 시도하기
-        </button>
+        </Button>
       ),
     }
     : loading
@@ -85,13 +86,9 @@ export default function DashboardPage() {
           </>
         ),
         action: (
-          <button
-            className={`${styles.heroAction} ${styles.heroActionDisabled}`}
-            type="button"
-            disabled
-          >
+          <Button variant="secondary" disabled>
             불러오는 중...
-          </button>
+          </Button>
         ),
       }
       : syncState === 'empty'
@@ -105,13 +102,9 @@ export default function DashboardPage() {
             </>
           ),
           action: (
-            <button
-              className={styles.heroAction}
-              type="button"
-              onClick={() => setCsvModalOpen(true)}
-            >
+            <Button onClick={() => setCsvModalOpen(true)}>
               피보호자 등록하기
-            </button>
+            </Button>
           ),
         }
         : syncState === 'needs_link'
@@ -125,8 +118,8 @@ export default function DashboardPage() {
               </>
             ),
             action: (
-              <Link className={styles.heroAction} href="/my-wards">
-                대상자 연동 현황으로 가기
+              <Link href="/my-wards">
+                <Button>대상자 연동 현황으로 가기</Button>
               </Link>
             ),
           }
@@ -140,45 +133,123 @@ export default function DashboardPage() {
               </>
             ),
             action: (
-              <Link className={styles.heroAction} href="/beneficiaries">
-                전체 대상자 관리
+              <Link href="/beneficiaries">
+                <Button>전체 대상자 관리</Button>
               </Link>
             ),
           };
 
   return (
-    <SidebarLayout
+    <DashboardLayout
       title="기관 통합 관제"
       csvModalOpen={csvModalOpen}
       onCsvModalOpenChange={setCsvModalOpen}
     >
-      <div className={styles.page}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: spacing['3xl'] }}>
         {error && (
-          <div className={styles.notice}>
-            연동 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
-            <button
-              className={styles.noticeButton}
-              type="button"
-              onClick={() => refetch()}
-            >
+          <div
+            style={{
+              padding: spacing.md,
+              backgroundColor: colors.status.danger.soft,
+              color: colors.status.danger.main,
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span>연동 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</span>
+            <Button variant="danger" size="sm" onClick={() => refetch()}>
               다시 시도
-            </button>
+            </Button>
           </div>
         )}
-        <section className={styles.hero}>
-          <div className={styles.heroGlow} />
-          <div className={styles.heroContent}>
-            <div className={styles.heroBadge}>
-              <span className={styles.heroPill}>NEW</span>
-              <span className={styles.heroBadgeText}>시스템 설정 완료</span>
+
+        {/* Hero Section */}
+        <section
+          style={{
+            position: 'relative',
+            background: `linear-gradient(135deg, ${colors.primary.main} 0%, ${colors.primary.dark} 100%)`,
+            borderRadius: '24px',
+            padding: spacing['3xl'],
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            overflow: 'hidden',
+          }}
+        >
+          {/* Background Glow */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-50%',
+              right: '-10%',
+              width: '500px',
+              height: '500px',
+              background: 'radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%)',
+              borderRadius: '50%',
+              pointerEvents: 'none',
+            }}
+          />
+
+          <div style={{ position: 'relative', zIndex: 1, maxWidth: '600px' }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: spacing.sm,
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                padding: '4px 12px',
+                borderRadius: '999px',
+                marginBottom: spacing.lg,
+              }}
+            >
+              <span
+                style={{
+                  backgroundColor: '#fff',
+                  color: colors.primary.main,
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                }}
+              >
+                NEW
+              </span>
+              <span style={{ fontSize: '13px', fontWeight: 600 }}>시스템 설정 완료</span>
             </div>
-            <h1 className={styles.heroTitle}>{heroCopy.title}</h1>
-            <p className={styles.heroDesc}>{heroCopy.desc}</p>
+            <h1
+              style={{
+                fontSize: typography.fontSize.h1,
+                fontWeight: typography.fontWeight.black,
+                marginBottom: spacing.md,
+                lineHeight: 1.2,
+              }}
+            >
+              {heroCopy.title}
+            </h1>
+            <p
+              style={{
+                fontSize: typography.fontSize.body,
+                opacity: 0.9,
+                lineHeight: 1.6,
+              }}
+            >
+              {heroCopy.desc}
+            </p>
           </div>
-          {heroCopy.action}
+          <div style={{ position: 'relative', zIndex: 1 }}>{heroCopy.action}</div>
         </section>
 
-        <section className={styles.featureGrid}>
+        {/* Feature Grid */}
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: spacing.xl,
+          }}
+        >
           <FeatureCard
             icon={<MonitorPlay size={22} />}
             cornerIcon={<Grid2x2 size={76} />}
@@ -197,11 +268,28 @@ export default function DashboardPage() {
           />
         </section>
 
+        {/* Stats Section */}
         <section>
-          <h2 className={styles.sectionTitle}>
-            <Sparkles size={18} color="#f59e0b" /> 금일현황
+          <h2
+            style={{
+              fontSize: typography.fontSize.h2,
+              fontWeight: typography.fontWeight.bold,
+              color: colors.text.primary,
+              marginBottom: spacing.lg,
+              display: 'flex',
+              alignItems: 'center',
+              gap: spacing.sm,
+            }}
+          >
+            <Sparkles size={18} color={colors.semantic.warning} fill={colors.semantic.warning} /> 금일현황
           </h2>
-          <div className={styles.statsGrid}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: spacing.lg,
+            }}
+          >
             <StatCard
               label="총 등록 대상"
               value="120"
@@ -235,24 +323,60 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className={styles.empty}>
-          <div className={styles.emptyIcon}>
+        {/* Current Call (Empty State) */}
+        <section
+          style={{
+            backgroundColor: '#F3F4F6',
+            borderRadius: '24px',
+            padding: spacing['3xl'],
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.lg,
+            border: `1px dashed ${colors.border.strong}`,
+          }}
+        >
+          <div
+            style={{
+              width: '64px',
+              height: '64px',
+              backgroundColor: '#E5E7EB',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#9CA3AF',
+            }}
+          >
             <Phone size={32} />
           </div>
-          <h3 className={styles.emptyTitle}>아직 진행된 통화가 없습니다.</h3>
-          <p className={styles.emptyDesc}>
-            설정하신 시간에 AI가 자동으로 전화를 걸기 시작합니다.
-            <br />
-            혹은 <strong>[모니터링 뷰]</strong>에서 수동으로 연결할 수 있습니다.
-          </p>
-          <button className={styles.emptyAction} type="button">
-            AI 강제 실행하기 (즉시 시작)
-          </button>
+          <div>
+            <h3
+              style={{
+                fontSize: typography.fontSize.value,
+                fontWeight: typography.fontWeight.bold,
+                color: colors.text.primary,
+                marginBottom: spacing.sm,
+              }}
+            >
+              아직 진행된 통화가 없습니다.
+            </h3>
+            <p style={{ color: colors.text.muted, lineHeight: 1.5 }}>
+              설정하신 시간에 AI가 자동으로 전화를 걸기 시작합니다.
+              <br />
+              혹은 <strong>[모니터링 뷰]</strong>에서 수동으로 연결할 수 있습니다.
+            </p>
+          </div>
+          <Button variant="ghost">AI 강제 실행하기 (즉시 시작)</Button>
         </section>
       </div>
-    </SidebarLayout>
+    </DashboardLayout>
   );
 }
+
+// --- Local Components (using Shared Components) ---
 
 function FeatureCard({
   icon,
@@ -261,16 +385,91 @@ function FeatureCard({
   description,
   actionLabel,
   href,
-}: FeatureCardProps) {
+}: {
+  icon: ReactNode;
+  cornerIcon: ReactNode;
+  title: string;
+  description: string;
+  actionLabel: string;
+  href: string;
+}) {
   return (
-    <Link className={styles.featureCard} href={href}>
-      <div className={styles.featureCorner}>{cornerIcon}</div>
-      <div className={styles.featureIcon}>{icon}</div>
-      <h3 className={styles.featureTitle}>{title}</h3>
-      <p className={styles.featureDesc}>{description}</p>
-      <span className={styles.featureAction}>
-        {actionLabel} <ArrowRight size={14} />
-      </span>
+    <Link href={href} style={{ textDecoration: 'none', display: 'block' }}>
+      <Card
+        hoverable
+        style={{
+          position: 'relative',
+          height: '100%',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-start',
+          gap: spacing.md,
+        }}
+        padding="lg"
+      >
+        <div
+          style={{
+            position: 'absolute',
+            top: '-20px',
+            right: '-20px',
+            opacity: 0.1,
+            color: colors.primary.main,
+            transform: 'rotate(-10deg)',
+          }}
+        >
+          {cornerIcon}
+        </div>
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '12px',
+            backgroundColor: colors.background.elevated2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: colors.primary.dark,
+          }}
+        >
+          {icon}
+        </div>
+        <div>
+          <h3
+            style={{
+              fontSize: typography.fontSize.value,
+              fontWeight: typography.fontWeight.bold,
+              marginBottom: spacing.xs,
+              color: colors.text.primary,
+            }}
+          >
+            {title}
+          </h3>
+          <p
+            style={{
+              fontSize: typography.fontSize.body,
+              color: colors.text.secondary,
+              lineHeight: 1.5,
+              marginBottom: spacing.md,
+            }}
+          >
+            {description}
+          </p>
+        </div>
+        <div
+          style={{
+            marginTop: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            gap: spacing.xs,
+            fontSize: typography.fontSize.label,
+            fontWeight: typography.fontWeight.semibold,
+            color: colors.primary.main,
+          }}
+        >
+          {actionLabel} <ArrowRight size={16} />
+        </div>
+      </Card>
     </Link>
   );
 }
@@ -282,18 +481,87 @@ function StatCard({
   icon,
   badge,
   tone,
-}: StatCardProps) {
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  icon: ReactNode;
+  badge?: string;
+  tone: 'dark' | 'muted' | 'primary' | 'warning';
+}) {
+  const getToneColor = () => {
+    switch (tone) {
+      case 'dark':
+        return { bg: colors.primary.dark, text: '#fff' };
+      case 'muted':
+        return { bg: colors.background.elevated2, text: colors.text.muted };
+      case 'primary':
+        return { bg: colors.primary.light, text: colors.primary.dark };
+      case 'warning':
+        return { bg: colors.semantic.warning, text: '#fff' };
+    }
+  };
+  const toneStyle = getToneColor();
+
   return (
-    <div className={styles.statCard}>
-      <div className={styles.statTop}>
-        <div className={`${styles.statIcon} ${toneClass[tone]}`}>{icon}</div>
-        {badge ? <span className={styles.statBadge}>{badge}</span> : null}
+    <Card padding="md">
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            borderRadius: '10px',
+            backgroundColor: toneStyle.bg,
+            color: toneStyle.text,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {icon}
+        </div>
+        {badge && (
+          <Badge
+            variant={tone === 'primary' ? 'success' : 'default'}
+            size="sm"
+            className="self-start"
+          >
+            {badge}
+          </Badge>
+        )}
       </div>
-      <div className={styles.statLabel}>{label}</div>
-      <div className={styles.statValue}>
-        <strong className={styles.statValueNumber}>{value}</strong>
-        <span className={styles.statValueUnit}>{unit}</span>
+      <div>
+        <div
+          style={{
+            fontSize: typography.fontSize.caption,
+            color: colors.text.muted,
+            marginBottom: '2px',
+            fontWeight: 500,
+          }}
+        >
+          {label}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '2px' }}>
+          <strong
+            style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              color: colors.text.primary,
+            }}
+          >
+            {value}
+          </strong>
+          <span
+            style={{
+              fontSize: typography.fontSize.small,
+              color: colors.text.soft,
+              fontWeight: 600,
+            }}
+          >
+            {unit}
+          </span>
+        </div>
       </div>
-    </div>
+    </Card>
   );
 }

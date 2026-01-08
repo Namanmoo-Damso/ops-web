@@ -1,0 +1,286 @@
+/* ========================================
+   UI Components Styles
+   Replaces missing Tailwind utility classes
+   ======================================== */
+
+/* --- Card --- */
+.ui-card {
+    background-color: white;
+    border: 1px solid var(--color-border);
+    transition: all 150ms ease;
+    box-shadow: var(--shadow-sm);
+    display: block;
+}
+
+.ui-card-radius-default {
+    border-radius: var(--card-radius);
+}
+
+.ui-card-radius-large {
+    border-radius: var(--card-radius-large);
+}
+
+.ui-card-padding-none {
+    padding: 0;
+}
+
+.ui-card-padding-sm {
+    padding: var(--spacing-lg);
+}
+
+/* 16px */
+.ui-card-padding-md {
+    padding: var(--card-padding);
+}
+
+/* 20px */
+.ui-card-padding-lg {
+    padding: var(--card-padding-large);
+}
+
+/* 28px */
+
+.ui-card-hoverable {
+    cursor: pointer;
+}
+
+.ui-card-hoverable:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-border-strong);
+}
+
+.ui-card-header {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.ui-card-header.padding-none {
+    padding: 20px 20px 16px;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.ui-card-footer {
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
+}
+
+.ui-card-footer.padding-none {
+    padding: 16px 20px 20px;
+    margin-top: 0;
+    border-top: 1px solid var(--color-border);
+}
+
+/* --- Button --- */
+.ui-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--button-radius);
+    transition: all 150ms ease;
+    border: 1px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ui-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ui-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+/* Variants */
+.ui-btn-primary {
+    background-color: var(--color-primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.ui-btn-primary:not(:disabled):hover {
+    background-color: var(--color-primary-dark);
+}
+
+.ui-btn-primary:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+.ui-btn-secondary {
+    background-color: var(--color-bg-elevated-1);
+    color: var(--color-text-primary);
+    border-color: var(--color-border);
+}
+
+.ui-btn-secondary:not(:disabled):hover {
+    background-color: var(--color-bg-elevated-2);
+    border-color: var(--color-border-strong);
+}
+
+.ui-btn-secondary:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+.ui-btn-danger {
+    background-color: var(--color-danger-main);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+.ui-btn-danger:not(:disabled):hover {
+    background-color: #dc2626;
+    /* darker red */
+}
+
+.ui-btn-danger:not(:disabled):active {
+    transform: scale(0.98);
+}
+
+.ui-btn-ghost {
+    background-color: transparent;
+    color: var(--color-text-primary);
+}
+
+.ui-btn-ghost:not(:disabled):hover {
+    background-color: var(--color-bg-elevated-1);
+}
+
+.ui-btn-ghost:not(:disabled):active {
+    background-color: var(--color-bg-elevated-2);
+}
+
+/* Sizes */
+.ui-btn-sm {
+    height: 36px;
+    padding: 0 var(--spacing-md);
+    font-size: var(--font-size-caption);
+}
+
+.ui-btn-md {
+    height: var(--button-min-height);
+    padding: 0 var(--spacing-lg);
+    font-size: var(--button-font-size);
+}
+
+.ui-btn-lg {
+    height: 48px;
+    padding: 0 var(--spacing-2xl);
+    font-size: var(--button-font-size-large);
+}
+
+.ui-btn-full {
+    width: 100%;
+}
+
+/* --- Badge --- */
+.ui-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: var(--font-weight-bold);
+    border-radius: var(--radius-full);
+    border: 1px solid transparent;
+    transition: colors 150ms;
+}
+
+/* Variants */
+.ui-badge-default {
+    background-color: var(--color-accent-soft);
+    color: var(--color-accent-strong);
+    border-color: var(--color-primary-light);
+}
+
+.ui-badge-warning {
+    background-color: var(--color-warning-soft);
+    color: #c2410c;
+    border-color: #fed7aa;
+}
+
+.ui-badge-danger {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger-main);
+    border-color: var(--color-danger-border);
+}
+
+.ui-badge-success {
+    background-color: var(--color-success-soft);
+    color: var(--color-success-dark);
+    border-color: #a7f3d0;
+}
+
+.ui-badge-info {
+    background-color: #e0ecff;
+    color: var(--color-primary);
+    border-color: #cbdafe;
+}
+
+/* Sizes */
+.ui-badge-sm {
+    padding: 2px 8px;
+    font-size: 10px;
+}
+
+.ui-badge-md {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.ui-badge-lg {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+
+/* Dot */
+.ui-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+
+.dot-default {
+    background-color: var(--color-accent-strong);
+}
+
+.dot-warning {
+    background-color: #c2410c;
+}
+
+.dot-danger {
+    background-color: var(--color-danger-main);
+}
+
+.dot-success {
+    background-color: var(--color-success-main);
+}
+
+.dot-info {
+    background-color: var(--color-primary);
+}
+
+/* --- Spinner --- */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ui-spinner {
+    animation: spin 1s linear infinite;
+}
+
+.ui-spinner-track {
+    opacity: 0.25;
+}
+
+.ui-spinner-path {
+    opacity: 0.75;
+}

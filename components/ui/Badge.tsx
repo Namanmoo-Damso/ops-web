@@ -31,72 +31,41 @@ const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
     },
     ref,
   ) => {
-    const baseStyles = cn(
-      'inline-flex items-center gap-1.5',
-      'font-bold',
-      'rounded-full',
-      'border',
-      'transition-colors duration-150',
-    );
+    const baseStyles = cn('ui-badge', className);
 
     const variantStyles: Record<BadgeVariant, string> = {
-      default: cn(
-        'bg-[var(--color-accent-soft)]',
-        'text-[var(--color-accent-strong)]',
-        'border-[var(--color-primary-light)]',
-      ),
-
-      warning: cn(
-        'bg-[var(--color-warning-soft)]',
-        'text-[#c2410c]',
-        'border-[#fed7aa]',
-      ),
-
-      danger: cn(
-        'bg-[var(--color-danger-soft)]',
-        'text-[var(--color-danger-main)]',
-        'border-[var(--color-danger-border)]',
-      ),
-
-      success: cn(
-        'bg-[var(--color-success-soft)]',
-        'text-[var(--color-success-dark)]',
-        'border-[#a7f3d0]',
-      ),
-
-      info: cn(
-        'bg-[#e0ecff]',
-        'text-[var(--color-primary)]',
-        'border-[#cbdafe]',
-      ),
+      default: 'ui-badge-default',
+      warning: 'ui-badge-warning',
+      danger: 'ui-badge-danger',
+      success: 'ui-badge-success',
+      info: 'ui-badge-info',
     };
 
     const sizeStyles: Record<BadgeSize, string> = {
-      sm: 'px-2 py-0.5 text-xs',   // 10px
-      md: 'px-2.5 py-1 text-xs',   // 12px
-      lg: 'px-3 py-1.5 text-sm',   // 14px
+      sm: 'ui-badge-sm',
+      md: 'ui-badge-md',
+      lg: 'ui-badge-lg',
     };
 
     const dotColors: Record<BadgeVariant, string> = {
-      default: 'bg-[var(--color-accent-strong)]',
-      warning: 'bg-[#c2410c]',
-      danger: 'bg-[var(--color-danger-main)]',
-      success: 'bg-[var(--color-success-main)]',
-      info: 'bg-[var(--color-primary)]',
+      default: 'dot-default',
+      warning: 'dot-warning',
+      danger: 'dot-danger',
+      success: 'dot-success',
+      info: 'dot-info',
     };
 
     const combinedClassName = cn(
       baseStyles,
       variantStyles[variant],
       sizeStyles[size],
-      className,
     );
 
     return (
       <span ref={ref} className={combinedClassName} {...props}>
         {dot && (
           <span
-            className={cn('w-1.5 h-1.5 rounded-full', dotColors[variant])}
+            className={cn('ui-badge-dot', dotColors[variant])}
             aria-hidden="true"
           />
         )}
