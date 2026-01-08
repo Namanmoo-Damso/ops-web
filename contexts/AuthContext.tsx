@@ -9,7 +9,7 @@ import {
     type ReactNode,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { AdminInfo } from '../types/admin';
+import { Admin } from '../types/models';
 
 /** Authentication context value */
 export interface AuthContextValue {
@@ -18,11 +18,11 @@ export interface AuthContextValue {
     /** Whether user is authenticated */
     isAuthenticated: boolean;
     /** Current user info */
-    user: AdminInfo | null;
+    user: Admin | null;
     /** Current access token */
     token: string | null;
     /** Login and store credentials */
-    login: (token: string, refreshToken: string, user: AdminInfo) => void;
+    login: (token: string, refreshToken: string, user: Admin) => void;
     /** Logout and clear credentials */
     logout: () => void;
 }
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<AdminInfo | null>(null);
+    const [user, setUser] = useState<Admin | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
     // Initialize auth state from localStorage (client-side only)
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }, [router]);
 
     const login = useCallback(
-        (accessToken: string, refreshToken: string, userInfo: AdminInfo) => {
+        (accessToken: string, refreshToken: string, userInfo: Admin) => {
             localStorage.setItem(STORAGE_KEYS.accessToken, accessToken);
             localStorage.setItem(STORAGE_KEYS.refreshToken, refreshToken);
             localStorage.setItem(STORAGE_KEYS.userInfo, JSON.stringify(userInfo));

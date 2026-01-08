@@ -37,3 +37,10 @@ export type RoomsSummary = {
   totalParticipants: number;
   rooms: Room[];
 };
+
+export type RoomConnection = {
+  roomName: string;
+  token: string;
+  serverUrl: string;
+  connected: boolean;
+};
