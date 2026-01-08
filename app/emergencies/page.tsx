@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { palette } from '../theme';
 import { LocationMap, type WardLocation } from '../../components/LocationMap';
+import { useApi } from '../../hooks/useApi';
+import { apiClient, AuthError } from '../../lib/api-client';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const borderStyle = `1px solid ${palette.border}`;
 
 type Emergency = {
@@ -21,6 +22,10 @@ type Emergency = {
   createdAt: string;
   resolvedAt: string | null;
   respondedAgencies: string[];
+};
+
+type EmergenciesResponse = {
+  emergencies: Emergency[];
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -43,61 +48,36 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function EmergenciesPage() {
-  const [emergencies, setEmergencies] = useState<Emergency[]>([]);
   const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(
     null,
   );
   const [filterStatus, setFilterStatus] = useState<string>('active');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchEmergencies = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      const url = filterStatus
-        ? `${API_BASE}/v1/admin/emergencies?status=${filterStatus}`
-        : `${API_BASE}/v1/admin/emergencies`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      setEmergencies(data.emergencies || []);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filterStatus]);
+  const { data, loading, error, refetch } = useApi<EmergenciesResponse>({
+    deps: [filterStatus, refreshKey],
+    fetcher: (client, signal) => {
+      const params = new URLSearchParams();
+      if (filterStatus) params.set('status', filterStatus);
+      return client.get(`/v1/admin/emergencies?${params.toString()}`, { signal });
+    },
+  });
+
+  const emergencies = data?.emergencies || [];
 
   useEffect(() => {
-    fetchEmergencies();
-
     let interval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
-      interval = setInterval(fetchEmergencies, 10000);
+      interval = setInterval(() => {
+        setRefreshKey(prev => prev + 1);
+      }, 10000);
     }
-
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fetchEmergencies, autoRefresh]);
+  }, [autoRefresh]);
 
   const handleResolve = async (
     emergencyId: string,
@@ -107,36 +87,14 @@ export default function EmergenciesPage() {
     setIsResolving(true);
 
     try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      const response = await fetch(
-        `${API_BASE}/v1/admin/emergencies/${emergencyId}/resolve`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status }),
-        },
-      );
+      await apiClient.put(`/v1/admin/emergencies/${emergencyId}/resolve`, {
+        status,
+      });
 
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      await fetchEmergencies();
+      refetch();
       setSelectedEmergencyId(null);
     } catch (err) {
+      if (err instanceof AuthError) throw err;
       alert(`해결 처리 실패: ${(err as Error).message}`);
     } finally {
       setIsResolving(false);
@@ -162,6 +120,13 @@ export default function EmergenciesPage() {
       status: e.status === 'active' ? 'emergency' : 'normal',
       organizationId: null,
     }));
+
+  const isLoading = loading && !data;
+
+  // Manual refresh handler
+  const handleManualRefresh = () => {
+    refetch();
+  };
 
   return (
     <SidebarLayout>
@@ -274,19 +239,21 @@ export default function EmergenciesPage() {
               </span>
             </label>
             <button
-              onClick={fetchEmergencies}
+              onClick={handleManualRefresh}
+              disabled={loading}
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: palette.primary,
-                color: 'white',
+                backgroundColor: loading ? palette.soft : palette.primary,
+                color: loading ? palette.textMuted : 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
+                transition: 'all 0.2s',
               }}
             >
-              새로고침
+              {loading ? '로딩 중...' : '새로고침'}
             </button>
           </div>
 
