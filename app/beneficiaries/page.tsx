@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { palette, shadows } from '../theme';
 import { useApi } from '../../hooks/useApi';
-import { apiClient } from '../../lib/api-client';
+import { apiClient, AuthError } from '../../lib/api-client';
 import { useAuth } from '../../hooks/useAuth';
 import DetailModal, {
   type BeneficiaryDetail,
@@ -141,8 +141,8 @@ export default function BeneficiariesPage() {
       setSelectedId(null);
       setRefreshKey(prev => prev + 1);
     } catch (err) {
+      if (err instanceof AuthError) throw err;
       console.error('Delete beneficiary failed.', err);
-      // apiClient handles AuthError (redirects), so we verify other errors here
       setDeleteError('삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       setDeleteLoading(false);
@@ -163,6 +163,7 @@ export default function BeneficiariesPage() {
       setRefreshKey(prev => prev + 1);
       return result.data;
     } catch (err) {
+      if (err instanceof AuthError) throw err;
       console.error('Update beneficiary failed.', err);
       throw new Error('정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
@@ -791,7 +792,7 @@ function BeneficiaryTable({
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
   if (status === 'WARNING') {
     return (
       <span
@@ -816,11 +817,11 @@ function StatusBadge({ status }: { status: string }) {
           display: 'inline-flex',
           padding: '4px 8px',
           borderRadius: '999px',
-          backgroundColor: '#fffbeb',
-          color: '#d97706',
+          backgroundColor: palette.warningSoft,
+          color: palette.warning,
           fontSize: '11px',
           fontWeight: 800,
-          border: '1px solid #fcd34d',
+          border: `1px solid ${palette.warning}`,
         }}
       >
         주의
@@ -844,8 +845,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function ProfileCircle({ status, name }: { status: string; name: string }) {
-  const initial = name.slice(0, 1);
+function ProfileCircle({
+  status,
+  name,
+}: {
+  status: 'WARNING' | 'NORMAL' | 'CAUTION';
+  name: string;
+}) {
+  const initial = name ? name.slice(0, 1) : '?';
   const bgColor =
     status === 'WARNING'
       ? palette.danger
