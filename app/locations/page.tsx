@@ -1,12 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import SidebarLayout from '../../components/SidebarLayout';
-import { palette } from '../theme';
+import DashboardLayout from '../../components/layouts/DashboardLayout';
+
 import { LocationMap, type WardLocation } from '../../components/LocationMap';
 import { useApi } from '../../hooks/useApi';
 
-const borderStyle = `1px solid ${palette.border}`;
+
 
 type LocationsResponse = {
   locations: WardLocation[];
@@ -58,7 +58,7 @@ export default function LocationsPage() {
   };
 
   return (
-    <SidebarLayout>
+    <DashboardLayout>
       <div
         style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 80px)' }}
       >
@@ -68,7 +68,7 @@ export default function LocationsPage() {
             width: '340px',
             backgroundColor: 'white',
             borderRadius: '12px',
-            border: borderStyle,
+            border: "1px solid var(--color-border)",
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
@@ -79,7 +79,7 @@ export default function LocationsPage() {
           <div
             style={{
               padding: '20px',
-              borderBottom: borderStyle,
+              borderBottom: "1px solid var(--color-border)",
             }}
           >
             <h2
@@ -87,13 +87,13 @@ export default function LocationsPage() {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 700,
-                color: palette.primaryDark,
+                color: "var(--color-primary-dark)",
               }}
             >
               실시간 위치 현황
             </h2>
             <p
-              style={{ margin: '6px 0 0', fontSize: '14px', color: palette.textMuted }}
+              style={{ margin: '6px 0 0', fontSize: '14px', color: "var(--color-text-muted)" }}
             >
               등록된 피보호자: {locations.length}명
             </p>
@@ -105,7 +105,7 @@ export default function LocationsPage() {
               display: 'flex',
               gap: '8px',
               padding: '14px 20px',
-              borderBottom: borderStyle,
+              borderBottom: "1px solid var(--color-border)",
             }}
           >
             <StatusBadge
@@ -132,7 +132,7 @@ export default function LocationsPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: borderStyle,
+              borderBottom: "1px solid var(--color-border)",
             }}
           >
             <label
@@ -145,11 +145,11 @@ export default function LocationsPage() {
                 style={{
                   width: '16px',
                   height: '16px',
-                  accentColor: palette.primary,
+                  accentColor: "var(--color-primary)",
                 }}
               />
               <span
-                style={{ fontSize: '14px', color: palette.primaryDark, fontWeight: 500 }}
+                style={{ fontSize: '14px', color: "var(--color-primary-dark)", fontWeight: 500 }}
               >
                 자동 새로고침
               </span>
@@ -160,8 +160,8 @@ export default function LocationsPage() {
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: loading ? palette.soft : palette.primary,
-                color: loading ? palette.textMuted : 'white',
+                backgroundColor: loading ? "var(--color-accent-soft)" : "var(--color-primary)",
+                color: loading ? "var(--color-text-muted)" : 'white',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: loading ? 'not-allowed' : 'pointer',
@@ -180,7 +180,7 @@ export default function LocationsPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: palette.textMuted,
+                  color: "var(--color-text-muted)",
                 }}
               >
                 로딩 중...
@@ -200,7 +200,7 @@ export default function LocationsPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: palette.textMuted,
+                  color: "var(--color-text-muted)",
                 }}
               >
                 등록된 위치 정보가 없습니다.
@@ -222,8 +222,8 @@ export default function LocationsPage() {
             <div
               style={{
                 padding: '20px',
-                borderTop: borderStyle,
-                backgroundColor: palette.background,
+                borderTop: "1px solid var(--color-border)",
+                backgroundColor: "var(--color-bg)",
               }}
             >
               <h3
@@ -231,7 +231,7 @@ export default function LocationsPage() {
                   margin: '0 0 14px',
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: palette.primaryDark,
+                  color: "var(--color-primary-dark)",
                 }}
               >
                 {selectedLocation.wardName}
@@ -239,23 +239,23 @@ export default function LocationsPage() {
               <div
                 style={{
                   fontSize: '13px',
-                  color: palette.primaryDark,
+                  color: "var(--color-primary-dark)",
                   lineHeight: '1.9',
                 }}
               >
                 <div>
-                  <strong style={{ color: palette.primaryDark }}>위치:</strong>{' '}
+                  <strong style={{ color: "var(--color-primary-dark)" }}>위치:</strong>{' '}
                   {selectedLocation.latitude.toFixed(6)},{' '}
                   {selectedLocation.longitude.toFixed(6)}
                 </div>
                 {selectedLocation.accuracy && (
                   <div>
-                    <strong style={{ color: palette.primaryDark }}>정확도:</strong>{' '}
+                    <strong style={{ color: "var(--color-primary-dark)" }}>정확도:</strong>{' '}
                     {selectedLocation.accuracy.toFixed(1)}m
                   </div>
                 )}
                 <div>
-                  <strong style={{ color: palette.primaryDark }}>마지막 업데이트:</strong>{' '}
+                  <strong style={{ color: "var(--color-primary-dark)" }}>마지막 업데이트:</strong>{' '}
                   {new Date(selectedLocation.lastUpdated).toLocaleString(
                     'ko-KR',
                   )}
@@ -271,7 +271,7 @@ export default function LocationsPage() {
             flex: 1,
             borderRadius: '12px',
             overflow: 'hidden',
-            border: borderStyle,
+            border: "1px solid var(--color-border)",
           }}
         >
           <LocationMap
@@ -281,7 +281,7 @@ export default function LocationsPage() {
           />
         </main>
       </div>
-    </SidebarLayout>
+    </DashboardLayout>
   );
 }
 
@@ -314,7 +314,7 @@ function StatusBadge({
           backgroundColor: color,
         }}
       />
-      <span style={{ fontSize: '13px', color: palette.primaryDark, fontWeight: 500 }}>
+      <span style={{ fontSize: '13px', color: "var(--color-primary-dark)", fontWeight: 500 }}>
         {label}: {count}
       </span>
     </div>
@@ -349,13 +349,13 @@ function WardListItem({
         padding: '14px 20px',
         border: 'none',
         borderBottom: '1px solid #F0F5E8',
-        backgroundColor: isSelected ? palette.soft : 'transparent',
+        backgroundColor: isSelected ? "var(--color-accent-soft)" : 'transparent',
         cursor: 'pointer',
         textAlign: 'left',
         transition: 'background 150ms ease',
       }}
       onMouseEnter={e =>
-        !isSelected && (e.currentTarget.style.backgroundColor = palette.background)
+        !isSelected && (e.currentTarget.style.backgroundColor = "var(--color-bg)")
       }
       onMouseLeave={e =>
         !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')
@@ -383,13 +383,13 @@ function WardListItem({
           style={{
             fontWeight: isSelected ? 600 : 500,
             fontSize: '14px',
-            color: palette.primaryDark,
+            color: "var(--color-primary-dark)",
             marginBottom: '4px',
           }}
         >
           {location.wardName}
         </div>
-        <div style={{ fontSize: '12px', color: palette.textMuted }}>{timeAgo}</div>
+        <div style={{ fontSize: '12px', color: "var(--color-text-muted)" }}>{timeAgo}</div>
       </div>
       <div
         style={{
