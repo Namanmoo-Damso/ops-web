@@ -54,10 +54,8 @@ export default function EmergenciesPage() {
   const [filterStatus, setFilterStatus] = useState<string>('active');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-
   const { data, loading, error, refetch } = useApi<EmergenciesResponse>({
-    deps: [filterStatus, refreshKey],
+    deps: [filterStatus],
     fetcher: (client, signal) => {
       const params = new URLSearchParams();
       if (filterStatus) params.set('status', filterStatus);
@@ -71,13 +69,13 @@ export default function EmergenciesPage() {
     let interval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
       interval = setInterval(() => {
-        setRefreshKey(prev => prev + 1);
+        refetch();
       }, 10000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [autoRefresh]);
+  }, [autoRefresh, refetch]);
 
   const handleResolve = async (
     emergencyId: string,
@@ -94,7 +92,20 @@ export default function EmergenciesPage() {
       refetch();
       setSelectedEmergencyId(null);
     } catch (err) {
-      if (err instanceof AuthError) throw err;
+      if (err instanceof AuthError) {
+        // Redirect will be handled by apiClient? 
+        // No, direct apiClient usage needs manual handling if not globally caught. 
+        // But apiClient throws AuthError. We should probably let it bubble or handle it.
+        // Review feedback says "missing logic". 
+        // Let's call the standard auth handler manually or re-throw if we trust global handler.
+        // Assuming we should just alert for now or redirect if crucial.
+        // Let's follow the pattern: useAuth().logout() or similar? 
+        // Re-reading feedback: "AuthError 재발생 시 사용자 경험 문제" -> User doesn't know what happened.
+        // We should just let it be caught by the error boundary or alert "Session expired".
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
+        window.location.href = '/login';
+        return;
+      }
       alert(`해결 처리 실패: ${(err as Error).message}`);
     } finally {
       setIsResolving(false);
@@ -124,7 +135,7 @@ export default function EmergenciesPage() {
   const isLoading = loading && !data;
 
   // Manual refresh handler
-  const handleManualRefresh = () => {
+  const handleRefresh = () => {
     refetch();
   };
 
@@ -239,7 +250,7 @@ export default function EmergenciesPage() {
               </span>
             </label>
             <button
-              onClick={handleManualRefresh}
+              onClick={handleRefresh}
               disabled={loading}
               style={{
                 padding: '8px 14px',

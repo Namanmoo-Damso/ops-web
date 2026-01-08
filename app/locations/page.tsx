@@ -15,10 +15,8 @@ type LocationsResponse = {
 export default function LocationsPage() {
   const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-
   const { data, loading, error, refetch } = useApi<LocationsResponse>({
-    deps: [refreshKey],
+    deps: [],
     fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
   });
 
@@ -28,13 +26,13 @@ export default function LocationsPage() {
     let interval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
       interval = setInterval(() => {
-        setRefreshKey(prev => prev + 1);
+        refetch();
       }, 30000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [autoRefresh]);
+  }, [autoRefresh, refetch]);
 
   const handleWardClick = useCallback((wardId: string) => {
     setSelectedWardId(wardId);
@@ -55,7 +53,7 @@ export default function LocationsPage() {
   const isLoading = loading && !data;
 
   // Manual refresh handler
-  const handleManualRefresh = () => {
+  const handleRefresh = () => {
     refetch();
   };
 
@@ -157,7 +155,7 @@ export default function LocationsPage() {
               </span>
             </label>
             <button
-              onClick={handleManualRefresh}
+              onClick={handleRefresh}
               disabled={loading}
               style={{
                 padding: '8px 14px',
