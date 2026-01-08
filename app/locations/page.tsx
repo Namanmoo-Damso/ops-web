@@ -4,60 +4,35 @@ import { useCallback, useEffect, useState } from 'react';
 import SidebarLayout from '../../components/SidebarLayout';
 import { palette } from '../theme';
 import { LocationMap, type WardLocation } from '../../components/LocationMap';
+import { useApi } from '../../hooks/useApi';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const borderStyle = `1px solid ${palette.border}`;
 
-export default function LocationsPage() {
-  const [locations, setLocations] = useState<WardLocation[]>([]);
-  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+type LocationsResponse = {
+  locations: WardLocation[];
+};
 
-  const fetchLocations = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      const response = await fetch(`${API_BASE}/v1/admin/locations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      setLocations(data.locations || []);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+export default function LocationsPage() {
+  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const { data, loading, error, refetch } = useApi<LocationsResponse>({
+    deps: [],
+    fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
+  });
+
+  const locations = data?.locations || [];
 
   useEffect(() => {
-    fetchLocations();
-
-    // Auto refresh every 30 seconds
     let interval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
-      interval = setInterval(fetchLocations, 30000);
+      interval = setInterval(() => {
+        refetch();
+      }, 30000);
     }
-
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fetchLocations, autoRefresh]);
+  }, [autoRefresh, refetch]);
 
   const handleWardClick = useCallback((wardId: string) => {
     setSelectedWardId(wardId);
@@ -74,6 +49,13 @@ export default function LocationsPage() {
     },
     { normal: 0, warning: 0, emergency: 0 } as Record<string, number>,
   );
+
+  const isLoading = loading && !data;
+
+  // Manual refresh handler
+  const handleRefresh = () => {
+    refetch();
+  };
 
   return (
     <SidebarLayout>
@@ -173,19 +155,21 @@ export default function LocationsPage() {
               </span>
             </label>
             <button
-              onClick={fetchLocations}
+              onClick={handleRefresh}
+              disabled={loading}
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: palette.primary,
-                color: 'white',
+                backgroundColor: loading ? palette.soft : palette.primary,
+                color: loading ? palette.textMuted : 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
+                transition: 'all 0.2s',
               }}
             >
-              새로고침
+              {loading ? '로딩 중...' : '새로고침'}
             </button>
           </div>
 
