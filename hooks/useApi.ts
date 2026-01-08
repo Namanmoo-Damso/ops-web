@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { apiClient, ApiError, AuthError } from '../lib/api-client';
 
 /**
@@ -56,11 +55,11 @@ export function useApi<T>({
     deps,
     skip = false,
 }: UseApiOptions<T>): UseApiResult<T> {
-    const router = useRouter();
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(!skip);
     const [error, setError] = useState<string | null>(null);
     const requestSeqRef = useRef(0);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     const execute = useCallback(async (signal: AbortSignal) => {
         if (skip) {
@@ -98,17 +97,26 @@ export function useApi<T>({
                 setLoading(false);
             }
         }
-    }, [fetcher, skip, router]);
+    }, [fetcher, skip]);
 
     useEffect(() => {
         const controller = new AbortController();
+        abortControllerRef.current = controller;
         execute(controller.signal);
-        return () => controller.abort();
+        return () => {
+            controller.abort();
+            abortControllerRef.current = null;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, deps);
 
     const refetch = useCallback(() => {
+        // Cancel previous request if still pending
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
         const controller = new AbortController();
+        abortControllerRef.current = controller;
         execute(controller.signal);
     }, [execute]);
 
