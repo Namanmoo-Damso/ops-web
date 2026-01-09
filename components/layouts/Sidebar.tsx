@@ -103,6 +103,62 @@ const IconEmergency = () => (
     </svg>
 );
 
+const IconStats = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path
+            d="M3 3v18h18"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M7 16l4-4 4 4 6-6"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
+const IconStaff = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path
+            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+        />
+        <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.6" />
+        <path
+            d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+        />
+    </svg>
+);
+
+const IconSettings = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path
+            d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
 const IconMyWards = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.6" />
@@ -173,12 +229,14 @@ const IconLogout = () => (
 
 /** Navigation items configuration */
 const navItems = [
-    { href: '/', label: '모니터링', icon: IconMonitor },
     { href: '/dashboard', label: '대시보드', icon: IconDashboard },
+    { href: '/', label: '영상 모니터링', icon: IconMonitor },
+    { href: '/locations', label: '지도 모니터링', icon: IconLocation },
     { href: '/beneficiaries', label: '전체 대상자 관리', icon: IconBeneficiaries },
     { href: '/my-wards', label: '대상자 연동 현황', icon: IconMyWards },
-    { href: '/locations', label: '위치정보', icon: IconLocation },
-    { href: '/emergencies', label: '비상연락', icon: IconEmergency },
+    { href: '/stats', label: '통계/리포트', icon: IconStats },
+    { href: '/staff', label: '직원관리', icon: IconStaff },
+    { href: '/settings', label: '설정', icon: IconSettings },
 ];
 
 export interface SidebarProps {
@@ -190,6 +248,8 @@ export interface SidebarProps {
     onUploadClick?: () => void;
     /** Callback when logout button is clicked */
     onLogout?: () => void;
+    /** Top offset for header (default: 64px) */
+    headerHeight?: string;
     /** Additional className */
     className?: string;
 }
@@ -198,18 +258,19 @@ const SIDEBAR_WIDTH = '240px';
 
 /**
  * Sidebar component for dashboard navigation
- * 
+ *
  * Damso Design System: Nature Palette, 240px width
+ * Positioned below Header component
  */
 const Sidebar = forwardRef<HTMLElement, SidebarProps>(
-    ({ collapsed = false, onCollapsedChange, onUploadClick, onLogout, className }, ref) => {
+    ({ collapsed = false, onCollapsedChange, onUploadClick, onLogout, headerHeight = '64px', className }, ref) => {
         const pathname = usePathname();
         const router = useRouter();
 
         // Styles using design tokens
         const sidebarStyle: CSSProperties = {
             position: 'fixed',
-            top: 0,
+            top: headerHeight,
             left: 0,
             bottom: 0,
             width: SIDEBAR_WIDTH,
@@ -219,20 +280,13 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
             flexDirection: 'column',
             transform: collapsed ? `translateX(-${SIDEBAR_WIDTH})` : 'translateX(0)',
             transition: 'transform 200ms ease',
-            zIndex: 9999,
-        };
-
-        const logoSectionStyle: CSSProperties = {
-            padding: `${spacing.xl} ${spacing.lg}`,
-            borderBottom: `1px solid ${colors.border.main}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            zIndex: 9998, // Below header (10000)
         };
 
         const navStyle: CSSProperties = {
             flex: 1,
             padding: `${spacing.lg} ${spacing.md}`,
+            paddingTop: spacing.lg,
             display: 'flex',
             flexDirection: 'column',
             gap: spacing.xs,
@@ -251,7 +305,7 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
                         aria-label="사이드바 열기"
                         style={{
                             position: 'fixed',
-                            top: spacing.lg,
+                            top: `calc(${headerHeight} + ${spacing.lg})`,
                             left: spacing.sm,
                             width: '44px',
                             height: '44px',
@@ -263,7 +317,7 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
                             color: colors.text.muted,
                             cursor: 'pointer',
                             boxShadow: shadows.floating,
-                            zIndex: 9999,
+                            zIndex: 9998,
                         }}
                     >
                         <IconMenu />
@@ -272,64 +326,6 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
 
                 {/* Sidebar */}
                 <aside ref={ref} className={cn(className)} style={sidebarStyle}>
-                    {/* Logo */}
-                    <div style={logoSectionStyle}>
-                        <Link
-                            href="/"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: spacing.md,
-                                textDecoration: 'none',
-                            }}
-                        >
-                            <div
-                                style={{
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: borderRadius.sm,
-                                    background: `linear-gradient(135deg, ${colors.primary.main}, ${colors.primary.light})`,
-                                    boxShadow: `0 0 0 3px ${colors.accent.soft}`,
-                                }}
-                            />
-                            <span
-                                style={{
-                                    fontSize: typography.fontSize.value,
-                                    fontWeight: typography.fontWeight.bold,
-                                    color: colors.text.primary,
-                                }}
-                            >
-                                담소 관제센터
-                            </span>
-                        </Link>
-                        <button
-                            onClick={() => onCollapsedChange?.(true)}
-                            aria-label="사이드바 닫기"
-                            style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: borderRadius.sm,
-                                border: 'none',
-                                background: 'transparent',
-                                display: 'grid',
-                                placeItems: 'center',
-                                color: colors.text.soft,
-                                cursor: 'pointer',
-                                transition: 'all 150ms ease',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = colors.background.elevated1;
-                                e.currentTarget.style.color = colors.text.muted;
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.color = colors.text.soft;
-                            }}
-                        >
-                            <IconClose />
-                        </button>
-                    </div>
-
                     {/* Navigation */}
                     <nav style={navStyle}>
                         {navItems.map(item => {
