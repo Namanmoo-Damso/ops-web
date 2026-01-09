@@ -6,6 +6,12 @@ export type RoomEvent = {
   timestamp: string;
 };
 
+export type RoomDangerEvent = {
+  type: 'room-danger';
+  roomName: string;
+  isDanger: boolean;
+};
+
 export type UserEvent = {
   type: 'user-logout' | 'user-deleted';
   identity: string;
@@ -13,7 +19,7 @@ export type UserEvent = {
   timestamp: string;
 };
 
-export type AppEvent = UserEvent | RoomEvent;
+export type AppEvent = UserEvent | RoomEvent | RoomDangerEvent;
 
 export type RoomParticipant = {
   identity: string;

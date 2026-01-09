@@ -10,11 +10,13 @@ import type { MockParticipant } from './ParticipantSidebar';
 type FullScreenVideoProps = {
   participant: MockParticipant;
   videoTrackRef: any;
+  isDanger?: boolean;
 };
 
 export const FullScreenVideo = ({
   participant,
   videoTrackRef,
+  isDanger = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
 
@@ -214,12 +216,25 @@ export const FullScreenVideo = ({
               position: 'relative',
               borderRadius: '24px',
               overflow: 'hidden',
-              boxShadow: '0 40px 100px rgba(0, 0, 0, 0.6)',
+              boxShadow: isDanger
+                ? '0 0 0 4px #ef4444, 0 0 40px rgba(239, 68, 68, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6)'
+                : '0 40px 100px rgba(0, 0, 0, 0.6)',
               background: '#000000',
               height: '90vh',
               aspectRatio: '9 / 16', // Maintains portrait aspect ratio
+              animation: isDanger ? 'dangerPulse 1.5s ease-in-out infinite' : undefined,
             }}
           >
+            {isDanger && (
+              <style>
+                {`
+                  @keyframes dangerPulse {
+                    0%, 100% { box-shadow: 0 0 0 4px #ef4444, 0 0 40px rgba(239, 68, 68, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6); }
+                    50% { box-shadow: 0 0 0 6px #ef4444, 0 0 60px rgba(239, 68, 68, 0.8), 0 40px 100px rgba(0, 0, 0, 0.6); }
+                  }
+                `}
+              </style>
+            )}
             <TrackRefContext.Provider value={videoTrackRef}>
               <VideoTrack
                 style={{
@@ -256,7 +271,8 @@ export const FullScreenVideo = ({
                 width: '10px',
                 height: '10px',
                 borderRadius: '50%',
-                background: '#10b981',
+                background: isDanger ? '#ef4444' : '#10b981',
+                animation: isDanger ? 'pulse 1s ease-in-out infinite' : undefined,
               }}
             />
             {participant.name}
