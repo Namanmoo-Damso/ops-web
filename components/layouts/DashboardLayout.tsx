@@ -59,7 +59,7 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
         );
 
         // Session monitoring (token expiry warning 5 minutes before)
-        const { handleLogout } = useSessionMonitor({
+        useSessionMonitor({
             warningBeforeExpiryMs: 5 * 60 * 1000,
         });
 
@@ -266,8 +266,6 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
                 {/* Sidebar */}
                 <Sidebar
                     collapsed={sidebarCollapsed}
-                    onUploadClick={() => setCsvModalOpen(true)}
-                    onLogout={handleLogout}
                     headerHeight={HEADER_HEIGHT}
                 />
 

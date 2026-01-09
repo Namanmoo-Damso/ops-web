@@ -36,24 +36,6 @@ const IconDashboard = () => (
     </svg>
 );
 
-const IconUpload = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path
-            d="M12 16V4M8 8l4-4 4 4"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M20 16v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-        />
-    </svg>
-);
-
 const IconLocation = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <path
@@ -171,24 +153,6 @@ const IconBeneficiaries = () => (
     </svg>
 );
 
-const IconLogout = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path
-            d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-        />
-        <path
-            d="M16 17l5-5-5-5M21 12H9"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-    </svg>
-);
-
 /** Navigation items configuration */
 const navItems = [
     { href: '/dashboard', label: '대시보드', icon: IconDashboard },
@@ -204,17 +168,13 @@ const navItems = [
 export interface SidebarProps {
     /** Whether sidebar is collapsed */
     collapsed?: boolean;
-    /** Callback when upload button is clicked */
-    onUploadClick?: () => void;
-    /** Callback when logout button is clicked */
-    onLogout?: () => void;
     /** Top offset for header (default: 64px) */
     headerHeight?: string;
     /** Additional className */
     className?: string;
 }
 
-const SIDEBAR_WIDTH = '240px';
+const SIDEBAR_WIDTH = '200px';
 
 /**
  * Sidebar component for dashboard navigation
@@ -223,7 +183,7 @@ const SIDEBAR_WIDTH = '240px';
  * Positioned below Header component
  */
 const Sidebar = forwardRef<HTMLElement, SidebarProps>(
-    ({ collapsed = false, onUploadClick, onLogout, headerHeight = '64px', className }, ref) => {
+    ({ collapsed = false, headerHeight = '64px', className }, ref) => {
         const pathname = usePathname();
         const router = useRouter();
 
@@ -247,13 +207,10 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
             flex: 1,
             padding: `${spacing.lg} ${spacing.md}`,
             paddingTop: spacing.lg,
+            paddingBottom: spacing.lg,
             display: 'flex',
             flexDirection: 'column',
             gap: spacing.xs,
-        };
-
-        const footerStyle: CSSProperties = {
-            padding: `${spacing.lg} ${spacing.md}`,
         };
 
         return (
@@ -306,80 +263,6 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
                             );
                         })}
                     </nav>
-
-                    {/* Footer */}
-                    <div style={footerStyle}>
-                        {/* Upload Button */}
-                        <button
-                            onClick={onUploadClick}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: spacing.md,
-                                width: '100%',
-                                padding: `${spacing.md} ${spacing.lg}`,
-                                marginBottom: spacing.sm,
-                                borderRadius: borderRadius.sm,
-                                border: `1px solid ${colors.border.main}`,
-                                background: colors.background.elevated1,
-                                fontSize: typography.fontSize.caption,
-                                fontWeight: typography.fontWeight.semibold,
-                                color: colors.text.primary,
-                                cursor: 'pointer',
-                                transition: 'all 150ms ease',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = colors.primary.light;
-                                e.currentTarget.style.borderColor = colors.primary.light;
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = colors.background.elevated1;
-                                e.currentTarget.style.borderColor = colors.border.main;
-                            }}
-                        >
-                            <IconUpload />
-                            <span>피보호자 등록</span>
-                        </button>
-
-                        <div
-                            style={{
-                                height: '1px',
-                                backgroundColor: colors.border.main,
-                                marginBottom: spacing.sm,
-                                marginTop: spacing.sm,
-                            }}
-                        />
-
-                        {/* Logout Button */}
-                        <button
-                            onClick={onLogout}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: spacing.md,
-                                padding: `${spacing.md} ${spacing.lg}`,
-                                borderRadius: borderRadius.sm,
-                                border: 'none',
-                                background: 'transparent',
-                                fontSize: typography.fontSize.caption,
-                                fontWeight: typography.fontWeight.medium,
-                                color: colors.text.muted,
-                                cursor: 'pointer',
-                                transition: 'all 150ms ease',
-                            }}
-                            onMouseEnter={e => {
-                                e.currentTarget.style.backgroundColor = colors.status.danger.soft;
-                                e.currentTarget.style.color = colors.status.danger.main;
-                            }}
-                            onMouseLeave={e => {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.color = colors.text.muted;
-                            }}
-                        >
-                            <IconLogout />
-                            <span>로그아웃</span>
-                        </button>
-                    </div>
                 </aside>
             </>
         );
