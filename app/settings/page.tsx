@@ -12,7 +12,26 @@ import Card from '../../components/ui/Card';
  */
 export default function SettingsPage() {
     return (
-        <DashboardLayout title="설정">
+        <DashboardLayout>
+            {/* Page Header */}
+            <div style={{ marginBottom: '20px' }}>
+                <h1
+                    style={{
+                        margin: 0,
+                        fontSize: '24px',
+                        fontWeight: 700,
+                        color: "var(--color-primary-dark)",
+                    }}
+                >
+                    설정
+                </h1>
+                <p
+                    style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
+                >
+                    시스템 설정 및 환경을 구성합니다.
+                </p>
+            </div>
+
             <Card padding="lg">
                 <div
                     style={{
@@ -37,7 +56,7 @@ export default function SettingsPage() {
                             marginBottom: '8px',
                         }}
                     >
-                        설정
+                        준비 중입니다
                     </h2>
                     <p
                         style={{

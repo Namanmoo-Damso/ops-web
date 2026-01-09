@@ -141,7 +141,6 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout
-      title="기관 통합 관제"
       csvModalOpen={csvModalOpen}
       onCsvModalOpenChange={setCsvModalOpen}
     >

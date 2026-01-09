@@ -226,7 +226,26 @@ export default function BeneficiariesPage() {
   ]);
 
   return (
-    <DashboardLayout title="전체 대상자 관리">
+    <DashboardLayout>
+      {/* Page Header */}
+      <div style={{ marginBottom: '20px' }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: '24px',
+            fontWeight: 700,
+            color: "var(--color-primary-dark)",
+          }}
+        >
+          전체 대상자 관리
+        </h1>
+        <p
+          style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
+        >
+          등록된 모든 대상자의 정보를 조회하고 관리합니다.
+        </p>
+      </div>
+
       <div className="beneficiaries-container">
         <FilterBar
           search={search}
