@@ -5,7 +5,6 @@ import DashboardLayout from '../../components/layouts/DashboardLayout';
 
 import { useApi } from '../../hooks/useApi';
 import { apiClient, AuthError } from '../../lib/api-client';
-import { useAuth } from '../../hooks/useAuth';
 import type { DataListResponse } from '../../types/api';
 import DetailModal, {
   type BeneficiaryDetail,
@@ -16,7 +15,6 @@ import DetailModal, {
 // Components
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -45,14 +43,16 @@ const EMPTY_DETAIL: BeneficiaryDetail = {
   recentLogs: [],
 };
 
+type SortOption = 'name' | 'lastCall-recent' | 'lastCall-old';
+
 export default function BeneficiariesPage() {
-  const { logout } = useAuth();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'risk'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [managerFilter, setManagerFilter] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize] = useState(DEFAULT_PAGE_SIZE);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -71,19 +71,18 @@ export default function BeneficiariesPage() {
   // 쿼리 변경 시 페이지를 첫 페이지로 리셋
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, filter]);
+  }, [debouncedSearch, sortBy, managerFilter]);
 
   useEffect(() => {
     setDeleteError(null);
     setDetailOverride(null);
   }, [selectedId]);
 
-  const { data, loading, error, refetch } = useApi<DataListResponse<BeneficiarySummary>>({
-    deps: [debouncedSearch, filter, page, pageSize, refreshKey],
+  const { data, loading, error } = useApi<DataListResponse<BeneficiarySummary>>({
+    deps: [debouncedSearch, page, pageSize, refreshKey],
     fetcher: (client, signal) => {
       const params = new URLSearchParams();
       if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
-      if (filter === 'risk') params.set('riskOnly', 'true');
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
 
@@ -183,22 +182,43 @@ export default function BeneficiariesPage() {
     });
   }, [debouncedSearch, items]);
 
-  // 검색 결과 내 위험군 수 (UI 표기용)
-  const riskCount = useMemo(
-    () =>
-      searchMatches.filter(
-        item => item.status === 'WARNING' || item.status === 'CAUTION',
-      ).length,
-    [searchMatches],
-  );
+  // 담당자 목록 추출
+  const managerList = useMemo(() => {
+    const managers = new Set<string>();
+    items.forEach(item => {
+      if (item.manager) managers.add(item.manager);
+    });
+    return Array.from(managers).sort();
+  }, [items]);
 
-  // 검색 결과에 필터(전체/위험군) 적용
+  // 담당자 필터 적용
+  const managerFiltered = useMemo(() => {
+    if (managerFilter === 'all') return searchMatches;
+    return searchMatches.filter(item => item.manager === managerFilter);
+  }, [searchMatches, managerFilter]);
+
+  // 정렬 적용
   const filteredList = useMemo(() => {
-    if (filter === 'all') return searchMatches;
-    return searchMatches.filter(
-      item => item.status === 'WARNING' || item.status === 'CAUTION',
-    );
-  }, [searchMatches, filter]);
+    const sorted = [...managerFiltered];
+
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    } else if (sortBy === 'lastCall-recent') {
+      sorted.sort((a, b) => {
+        if (!a.lastCall) return 1;
+        if (!b.lastCall) return -1;
+        return b.lastCall.localeCompare(a.lastCall);
+      });
+    } else if (sortBy === 'lastCall-old') {
+      sorted.sort((a, b) => {
+        if (!a.lastCall) return 1;
+        if (!b.lastCall) return -1;
+        return a.lastCall.localeCompare(b.lastCall);
+      });
+    }
+
+    return sorted;
+  }, [managerFiltered, sortBy]);
 
   const pageTotal = useMemo(() => {
     const base = totalCount || items.length || 0;
@@ -227,33 +247,43 @@ export default function BeneficiariesPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '24px',
-            fontWeight: 700,
-            color: "var(--color-primary-dark)",
-          }}
-        >
-          전체 대상자 관리
-        </h1>
-        <p
-          style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
-        >
-          등록된 모든 대상자의 정보를 조회하고 관리합니다.
-        </p>
-      </div>
-
-      <div className="beneficiaries-container">
+      {/* Page Header with Search/Filter on same line */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '20px',
+        gap: '24px'
+      }}>
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: '24px',
+              fontWeight: 700,
+              color: "var(--color-primary-dark)",
+            }}
+          >
+            전체 대상자 관리
+          </h1>
+          <p
+            style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
+          >
+            등록된 모든 대상자의 정보를 조회하고 관리합니다.
+          </p>
+        </div>
         <FilterBar
           search={search}
           onSearchChange={setSearch}
-          filter={filter}
-          onFilterChange={setFilter}
-          riskCount={riskCount}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          managerFilter={managerFilter}
+          onManagerFilterChange={setManagerFilter}
+          managerList={managerList}
         />
+      </div>
+
+      <div className="beneficiaries-container">
 
         <div className="beneficiary-table-container">
           <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)' }}>
@@ -276,21 +306,19 @@ export default function BeneficiariesPage() {
 
           <Table>
             <colgroup>
-              <col style={{ width: '22%' }} />
-              <col style={{ width: '15%' }} />
               <col style={{ width: '25%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '13%' }} />
-              <col style={{ width: '12%' }} />
+              <col style={{ width: '25%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: '15%' }} />
             </colgroup>
             <TableHeader className="beneficiary-table-header">
               <TableRow>
                 <TableHead className="beneficiary-table-head">이름 / 기본정보</TableHead>
-                <TableHead className="beneficiary-table-head">현재 상태</TableHead>
                 <TableHead className="beneficiary-table-head">거주지</TableHead>
                 <TableHead className="beneficiary-table-head">담당자</TableHead>
+                <TableHead className="beneficiary-table-head">보호자 연락처</TableHead>
                 <TableHead className="beneficiary-table-head text-center">최근 안부</TableHead>
-                <TableHead className="beneficiary-table-head text-right">관리</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -312,29 +340,15 @@ export default function BeneficiariesPage() {
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="beneficiary-table-cell">
-                    <StatusBadge status={item.status} />
-                  </TableCell>
                   <TableCell className="beneficiary-table-cell">{item.address ?? '-'}</TableCell>
                   <TableCell className="beneficiary-table-cell">{item.manager ?? '-'}</TableCell>
+                  <TableCell className="beneficiary-table-cell">{item.guardianPhone ?? '-'}</TableCell>
                   <TableCell className="beneficiary-table-cell text-center">{item.lastCall ?? '-'}</TableCell>
-                  <TableCell className="beneficiary-table-cell text-right">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        setSelectedId(String(item.id));
-                      }}
-                    >
-                      관리
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))}
               {filteredList.length === 0 && !loading && (
                 <TableRow>
-                  <TableCell colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
+                  <TableCell colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
                     {search ? '검색 결과가 없습니다.' : '표시할 대상자가 없습니다.'}
                   </TableCell>
                 </TableRow>
@@ -386,68 +400,73 @@ export default function BeneficiariesPage() {
 type FilterBarProps = {
   search: string;
   onSearchChange: (value: string) => void;
-  filter: 'all' | 'risk';
-  onFilterChange: (value: 'all' | 'risk') => void;
-  riskCount: number;
+  sortBy: SortOption;
+  onSortChange: (value: SortOption) => void;
+  managerFilter: string;
+  onManagerFilterChange: (value: string) => void;
+  managerList: string[];
 };
 
 function FilterBar({
   search,
   onSearchChange,
-  filter,
-  onFilterChange,
-  riskCount,
+  sortBy,
+  onSortChange,
+  managerFilter,
+  onManagerFilterChange,
+  managerList,
 }: FilterBarProps) {
   return (
-    <div className="filter-bar">
-      <div className="filter-search-container">
-        <Input
-          value={search}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
-          placeholder="이름 또는 상태로 검색..."
-          aria-label="이름, 주소 또는 담당자 검색"
-        />
-      </div>
-      <div className="filter-group" role="group" aria-label="대상자 필터">
-        <button
-          className={`filter-button ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => onFilterChange('all')}
-          aria-pressed={filter === 'all'}
-        >
-          전체
-        </button>
-        <button
-          className={`filter-button ${filter === 'risk' ? 'active risk' : ''}`}
-          onClick={() => onFilterChange('risk')}
-          aria-pressed={filter === 'risk'}
-        >
-          위험군
-          <span className="risk-badge">
-            {riskCount}
-          </span>
-        </button>
-      </div>
+    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <Input
+        value={search}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onSearchChange(e.target.value)}
+        placeholder="이름, 주소, 담당자 검색..."
+        aria-label="이름, 주소 또는 담당자 검색"
+        style={{ minWidth: '200px' }}
+      />
+
+      <select
+        value={sortBy}
+        onChange={(e) => onSortChange(e.target.value as SortOption)}
+        style={{
+          padding: '8px 12px',
+          borderRadius: '8px',
+          border: '1px solid var(--color-border)',
+          fontSize: '14px',
+          color: 'var(--color-text-primary)',
+          backgroundColor: 'var(--color-panel)',
+          cursor: 'pointer',
+        }}
+        aria-label="정렬 기준"
+      >
+        <option value="name">이름순</option>
+        <option value="lastCall-recent">최근 안부 - 최신순</option>
+        <option value="lastCall-old">최근 안부 - 오래된순</option>
+      </select>
+
+      <select
+        value={managerFilter}
+        onChange={(e) => onManagerFilterChange(e.target.value)}
+        style={{
+          padding: '8px 12px',
+          borderRadius: '8px',
+          border: '1px solid var(--color-border)',
+          fontSize: '14px',
+          color: 'var(--color-text-primary)',
+          backgroundColor: 'var(--color-panel)',
+          cursor: 'pointer',
+        }}
+        aria-label="담당자 필터"
+      >
+        <option value="all">전체 담당자</option>
+        {managerList.map(manager => (
+          <option key={manager} value={manager}>
+            {manager}
+          </option>
+        ))}
+      </select>
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: 'WARNING' | 'NORMAL' | 'CAUTION' }) {
-  const variantMap = {
-    WARNING: 'danger',
-    CAUTION: 'warning',
-    NORMAL: 'success',
-  } as const;
-
-  const labelMap = {
-    WARNING: '위험',
-    CAUTION: '주의',
-    NORMAL: '정상',
-  };
-
-  return (
-    <Badge variant={variantMap[status]} size="sm" dot>
-      {labelMap[status]}
-    </Badge>
   );
 }
 
