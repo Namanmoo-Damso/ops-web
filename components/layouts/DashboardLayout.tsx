@@ -271,6 +271,30 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
 
                 {/* Main Content */}
                 <main ref={ref} className={cn(className)} style={mainStyle}>
+                    {/* Page Title Header */}
+                    {title && (
+                        <header
+                            style={{
+                                backgroundColor: colors.panel.main,
+                                padding: `${spacing.xl} ${spacing['3xl']}`,
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 40,
+                            }}
+                        >
+                            <h1
+                                style={{
+                                    margin: 0,
+                                    fontSize: '22px',
+                                    fontWeight: 700,
+                                    color: colors.text.primary,
+                                }}
+                            >
+                                {title}
+                            </h1>
+                        </header>
+                    )}
+
                     {/* Page Content */}
                     <div
                         style={

@@ -12,26 +12,7 @@ import Card from '../../components/ui/Card';
  */
 export default function StatsPage() {
     return (
-        <DashboardLayout>
-            {/* Page Header */}
-            <div style={{ marginBottom: '20px' }}>
-                <h1
-                    style={{
-                        margin: 0,
-                        fontSize: '24px',
-                        fontWeight: 700,
-                        color: "var(--color-primary-dark)",
-                    }}
-                >
-                    통계/리포트
-                </h1>
-                <p
-                    style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
-                >
-                    대상자 통계 및 리포트를 확인하고 내보내기 할 수 있습니다.
-                </p>
-            </div>
-
+        <DashboardLayout title="통계/리포트">
             <Card padding="lg">
                 <div
                     style={{
@@ -56,7 +37,7 @@ export default function StatsPage() {
                             marginBottom: '8px',
                         }}
                     >
-                        준비 중입니다
+                        통계/리포트
                     </h2>
                     <p
                         style={{

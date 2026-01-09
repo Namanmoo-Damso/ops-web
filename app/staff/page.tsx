@@ -12,26 +12,7 @@ import Card from '../../components/ui/Card';
  */
 export default function StaffPage() {
     return (
-        <DashboardLayout>
-            {/* Page Header */}
-            <div style={{ marginBottom: '20px' }}>
-                <h1
-                    style={{
-                        margin: 0,
-                        fontSize: '24px',
-                        fontWeight: 700,
-                        color: "var(--color-primary-dark)",
-                    }}
-                >
-                    직원관리
-                </h1>
-                <p
-                    style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
-                >
-                    직원 계정 및 권한을 관리합니다.
-                </p>
-            </div>
-
+        <DashboardLayout title="직원관리">
             <Card padding="lg">
                 <div
                     style={{
@@ -56,7 +37,7 @@ export default function StaffPage() {
                             marginBottom: '8px',
                         }}
                     >
-                        준비 중입니다
+                        직원관리
                     </h2>
                     <p
                         style={{
