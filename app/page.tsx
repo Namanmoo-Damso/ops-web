@@ -81,6 +81,7 @@ const LiveTile = ({
   suppressVideo,
   onClick,
   participantId,
+  isDanger,
 }: {
   trackRef: any;
   displayName: string;
@@ -89,6 +90,7 @@ const LiveTile = ({
   suppressVideo?: boolean;
   onClick?: (participantId: string) => void;
   participantId: string;
+  isDanger?: boolean;
 }) => {
   const cameraOff = videoOff;
   const showVideo = !cameraOff && !suppressVideo;
@@ -102,9 +104,26 @@ const LiveTile = ({
   return (
     <div
       className={styles.tile}
-      style={{ position: 'relative', cursor: onClick ? 'pointer' : 'default' }}
+      style={{
+        position: 'relative',
+        cursor: onClick ? 'pointer' : 'default',
+        borderRadius: '12px',
+        overflow: 'hidden',
+        boxShadow: isDanger
+          ? '0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5)'
+          : undefined,
+        animation: isDanger ? 'dangerPulse 1.5s ease-in-out infinite' : undefined,
+      }}
       onClick={handleClick}
     >
+      <style>
+        {`
+          @keyframes dangerPulse {
+            0%, 100% { box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5); }
+            50% { box-shadow: 0 0 0 4px #ef4444, 0 0 30px rgba(239, 68, 68, 0.8); }
+          }
+        `}
+      </style>
       <div className={styles.tileMedia}>
         {showVideo ? (
           <TrackRefContext.Provider value={trackRef}>
@@ -133,7 +152,8 @@ const LiveTile = ({
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                backgroundColor: '#10b981',
+                backgroundColor: isDanger ? '#ef4444' : '#10b981',
+                animation: isDanger ? 'pulse 1s ease-in-out infinite' : undefined,
               }}
             />
             <span
@@ -157,6 +177,7 @@ const RoomTracks = ({
   selectedParticipantForAudio,
   focusedParticipantId,
   isFullscreenActive,
+  isDanger,
 }: {
   roomName: string;
   onParticipantsUpdate?: (participants: MockParticipant[]) => void;
@@ -164,6 +185,7 @@ const RoomTracks = ({
   selectedParticipantForAudio?: string | null;
   focusedParticipantId?: string | null;
   isFullscreenActive?: boolean;
+  isDanger?: boolean;
 }) => {
   const allTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
@@ -312,6 +334,7 @@ const RoomTracks = ({
             suppressVideo={suppressVideo}
             onClick={participantId => onTileClick?.(participantId, trackRef)}
             participantId={identity}
+            isDanger={isDanger}
           />
         );
       })}
@@ -401,6 +424,50 @@ const ControlBarWrapper = ({
       canControl={true}
     />
   );
+};
+
+// Helper function to set danger state for a room via API
+const setRoomDanger = async (
+  roomName: string,
+  isDanger: boolean,
+): Promise<void> => {
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_BASE ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
+  const adminToken =
+    typeof window !== 'undefined'
+      ? window.localStorage.getItem('admin_access_token')
+      : null;
+
+  if (!adminToken) {
+    console.warn('[setRoomDanger] No admin token available');
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${apiBase}/v1/livekit/rooms/${encodeURIComponent(roomName)}/danger`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ isDanger }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error('[setRoomDanger] API error:', response.status);
+    } else {
+      console.log(
+        `[setRoomDanger] Room ${roomName} danger state set to ${isDanger}`,
+      );
+    }
+  } catch (err) {
+    console.error('[setRoomDanger] Failed:', err);
+  }
 };
 
 // Helper function to mute/unmute AI agent via API
@@ -632,7 +699,7 @@ export default function Home() {
     }
   }, [apiBaseEnv]);
 
-  const { rooms, loading, error } = useRoomSSE({
+  const { rooms, loading, error, dangerRooms } = useRoomSSE({
     apiBase,
     enabled: !!apiBase,
   });
@@ -653,6 +720,7 @@ export default function Home() {
       onParticipantsUpdate?: (participants: MockParticipant[]) => void;
       onTileClick?: (participantId: string, videoTrackRef: any) => void;
       selectedParticipantForAudio?: string | null;
+      isDanger?: boolean;
     }> = [];
 
     for (let i = 0; i < slots; i++) {
@@ -732,6 +800,7 @@ export default function Home() {
           onParticipantsUpdate,
           onTileClick,
           selectedParticipantForAudio,
+          isDanger: dangerRooms[roomName] ?? false,
         });
       } else {
         result.push({
@@ -743,7 +812,7 @@ export default function Home() {
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connections, gridSize, selectedParticipantForAudio, showFullScreenVideo]);
+  }, [connections, gridSize, selectedParticipantForAudio, showFullScreenVideo, dangerRooms]);
 
   // We need at least one connection to show the control bar
   const firstConnection = connections[0];
@@ -873,6 +942,7 @@ export default function Home() {
                                 : null
                             }
                             isFullscreenActive={showFullScreenVideo}
+                            isDanger={slot.isDanger}
                           />
                         </LiveKitRoom>
                       ) : (
@@ -900,6 +970,7 @@ export default function Home() {
                     <FullScreenVideo
                       participant={detailParticipant}
                       videoTrackRef={selectedVideoTrackRef}
+                      isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
                     />
                   )}
 
@@ -931,6 +1002,12 @@ export default function Home() {
                         setSelectedRoomName(null);
                         setSelectedParticipantForAudio(null);
                         setSelectedVideoTrackRef(null);
+                      }}
+                      isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
+                      onClearDanger={() => {
+                        if (selectedRoomName) {
+                          setRoomDanger(selectedRoomName, false);
+                        }
                       }}
                     />
                   )}
@@ -1030,6 +1107,7 @@ export default function Home() {
                   <FullScreenVideo
                     participant={detailParticipant}
                     videoTrackRef={selectedVideoTrackRef}
+                    isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
                   />
                 )}
 
@@ -1054,6 +1132,12 @@ export default function Home() {
                       setSelectedRoomName(null);
                       setSelectedParticipantForAudio(null);
                       setSelectedVideoTrackRef(null);
+                    }}
+                    isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
+                    onClearDanger={() => {
+                      if (selectedRoomName) {
+                        setRoomDanger(selectedRoomName, false);
+                      }
                     }}
                   />
                 )}

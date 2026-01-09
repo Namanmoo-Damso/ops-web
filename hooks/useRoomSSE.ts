@@ -10,6 +10,7 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dangerRooms, setDangerRooms] = useState<Record<string, boolean>>({});
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Fetch initial rooms list
@@ -72,6 +73,15 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
           // Refetch to get updated participant counts
           fetchRooms();
         }
+
+        // Handle room-danger event
+        if (data.type === 'room-danger') {
+          console.log('[useRoomSSE] Room danger event:', data.roomName, data.isDanger);
+          setDangerRooms(prev => ({
+            ...prev,
+            [data.roomName]: data.isDanger,
+          }));
+        }
       } catch (err) {
         console.error('[useRoomSSE] Failed to parse SSE event:', err);
       }
@@ -101,6 +111,7 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
     rooms,
     loading,
     error,
+    dangerRooms,
     refetch: fetchRooms,
   };
 }

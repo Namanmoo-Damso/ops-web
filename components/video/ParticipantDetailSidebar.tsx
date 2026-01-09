@@ -7,6 +7,7 @@ import {
   Contact,
   MessageCircle,
   Phone,
+  AlertTriangle,
 } from 'lucide-react';
 import { ReactNode, useEffect, useRef, useState } from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
@@ -20,6 +21,8 @@ type ParticipantDetailSidebarProps = {
   apiBase?: string;
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
+  isDanger?: boolean;
+  onClearDanger?: () => void;
 };
 
 type Transcript = {
@@ -140,6 +143,8 @@ export const ParticipantDetailSidebar = ({
   apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
   isTakeoverActive = false,
   onToggleTakeover,
+  isDanger = false,
+  onClearDanger,
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
@@ -549,8 +554,53 @@ export const ParticipantDetailSidebar = ({
           style={{
             padding: '20px 32px 28px',
             flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
           }}
         >
+          {/* Clear Danger Button - only shown when danger is active */}
+          {isDanger && (
+            <button
+              style={{
+                width: '100%',
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 70%)',
+                color: '#ffffff',
+                fontWeight: 800,
+                padding: '14px',
+                borderRadius: '16px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                fontSize: '15px',
+                boxShadow: '0 18px 35px rgba(251, 191, 36, 0.4)',
+                transition: 'all 0.2s',
+              }}
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.navigator.vibrate?.(10);
+                }
+                onClearDanger?.();
+              }}
+              onMouseOver={e => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow =
+                  '0 24px 45px rgba(251, 191, 36, 0.55)';
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow =
+                  '0 18px 35px rgba(251, 191, 36, 0.4)';
+              }}
+            >
+              <AlertTriangle size={20} />
+              위험 상태 해제
+            </button>
+          )}
+
           <button
             style={{
               width: '100%',
@@ -596,7 +646,7 @@ export const ParticipantDetailSidebar = ({
               fontSize: '11px',
               textAlign: 'center',
               color: '#94a3b8',
-              marginTop: '12px',
+              marginTop: '4px',
               fontWeight: 600,
             }}
           >
