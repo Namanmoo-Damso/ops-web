@@ -1,6 +1,7 @@
 'use client';
 
-import { forwardRef, useState, type CSSProperties } from 'react';
+import { forwardRef, useState, useEffect, useRef, type CSSProperties } from 'react';
+import { useRouter } from 'next/navigation';
 import { colors, shadows, spacing, typography } from '../../styles/tokens';
 import { cn } from '../ui/utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -80,11 +81,26 @@ const IconLogout = () => (
     </svg>
 );
 
+const IconMenu = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path
+            d="M3 12h18M3 6h18M3 18h18"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+        />
+    </svg>
+);
+
 export interface HeaderProps {
     /** Callback when 대상자 등록 button is clicked */
     onRegisterClick?: () => void;
     /** Callback when notification icon is clicked */
     onNotificationsClick?: () => void;
+    /** Whether sidebar is collapsed */
+    sidebarCollapsed?: boolean;
+    /** Callback when sidebar toggle is clicked */
+    onSidebarToggle?: () => void;
     /** Additional className */
     className?: string;
 }
@@ -102,9 +118,27 @@ export const HEADER_HEIGHT = '64px';
  * - User profile dropdown
  */
 const Header = forwardRef<HTMLElement, HeaderProps>(
-    ({ onRegisterClick, onNotificationsClick, className }, ref) => {
+    ({ onRegisterClick, onNotificationsClick, sidebarCollapsed, onSidebarToggle, className }, ref) => {
         const { user, logout } = useAuth();
+        const router = useRouter();
         const [isProfileOpen, setIsProfileOpen] = useState(false);
+        const dropdownRef = useRef<HTMLDivElement>(null);
+
+        // Handle click outside to close dropdown
+        useEffect(() => {
+            const handleClickOutside = (event: MouseEvent) => {
+                if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                    setIsProfileOpen(false);
+                }
+            };
+
+            if (isProfileOpen) {
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                };
+            }
+        }, [isProfileOpen]);
 
         const headerStyle: CSSProperties = {
             position: 'fixed',
@@ -208,8 +242,36 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
 
         return (
             <header ref={ref} className={cn(className)} style={headerStyle}>
-                {/* Left: Logo + Service Name */}
+                {/* Left: Sidebar Toggle + Logo + Service Name */}
                 <div style={logoSectionStyle}>
+                    {/* Sidebar Toggle Button */}
+                    <button
+                        onClick={onSidebarToggle}
+                        aria-label={sidebarCollapsed ? '사이드바 열기' : '사이드바 닫기'}
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            border: 'none',
+                            background: 'transparent',
+                            display: 'grid',
+                            placeItems: 'center',
+                            color: colors.text.muted,
+                            cursor: 'pointer',
+                            transition: 'all 150ms ease',
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.backgroundColor = colors.background.elevated1;
+                            e.currentTarget.style.color = colors.text.primary;
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = colors.text.muted;
+                        }}
+                    >
+                        <IconMenu />
+                    </button>
+
                     <div style={logoStyle} />
                     <span style={serviceNameStyle}>담소</span>
                 </div>
@@ -243,7 +305,7 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
                     </button>
 
                     {/* User Profile Dropdown */}
-                    <div style={{ position: 'relative' }}>
+                    <div ref={dropdownRef} style={{ position: 'relative' }}>
                         <button
                             style={profileButtonStyle}
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -334,7 +396,7 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
                                     }}
                                     onClick={() => {
                                         setIsProfileOpen(false);
-                                        // TODO: Navigate to settings page
+                                        router.push('/settings');
                                     }}
                                 >
                                     <IconSettings />

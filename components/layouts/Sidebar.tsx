@@ -3,32 +3,10 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { forwardRef, type CSSProperties } from 'react';
-import { colors, shadows, borderRadius, spacing, typography } from '../../styles/tokens';
+import { colors, borderRadius, spacing, typography } from '../../styles/tokens';
 import { cn } from '../ui/utils';
 
 // Sidebar Icons
-const IconMenu = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path
-            d="M3 12h18M3 6h18M3 18h18"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-        />
-    </svg>
-);
-
-const IconClose = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path
-            d="M18 6L6 18M6 6l12 12"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-        />
-    </svg>
-);
-
 const IconMonitor = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
         <rect
@@ -84,22 +62,6 @@ const IconLocation = () => (
             strokeWidth="1.6"
         />
         <circle cx="12" cy="11" r="2" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-);
-
-const IconEmergency = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path
-            d="M12 9v4M12 17h.01"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-        />
-        <path
-            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-        />
     </svg>
 );
 
@@ -242,8 +204,6 @@ const navItems = [
 export interface SidebarProps {
     /** Whether sidebar is collapsed */
     collapsed?: boolean;
-    /** Callback when collapsed state changes */
-    onCollapsedChange?: (collapsed: boolean) => void;
     /** Callback when upload button is clicked */
     onUploadClick?: () => void;
     /** Callback when logout button is clicked */
@@ -263,7 +223,7 @@ const SIDEBAR_WIDTH = '240px';
  * Positioned below Header component
  */
 const Sidebar = forwardRef<HTMLElement, SidebarProps>(
-    ({ collapsed = false, onCollapsedChange, onUploadClick, onLogout, headerHeight = '64px', className }, ref) => {
+    ({ collapsed = false, onUploadClick, onLogout, headerHeight = '64px', className }, ref) => {
         const pathname = usePathname();
         const router = useRouter();
 
@@ -298,32 +258,6 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
 
         return (
             <>
-                {/* Toggle Button (when collapsed) */}
-                {collapsed && (
-                    <button
-                        onClick={() => onCollapsedChange?.(false)}
-                        aria-label="사이드바 열기"
-                        style={{
-                            position: 'fixed',
-                            top: `calc(${headerHeight} + ${spacing.lg})`,
-                            left: spacing.sm,
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: borderRadius.md,
-                            border: `1px solid ${colors.border.main}`,
-                            background: colors.panel.main,
-                            display: 'grid',
-                            placeItems: 'center',
-                            color: colors.text.muted,
-                            cursor: 'pointer',
-                            boxShadow: shadows.floating,
-                            zIndex: 9998,
-                        }}
-                    >
-                        <IconMenu />
-                    </button>
-                )}
-
                 {/* Sidebar */}
                 <aside ref={ref} className={cn(className)} style={sidebarStyle}>
                     {/* Navigation */}

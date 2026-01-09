@@ -259,12 +259,13 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
                         // TODO: Implement notifications
                         console.log('Notifications clicked');
                     }}
+                    sidebarCollapsed={sidebarCollapsed}
+                    onSidebarToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
                 />
 
                 {/* Sidebar */}
                 <Sidebar
                     collapsed={sidebarCollapsed}
-                    onCollapsedChange={setSidebarCollapsed}
                     onUploadClick={() => setCsvModalOpen(true)}
                     onLogout={handleLogout}
                     headerHeight={HEADER_HEIGHT}
