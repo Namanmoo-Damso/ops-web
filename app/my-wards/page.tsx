@@ -212,7 +212,7 @@ export default function MyWardsPage() {
   const isRefreshing = loading && hasLoaded;
 
   return (
-    <DashboardLayout title="대상자 연동 현황">
+    <DashboardLayout>
       {isInitialLoading && (
         <div
           style={{
