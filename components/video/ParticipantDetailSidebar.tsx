@@ -576,7 +576,6 @@ export const ParticipantDetailSidebar = ({
                 justifyContent: 'center',
                 gap: '8px',
                 fontSize: '15px',
-                boxShadow: '0 18px 35px rgba(251, 191, 36, 0.4)',
                 transition: 'all 0.2s',
               }}
               onClick={() => {
@@ -587,13 +586,9 @@ export const ParticipantDetailSidebar = ({
               }}
               onMouseOver={e => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow =
-                  '0 24px 45px rgba(251, 191, 36, 0.55)';
               }}
               onMouseOut={e => {
                 e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow =
-                  '0 18px 35px rgba(251, 191, 36, 0.4)';
               }}
             >
               <AlertTriangle size={20} />
@@ -618,7 +613,6 @@ export const ParticipantDetailSidebar = ({
               justifyContent: 'center',
               gap: '8px',
               fontSize: '16px',
-              boxShadow: '0 18px 35px rgba(244,143,177,0.4)',
               transition: 'all 0.2s',
             }}
             onClick={() => {
@@ -629,13 +623,9 @@ export const ParticipantDetailSidebar = ({
             }}
             onMouseOver={e => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow =
-                '0 24px 45px rgba(244,143,177,0.55)';
             }}
             onMouseOut={e => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow =
-                '0 18px 35px rgba(244,143,177,0.4)';
             }}
           >
             <Phone size={20} />
