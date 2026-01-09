@@ -11,6 +11,7 @@ import { CleanRow } from '../CsvUploadPanel';
 import { ManualWardPayload } from '../ManualWardForm';
 import { Admin } from '../../types/models';
 import Sidebar, { SIDEBAR_WIDTH_VALUE } from './Sidebar';
+import Header, { HEADER_HEIGHT } from './Header';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -58,7 +59,7 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
         );
 
         // Session monitoring (token expiry warning 5 minutes before)
-        const { handleLogout } = useSessionMonitor({
+        useSessionMonitor({
             warningBeforeExpiryMs: 5 * 60 * 1000,
         });
 
@@ -239,10 +240,11 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
         const mainStyle: CSSProperties & { '--sidebar-width': string } = {
             flex: 1,
             marginLeft: sidebarCollapsed ? 0 : SIDEBAR_WIDTH_VALUE,
+            marginTop: HEADER_HEIGHT,
             '--sidebar-width': sidebarCollapsed ? '0px' : SIDEBAR_WIDTH_VALUE,
             backgroundColor: colors.background.main,
-            minHeight: '100vh',
-            height: noPadding ? '100vh' : undefined,
+            minHeight: `calc(100vh - ${HEADER_HEIGHT})`,
+            height: noPadding ? `calc(100vh - ${HEADER_HEIGHT})` : undefined,
             display: noPadding ? 'flex' : undefined,
             flexDirection: noPadding ? 'column' : undefined,
             transition: 'margin-left 200ms ease',
@@ -250,16 +252,26 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
 
         return (
             <AuthGuard>
+                {/* Global Header */}
+                <Header
+                    onRegisterClick={() => setCsvModalOpen(true)}
+                    onNotificationsClick={() => {
+                        // TODO: Implement notifications
+                        console.log('Notifications clicked');
+                    }}
+                    sidebarCollapsed={sidebarCollapsed}
+                    onSidebarToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+                />
+
+                {/* Sidebar */}
                 <Sidebar
                     collapsed={sidebarCollapsed}
-                    onCollapsedChange={setSidebarCollapsed}
-                    onUploadClick={() => setCsvModalOpen(true)}
-                    onLogout={handleLogout}
+                    headerHeight={HEADER_HEIGHT}
                 />
 
                 {/* Main Content */}
                 <main ref={ref} className={cn(className)} style={mainStyle}>
-                    {/* Header */}
+                    {/* Page Title Header */}
                     {title && (
                         <header
                             style={{
