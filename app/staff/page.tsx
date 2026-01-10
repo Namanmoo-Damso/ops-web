@@ -17,6 +17,7 @@ import {
     UsersIcon,
 } from '../my-wards/icons';
 import BeneficiaryListModal, { Beneficiary } from '../../components/staff/BeneficiaryListModal';
+import AddStaffModal, { NewStaffData } from '../../components/staff/AddStaffModal';
 import StatsSummary from '../../components/ui/StatsSummary';
 import '../../styles/staff.css';
 
@@ -90,6 +91,7 @@ export default function StaffPage() {
     const [staffList, setStaffList] = useState<Staff[]>(MOCK_STAFF);
     const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null);
     const [isBeneficiaryModalOpen, setIsBeneficiaryModalOpen] = useState(false);
+    const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     // Inline Edit State
@@ -114,8 +116,18 @@ export default function StaffPage() {
 
     // --- Handlers ---
     const handleAddStaff = () => {
-        console.log('[Staff] Add staff clicked');
-        // TODO: Open add staff modal
+        setIsAddStaffModalOpen(true);
+    };
+
+    const handleAddStaffSubmit = (data: NewStaffData) => {
+        const newStaff: Staff = {
+            id: String(Date.now()),
+            name: data.name,
+            phone: data.phone,
+            email: data.email,
+            currentAssigned: 0,
+        };
+        setStaffList(prev => [...prev, newStaff]);
     };
 
     const handleAssignClick = (staffId: string) => {
@@ -144,9 +156,23 @@ export default function StaffPage() {
     };
 
     const handleSaveEdit = (staffId: string) => {
+        // Validation
+        if (!editForm.name.trim()) {
+            alert('이름을 입력해주세요.');
+            return;
+        }
+        if (!editForm.phone.trim()) {
+            alert('전화번호를 입력해주세요.');
+            return;
+        }
+        if (!editForm.email.trim() || !editForm.email.includes('@')) {
+            alert('유효한 이메일을 입력해주세요.');
+            return;
+        }
+
         setStaffList(prev => prev.map(s =>
             s.id === staffId
-                ? { ...s, name: editForm.name, phone: editForm.phone, email: editForm.email }
+                ? { ...s, name: editForm.name.trim(), phone: editForm.phone.trim(), email: editForm.email.trim() }
                 : s
         ));
         setEditingId(null);
@@ -310,10 +336,21 @@ export default function StaffPage() {
                         open={isBeneficiaryModalOpen}
                         onClose={() => setIsBeneficiaryModalOpen(false)}
                         staffName={selectedStaff.name}
-                        beneficiaries={MOCK_BENEFICIARIES} // Using mock list for now
+                        beneficiaries={MOCK_BENEFICIARIES}
+                        onDelete={(id) => {
+                            console.log('[Staff] Delete beneficiary:', id);
+                            // TODO: Update backend when connected
+                        }}
                         onAssignMore={handleAssignMore}
                     />
                 )}
+
+                {/* Add Staff Modal */}
+                <AddStaffModal
+                    open={isAddStaffModalOpen}
+                    onClose={() => setIsAddStaffModalOpen(false)}
+                    onAdd={handleAddStaffSubmit}
+                />
             </div>
         </DashboardLayout>
     );

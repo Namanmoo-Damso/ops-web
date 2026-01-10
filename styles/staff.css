@@ -34,12 +34,10 @@
 .staff-card {
     display: flex;
     flex-direction: column;
-    /* Removing parent gap to use explicit margins for sections */
-    gap: 0 !important;
-    padding: 12px 24px !important;
-    overflow: visible !important;
+    gap: 0;
+    padding: 12px 24px;
+    overflow: visible;
     min-height: 200px;
-    /* Ensure uniform height for alignment */
 }
 
 /* Relative positioning for dropdown anchor */
@@ -122,11 +120,11 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: none;
     background: transparent;
     color: var(--color-text-primary);
-    font-size: var(--font-size-small);
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
     text-align: left;
@@ -181,22 +179,32 @@
     font-weight: var(--font-weight-black);
     color: var(--color-text-primary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 2px 4px;
-    background: var(--color-bg-elevated-1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: white;
     outline: none;
+    transition: border-color 150ms ease;
+}
+
+.staff-name-input:focus {
+    border-color: var(--color-primary);
 }
 
 .staff-contact-input {
     width: 100%;
-    font-size: var(--font-size-body);
+    font-size: 16px;
     font-weight: 500;
     color: var(--color-text-primary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 2px 4px;
-    background: var(--color-bg-elevated-1);
+    border-radius: 8px;
+    padding: 8px 12px;
+    background: white;
     outline: none;
+    transition: border-color 150ms ease;
+}
+
+.staff-contact-input:focus {
+    border-color: var(--color-primary);
 }
 
 .staff-edit-actions {

@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { Fragment, ReactNode } from 'react';
 import Card from './Card';
 import '../../styles/stats-summary.css';
 
@@ -32,8 +32,8 @@ export default function StatsSummary({ items, title, icon }: StatsSummaryProps) 
             {/* Stats Row */}
             <div className="stats-summary-content">
                 {items.map((item, index) => (
-                    <>
-                        <div key={item.label} className="stats-summary-item">
+                    <Fragment key={item.label}>
+                        <div className="stats-summary-item">
                             <div className="stats-summary-label">{item.label}</div>
                             <div
                                 className="stats-summary-value"
@@ -51,7 +51,7 @@ export default function StatsSummary({ items, title, icon }: StatsSummaryProps) 
                         {index < items.length - 1 && (
                             <div className="stats-summary-divider" />
                         )}
-                    </>
+                    </Fragment>
                 ))}
             </div>
         </Card>
