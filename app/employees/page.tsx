@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
@@ -14,7 +14,13 @@ import {
     MoreHorizontal,
     Search,
     TrendingUp,
+    UserX,
 } from 'lucide-react';
+
+// --- Constants ---
+const LOAD_THRESHOLD_HIGH = 0.9;
+const LOAD_THRESHOLD_NORMAL = 0.5;
+const RECOMMENDED_MAX_CAPACITY = 15;
 
 // --- Types ---
 type Employee = {
@@ -96,11 +102,12 @@ const MOCK_EMPLOYEES: Employee[] = [
 
 const MOCK_UNASSIGNED_COUNT = 5;
 
-const TEAM_LABELS: Record<TeamFilter, string> = {
-    all: '전체',
-    team1: '방문 1팀',
-    team2: '방문 2팀',
-    team3: '방문 3팀',
+// Unified team mapping - used for both labels and filtering
+const TEAM_CONFIG: Record<TeamFilter, { label: string; teamName: string }> = {
+    all: { label: '전체', teamName: '' },
+    team1: { label: '방문 1팀', teamName: '방문 1팀' },
+    team2: { label: '방문 2팀', teamName: '방문 2팀' },
+    team3: { label: '방문 3팀', teamName: '방문 3팀' },
 };
 
 // --- Helper Functions ---
@@ -109,21 +116,20 @@ function getInitial(name: string): string {
 }
 
 function getLoadStatus(current: number, max: number): 'high' | 'normal' | 'low' {
+    if (max === 0) return 'low'; // Guard against division by zero
     const ratio = current / max;
-    if (ratio >= 0.9) return 'high';
-    if (ratio >= 0.5) return 'normal';
+    if (ratio >= LOAD_THRESHOLD_HIGH) return 'high';
+    if (ratio >= LOAD_THRESHOLD_NORMAL) return 'normal';
     return 'low';
 }
 
 function getLoadColor(status: 'high' | 'normal' | 'low'): string {
-    switch (status) {
-        case 'high':
-            return 'var(--color-danger-main)';
-        case 'normal':
-            return 'var(--color-primary)';
-        case 'low':
-            return 'var(--color-text-muted)';
-    }
+    const colors: Record<typeof status, string> = {
+        high: 'var(--color-danger-main)',
+        normal: 'var(--color-primary)',
+        low: 'var(--color-text-muted)',
+    };
+    return colors[status];
 }
 
 // --- Page Component ---
@@ -131,36 +137,33 @@ export default function EmployeesPage() {
     const [teamFilter, setTeamFilter] = useState<TeamFilter>('all');
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Filter employees
-    const filteredEmployees = MOCK_EMPLOYEES.filter((employee) => {
-        // Team filter
-        if (teamFilter !== 'all') {
-            const teamMap: Record<TeamFilter, string> = {
-                all: '',
-                team1: '방문 1팀',
-                team2: '방문 2팀',
-                team3: '방문 3팀',
-            };
-            if (employee.team !== teamMap[teamFilter]) return false;
-        }
+    // Memoized filtered employees for performance
+    const filteredEmployees = useMemo(() => {
+        return MOCK_EMPLOYEES.filter((employee) => {
+            // Team filter - use TEAM_CONFIG for consistent mapping
+            if (teamFilter !== 'all') {
+                if (employee.team !== TEAM_CONFIG[teamFilter].teamName) return false;
+            }
 
-        // Search filter
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            return (
-                employee.name.toLowerCase().includes(query) ||
-                employee.email.toLowerCase().includes(query) ||
-                employee.team.toLowerCase().includes(query)
-            );
-        }
+            // Search filter
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                return (
+                    employee.name.toLowerCase().includes(query) ||
+                    employee.email.toLowerCase().includes(query) ||
+                    employee.team.toLowerCase().includes(query)
+                );
+            }
 
-        return true;
-    });
+            return true;
+        });
+    }, [teamFilter, searchQuery]);
 
-    // Calculate stats
+    // Calculate stats with division-by-zero guard
     const totalEmployees = MOCK_EMPLOYEES.length;
-    const avgAssigned =
-        MOCK_EMPLOYEES.reduce((sum, e) => sum + e.currentAssigned, 0) / totalEmployees;
+    const avgAssigned = totalEmployees > 0
+        ? MOCK_EMPLOYEES.reduce((sum, e) => sum + e.currentAssigned, 0) / totalEmployees
+        : 0;
     const unassignedCount = MOCK_UNASSIGNED_COUNT;
 
     const handleTeamFilterChange = (team: TeamFilter) => {
@@ -243,13 +246,13 @@ export default function EmployeesPage() {
                     </h2>
 
                     <div className="employees-filter-tabs">
-                        {(Object.keys(TEAM_LABELS) as TeamFilter[]).map((key) => (
+                        {(Object.keys(TEAM_CONFIG) as TeamFilter[]).map((key) => (
                             <button
                                 key={key}
                                 className={`employees-filter-tab ${teamFilter === key ? 'active' : ''}`}
                                 onClick={() => handleTeamFilterChange(key)}
                             >
-                                {TEAM_LABELS[key]}
+                                {TEAM_CONFIG[key].label}
                             </button>
                         ))}
                     </div>
@@ -267,9 +270,16 @@ export default function EmployeesPage() {
 
                 {/* Employee Grid */}
                 <div className="employees-grid">
-                    {filteredEmployees.map((employee) => {
+                    {filteredEmployees.length === 0 ? (
+                        <div className="employees-empty-state">
+                            <UserX size={48} />
+                            <p>검색 결과가 없습니다</p>
+                        </div>
+                    ) : filteredEmployees.map((employee) => {
                         const loadStatus = getLoadStatus(employee.currentAssigned, employee.maxCapacity);
-                        const loadPercent = (employee.currentAssigned / employee.maxCapacity) * 100;
+                        const loadPercent = employee.maxCapacity > 0
+                            ? (employee.currentAssigned / employee.maxCapacity) * 100
+                            : 0;
 
                         return (
                             <Card key={employee.id} padding="lg" className="employee-card">
