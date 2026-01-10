@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
 import LogsModal from './LogsModal';
 import { formatTags } from '../../utils/formatters';
@@ -23,7 +23,7 @@ export type BeneficiaryDetail = {
   address: string | null;
   gender: string | null;
   type: string | null;
-  guardian: string | null;
+  emergencyContact: string | null;
   diseases: string[]; // Always an array, never null
   medication: string | null;
   notes: string | null;
@@ -37,10 +37,23 @@ export type BeneficiaryUpdatePayload = {
   address: string | null;
   gender: string | null;
   wardType: string | null;
-  guardian: string | null;
+  emergencyContact: string | null;
   diseases: string[];
   medication: string | null;
   notes: string | null;
+};
+
+type BeneficiaryFormData = {
+  name: string;
+  phoneNumber: string;
+  birthDate: string;
+  address: string;
+  emergencyContact: string;
+  gender: string;
+  wardType: string;
+  diseases: string;
+  medication: string;
+  notes: string;
 };
 
 // Re-export for backward compatibility
@@ -73,7 +86,7 @@ export default function DetailModal({
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<BeneficiaryFormData>({
     name: '',
     phoneNumber: '',
     birthDate: '',
@@ -97,7 +110,7 @@ export default function DetailModal({
       phoneNumber: detail.phoneNumber ?? '',
       birthDate: detail.birthDate ?? '',
       address: detail.address ?? beneficiary?.address ?? '',
-      emergencyContact: detail.guardian ?? '',
+      emergencyContact: detail.emergencyContact ?? '',
       gender: detail.gender ?? beneficiary?.gender ?? '',
       wardType: detail.type ?? beneficiary?.type ?? '',
       diseases: diseaseText,
@@ -113,7 +126,7 @@ export default function DetailModal({
       detail.birthDate,
       diseaseText,
       detail.gender,
-      detail.guardian,
+      detail.emergencyContact,
       detail.medication,
       detail.name,
       detail.notes,
@@ -133,18 +146,22 @@ export default function DetailModal({
     }
   }, []);
 
+  const handleCloseRequest = useCallback(() => {
+    if (showDeleteConfirm) {
+      setShowDeleteConfirm(false);
+    } else if (isLogsModalOpen) {
+      setIsLogsModalOpen(false);
+    } else {
+      onClose();
+    }
+  }, [isLogsModalOpen, onClose, showDeleteConfirm]);
+
   // ESC로 닫기 + 포커스 트랩
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        if (showDeleteConfirm) {
-          setShowDeleteConfirm(false);
-        } else if (isLogsModalOpen) {
-          setIsLogsModalOpen(false);
-        } else {
-          onClose();
-        }
+        handleCloseRequest();
         return;
       }
       if (e.key === 'Tab') {
@@ -185,7 +202,7 @@ export default function DetailModal({
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [onClose, showDeleteConfirm]);
+  }, [handleCloseRequest, showDeleteConfirm]);
 
   useEffect(() => {
     if (!isEditing) {
@@ -209,11 +226,7 @@ export default function DetailModal({
 
   const handleOverlayClick: React.MouseEventHandler<HTMLDivElement> = e => {
     if (e.target === e.currentTarget) {
-      if (isLogsModalOpen) {
-        setIsLogsModalOpen(false);
-      } else {
-        onClose();
-      }
+      handleCloseRequest();
     }
   };
 
@@ -257,7 +270,7 @@ export default function DetailModal({
     setSaveSuccess(null);
   };
 
-  const handleFieldChange = (field: keyof typeof form, value: string) => {
+  const handleFieldChange = (field: keyof BeneficiaryFormData, value: string) => {
     setIsDirty(true);
     setSaveError(null);
     setSaveSuccess(null);
@@ -287,7 +300,7 @@ export default function DetailModal({
         address: form.address.trim() || null,
         gender: form.gender || null,
         wardType: form.wardType.trim() || null,
-        guardian: form.emergencyContact.trim() || null,
+        emergencyContact: form.emergencyContact.trim() || null,
         diseases,
         medication: form.medication.trim() || null,
         notes: form.notes.trim() || null,
@@ -457,7 +470,7 @@ export default function DetailModal({
                   <span className={styles.editLabel}>비상연락처</span>
                   <input
                     className={styles.editInput}
-                    value={isEditing ? form.emergencyContact : detail.guardian ?? ''}
+                    value={isEditing ? form.emergencyContact : detail.emergencyContact ?? ''}
                     readOnly={!isEditing}
                     onChange={
                       isEditing
@@ -686,26 +699,19 @@ export default function DetailModal({
 
 
 
-function SentimentBadge({
-  sentiment,
-}: {
-  sentiment: BeneficiaryLog['sentiment'];
-}) {
-  if (!sentiment) return null;
+// 헬퍼 함수 추가
+function getSentimentClassName(sentiment: string): string {
+  const capitalized = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+  return styles[`sentiment${capitalized}`] || '';
+}
 
-  if (sentiment === 'negative') {
-    return (
-      <span className={`${styles.sentiment} ${styles.sentimentNegative}`}>위험 감지</span>
-    );
-  }
-  if (sentiment === 'positive') {
-    return (
-      <span className={`${styles.sentiment} ${styles.sentimentPositive}`}>기분 좋음</span>
-    );
-  }
-  return (
-    <span className={`${styles.sentiment} ${styles.sentimentNeutral}`}>특이사항 없음</span>
-  );
+function getSentimentLabel(sentiment: string): string {
+  const labels: Record<string, string> = {
+    positive: '긍정',
+    negative: '부정',
+    neutral: '중립',
+  };
+  return labels[sentiment] || '알 수 없음';
 }
 
 function calculateAgeFromBirthDate(value: string): number | null {
@@ -725,30 +731,8 @@ function calculateAgeFromBirthDate(value: string): number | null {
 }
 
 function isFormEqual(
-  a: {
-    name: string;
-    phoneNumber: string;
-    birthDate: string;
-    address: string;
-    emergencyContact: string;
-    gender: string;
-    wardType: string;
-    diseases: string;
-    medication: string;
-    notes: string;
-  },
-  b: {
-    name: string;
-    phoneNumber: string;
-    birthDate: string;
-    address: string;
-    emergencyContact: string;
-    gender: string;
-    wardType: string;
-    diseases: string;
-    medication: string;
-    notes: string;
-  },
+  a: BeneficiaryFormData,
+  b: BeneficiaryFormData,
 ) {
   return (
     a.name === b.name &&
@@ -764,18 +748,7 @@ function isFormEqual(
   );
 }
 
-function validateForm(form: {
-  name: string;
-  phoneNumber: string;
-  birthDate: string;
-  address: string;
-  emergencyContact: string;
-  gender: string;
-  wardType: string;
-  diseases: string;
-  medication: string;
-  notes: string;
-}) {
+function validateForm(form: BeneficiaryFormData) {
   if (!form.name.trim()) {
     return '이름은 필수입니다.';
   }

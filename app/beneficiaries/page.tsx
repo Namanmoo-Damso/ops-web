@@ -43,7 +43,7 @@ const EMPTY_DETAIL: BeneficiaryDetail = {
   address: null,
   gender: null,
   type: null,
-  guardian: null,
+  emergencyContact: null,
   diseases: [],
   medication: null,
   notes: null,
@@ -194,7 +194,7 @@ export default function BeneficiariesPage() {
         phoneNumber: ward.phoneNumber || null,
         address: ward.address || null,
         manager: null, // my-wards API에는 manager 필드가 없음
-        guardianPhone: null, // my-wards API에는 guardianPhone 필드가 없음
+        emergencyContactPhone: null, // my-wards API에는 emergencyContactPhone 필드가 없음
         isRegistered: ward.isRegistered,
         status: 'NORMAL' as 'WARNING' | 'NORMAL' | 'CAUTION', // 기본값
         lastCall: ward.lastCallAt || null,

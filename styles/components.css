@@ -442,3 +442,32 @@
     background-color: #f1f5f9;
     color: #64748b;
 }
+
+/* --- Sentiment Badge --- */
+.ui-sentiment {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 12px;
+    border: 1px solid transparent;
+}
+
+.ui-sentiment.positive {
+    background-color: #ecfdf3;
+    color: #15803d;
+    border-color: #bbf7d0;
+}
+
+.ui-sentiment.neutral {
+    background-color: #F7F9F2;
+    color: #4A5D23;
+    border-color: #E9F0DF;
+}
+
+.ui-sentiment.negative {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border-color: #fecdd3;
+}

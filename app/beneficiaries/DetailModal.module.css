@@ -34,11 +34,9 @@
   flex-direction: column;
   max-height: 90vh;
   border: 1px solid var(--beneficiary-border-color);
-  transition: all 0.3s ease;
+  transition: all var(--transition-slow);
   position: relative;
 }
-
-
 
 .header {
   display: flex;
@@ -696,15 +694,6 @@
   font-weight: 700;
 }
 
-.sentiment {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 12px;
-  border: 1px solid transparent;
-}
 
 .spanTwo {
   grid-column: span 2;
@@ -739,24 +728,6 @@
   color: #4A5D23;
   outline: none;
   resize: none;
-}
-
-.sentimentNegative {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #fecdd3;
-}
-
-.sentimentPositive {
-  background-color: #ecfdf3;
-  color: #15803d;
-  border-color: #bbf7d0;
-}
-
-.sentimentNeutral {
-  background-color: #F7F9F2;
-  color: #4A5D23;
-  border-color: var(--beneficiary-border-color);
 }
 
 @media (max-width: 1024px) {

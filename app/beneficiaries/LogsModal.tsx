@@ -46,8 +46,8 @@ const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose, logs }) => {
                                 </div>
                                 <p className={styles.logContent}>{log.content}</p>
                                 {log.sentiment && (
-                                    <div className={`${styles.sentiment} ${log.sentiment === 'positive' ? styles.sentimentPositive : log.sentiment === 'negative' ? styles.sentimentNegative : styles.sentimentNeutral}`}>
-                                        {log.sentiment === 'positive' ? '기분 좋음' : log.sentiment === 'negative' ? '위험 감지' : '특이사항 없음'}
+                                    <div className={`${styles.sentiment} ${getSentimentClassName(log.sentiment)}`}>
+                                        {getSentimentLabel(log.sentiment)}
                                     </div>
                                 )}
                             </div>
@@ -70,5 +70,20 @@ const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose, logs }) => {
         </div>
     );
 };
+
+// 헬퍼 함수 추가
+function getSentimentClassName(sentiment: string): string {
+    const capitalized = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
+    return styles[`sentiment${capitalized}`] || '';
+}
+
+function getSentimentLabel(sentiment: string): string {
+    const labels: Record<string, string> = {
+        positive: '긍정',
+        negative: '부정',
+        neutral: '중립',
+    };
+    return labels[sentiment] || '알 수 없음';
+}
 
 export default LogsModal;
