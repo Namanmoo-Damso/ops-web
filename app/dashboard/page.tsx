@@ -112,14 +112,14 @@ export default function DashboardPage() {
             title: `${unlinkedCount}명의 대상자가 아직 연동되지 않았습니다.`,
             desc: (
               <>
-                대상자 연동 현황에서 보호자 연결을 완료해주세요.
+                전체 대상자 관리에서 보호자 연결을 완료해주세요.
                 <br />
                 연동이 완료되면 자동 관제 기능이 활성화됩니다.
               </>
             ),
             action: (
-              <Link href="/my-wards">
-                <Button>대상자 연동 현황으로 가기</Button>
+              <Link href="/beneficiaries">
+                <Button>전체 대상자 관리로 가기</Button>
               </Link>
             ),
           }

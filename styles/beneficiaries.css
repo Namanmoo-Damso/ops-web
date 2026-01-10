@@ -1,6 +1,6 @@
 /* --- Beneficiaries Page Styles --- */
 .beneficiaries-container {
-    max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
 }
 
@@ -87,7 +87,7 @@
     font-weight: 900;
     color: var(--color-primary-dark);
     /* Deep Moss */
-    text-align: left;
+    text-align: center;
 }
 
 .beneficiary-table-head.text-center {
