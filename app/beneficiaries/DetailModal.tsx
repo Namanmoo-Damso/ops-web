@@ -364,7 +364,7 @@ export default function DetailModal({
                 </span>
               </div>
             </div>
-          </div>
+          </div >
 
           <div className={styles.actions}>
             <div className={styles.managerToggle}>
@@ -387,7 +387,7 @@ export default function DetailModal({
               ×
             </button>
           </div>
-        </div>
+        </div >
 
         <div className={styles.body}>
           <section className={styles.section}>
@@ -475,32 +475,26 @@ export default function DetailModal({
                   <SectionTitle>건강 정보</SectionTitle>
                 </div>
                 <div className={styles.healthGrid}>
-                  <div className={styles.editSection}>
-                    <div className={styles.editField}>
-                      <span className={styles.editLabel}>기저질환</span>
-                      <input
-                        className={styles.editInput}
-                        value={
-                          isEditing ? form.diseases : formatTags(detail.diseases)
-                        }
-                        readOnly={!isEditing}
-                        onChange={
-                          isEditing
-                            ? e => handleFieldChange('diseases', e.target.value)
-                            : undefined
-                        }
-                      />
-                    </div>
-                    {isEditing && (
-                      <div className={styles.editHelper}>
-                        쉼표로 구분하여 입력하세요. (예: 고혈압, 당뇨)
-                      </div>
-                    )}
+                  <div className={styles.editField}>
+                    <span className={styles.editLabel}>기저질환</span>
+                    <textarea
+                      className={styles.editInputTwoLine}
+                      value={
+                        isEditing ? form.diseases : formatTags(detail.diseases)
+                      }
+                      readOnly={!isEditing}
+                      onChange={
+                        isEditing
+                          ? e => handleFieldChange('diseases', e.target.value)
+                          : undefined
+                      }
+                      placeholder={isEditing ? '예: 고혈압, 당뇨' : ''}
+                    />
                   </div>
                   <div className={styles.editField}>
                     <span className={styles.editLabel}>복약 정보</span>
-                    <input
-                      className={styles.editInput}
+                    <textarea
+                      className={styles.editInputTwoLine}
                       value={
                         isEditing ? form.medication : formatTags(detail.medication)
                       }
@@ -510,6 +504,7 @@ export default function DetailModal({
                           ? e => handleFieldChange('medication', e.target.value)
                           : undefined
                       }
+                      placeholder={isEditing ? '예: 위장약, 혈압약' : ''}
                     />
                   </div>
                 </div>
@@ -518,26 +513,24 @@ export default function DetailModal({
             <div className={styles.logsColumn}>
               <div className={styles.logsCard}>
                 <div className={styles.cardHeader}>
-                  <SectionTitle>담소일지</SectionTitle>
-                  <button type="button" className={styles.logMoreButton}>
-                    자세히 보기 →
-                  </button>
+                  <SectionTitle>참고 및 특이사항</SectionTitle>
                 </div>
-                {detail.recentLogs.length === 0 ? (
-                  <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
-                ) : (
-                  <div className={styles.logList}>
-                    {detail.recentLogs.map(log => (
-                      <div key={log.id} className={styles.logCard}>
-                        <div className={styles.logTextBlock}>
-                          <span className={styles.logType}>{log.type}</span>
-                          <p className={styles.logContent}>{log.content}</p>
-                        </div>
-                        <span className={styles.logDate}>{log.date}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <div className={styles.noteField}>
+                  <textarea
+                    className={styles.noteTextarea}
+                    value={
+                      isEditing
+                        ? form.notes
+                        : detail.notes || '추가 메모가 없습니다.'
+                    }
+                    readOnly={!isEditing}
+                    onChange={
+                      isEditing
+                        ? e => handleFieldChange('notes', e.target.value)
+                        : undefined
+                    }
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -545,24 +538,26 @@ export default function DetailModal({
           <section className={styles.section}>
             <div className={styles.card}>
               <div className={styles.cardHeader}>
-                <SectionTitle>참고 및 특이사항</SectionTitle>
+                <SectionTitle>담소일지</SectionTitle>
+                <button type="button" className={styles.logMoreButton}>
+                  자세히 보기 →
+                </button>
               </div>
-              <div className={styles.noteField}>
-                <textarea
-                  className={styles.noteTextarea}
-                  value={
-                    isEditing
-                      ? form.notes
-                      : detail.notes || '추가 메모가 없습니다.'
-                  }
-                  readOnly={!isEditing}
-                  onChange={
-                    isEditing
-                      ? e => handleFieldChange('notes', e.target.value)
-                      : undefined
-                  }
-                />
-              </div>
+              {detail.recentLogs.length === 0 ? (
+                <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
+              ) : (
+                <div className={styles.logList}>
+                  {detail.recentLogs.map(log => (
+                    <div key={log.id} className={styles.logCard}>
+                      <div className={styles.logTextBlock}>
+                        <span className={styles.logType}>{log.type}</span>
+                        <p className={styles.logContent}>{log.content}</p>
+                      </div>
+                      <span className={styles.logDate}>{log.date}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 
@@ -620,7 +615,7 @@ export default function DetailModal({
             )}
           </div>
         </div>
-      </div>
+      </div >
 
       {showDeleteConfirm && (
         <div
@@ -672,7 +667,8 @@ export default function DetailModal({
             </div>
           </div>
         </div>
-      )}
+      )
+      }
     </div>
   );
 }
