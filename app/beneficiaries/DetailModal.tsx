@@ -16,7 +16,7 @@ export type BeneficiaryLog = {
 };
 
 export type BeneficiaryDetail = {
-  name: string | null;
+  name: string; // Required field
   email: string | null;
   phoneNumber: string | null;
   birthDate: string | null;
@@ -24,10 +24,10 @@ export type BeneficiaryDetail = {
   gender: string | null;
   type: string | null;
   guardian: string | null;
-  diseases: string[];
+  diseases: string[]; // Always an array, never null
   medication: string | null;
   notes: string | null;
-  recentLogs: BeneficiaryLog[];
+  recentLogs: BeneficiaryLog[]; // Always an array, never null
 };
 
 export type BeneficiaryUpdatePayload = {
@@ -54,6 +54,7 @@ type DetailModalProps = {
   deleting?: boolean;
   deleteError?: string | null;
   onUpdate?: (payload: BeneficiaryUpdatePayload) => Promise<BeneficiaryDetail | null>;
+  initialEditMode?: boolean;
 };
 
 export default function DetailModal({
@@ -64,11 +65,12 @@ export default function DetailModal({
   deleting = false,
   deleteError = null,
   onUpdate,
+  initialEditMode = false,
 }: DetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmDialogRef = useRef<HTMLDivElement>(null);
   const confirmPrimaryRef = useRef<HTMLButtonElement>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [form, setForm] = useState({
     name: '',

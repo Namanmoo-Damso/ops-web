@@ -159,7 +159,8 @@ const navItems = [
     { href: '/', label: '영상 모니터링', icon: IconMonitor },
     { href: '/locations', label: '지도 모니터링', icon: IconLocation },
     { href: '/beneficiaries', label: '전체 대상자 관리', icon: IconBeneficiaries },
-    { href: '/my-wards', label: '대상자 연동 현황', icon: IconMyWards },
+    // Hidden: my-wards page (functionality integrated into beneficiaries page)
+    // { href: '/my-wards', label: '대상자 연동 현황', icon: IconMyWards },
     { href: '/stats', label: '통계/리포트', icon: IconStats },
     { href: '/staff', label: '직원관리', icon: IconStaff },
     { href: '/settings', label: '설정', icon: IconSettings },
