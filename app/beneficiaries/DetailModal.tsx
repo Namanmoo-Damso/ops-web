@@ -81,7 +81,6 @@ export default function DetailModal({
     emergencyContact: '',
     gender: '',
     wardType: '',
-    guardian: '',
     diseases: '',
     medication: '',
     notes: '',
@@ -101,7 +100,6 @@ export default function DetailModal({
       emergencyContact: detail.guardian ?? '',
       gender: detail.gender ?? beneficiary?.gender ?? '',
       wardType: detail.type ?? beneficiary?.type ?? '',
-      guardian: detail.guardian ?? '',
       diseases: diseaseText,
       medication: detail.medication ?? '',
       notes: detail.notes ?? '',
@@ -289,7 +287,7 @@ export default function DetailModal({
         address: form.address.trim() || null,
         gender: form.gender || null,
         wardType: form.wardType.trim() || null,
-        guardian: form.guardian.trim() || null,
+        guardian: form.emergencyContact.trim() || null,
         diseases,
         medication: form.medication.trim() || null,
         notes: form.notes.trim() || null,
@@ -735,7 +733,6 @@ function isFormEqual(
     emergencyContact: string;
     gender: string;
     wardType: string;
-    guardian: string;
     diseases: string;
     medication: string;
     notes: string;
@@ -748,7 +745,6 @@ function isFormEqual(
     emergencyContact: string;
     gender: string;
     wardType: string;
-    guardian: string;
     diseases: string;
     medication: string;
     notes: string;
@@ -762,7 +758,6 @@ function isFormEqual(
     a.emergencyContact === b.emergencyContact &&
     a.gender === b.gender &&
     a.wardType === b.wardType &&
-    a.guardian === b.guardian &&
     a.diseases === b.diseases &&
     a.medication === b.medication &&
     a.notes === b.notes
@@ -777,7 +772,6 @@ function validateForm(form: {
   emergencyContact: string;
   gender: string;
   wardType: string;
-  guardian: string;
   diseases: string;
   medication: string;
   notes: string;

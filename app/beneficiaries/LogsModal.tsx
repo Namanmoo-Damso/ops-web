@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styles from './LogsModal.module.css';
 import { BeneficiaryLog } from './DetailModal';
 import { IconButton, SectionTitle } from '../../components/ui';
@@ -10,6 +10,17 @@ interface LogsModalProps {
 }
 
 const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose, logs }) => {
+    // ESC key to close
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     return (
         <div className={`${styles.logsModal} ${isOpen ? styles.logsModalOpen : ''}`}>
             <div className={styles.header}>
@@ -35,8 +46,8 @@ const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose, logs }) => {
                                 </div>
                                 <p className={styles.logContent}>{log.content}</p>
                                 {log.sentiment && (
-                                    <div className={`${styles.sentiment} ${styles[`sentiment${log.sentiment.charAt(0).toUpperCase() + log.sentiment.slice(1)}`]}`}>
-                                        {log.sentiment === 'positive' ? '긍정' : log.sentiment === 'negative' ? '부정' : '중립'}
+                                    <div className={`${styles.sentiment} ${log.sentiment === 'positive' ? styles.sentimentPositive : log.sentiment === 'negative' ? styles.sentimentNegative : styles.sentimentNeutral}`}>
+                                        {log.sentiment === 'positive' ? '기분 좋음' : log.sentiment === 'negative' ? '위험 감지' : '특이사항 없음'}
                                     </div>
                                 )}
                             </div>
