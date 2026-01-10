@@ -14,15 +14,15 @@ import DetailModal, {
 } from './DetailModal';
 import StatsSummary from '../../components/ui/StatsSummary';
 import {
-  AlertTriangleIcon,
-  CheckCircleIcon,
+
   RefreshIcon,
   UsersIcon,
+  LinkOnIcon,
+  LinkOffIcon,
 } from '../my-wards/icons';
 
 // Components
 import Input from '../../components/ui/Input';
-import Button from '../../components/ui/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -380,7 +380,7 @@ export default function BeneficiariesPage() {
                 <button
                   style={{
                     display: 'inline-flex',
-                    alignItems: 'center',
+                    alignItems: 'left',
                     gap: '6px',
                     padding: '6px 10px',
                     fontSize: '12px',
@@ -536,18 +536,6 @@ export default function BeneficiariesPage() {
                   }}
                 >
                   미연동 대상자
-                  <span
-                    style={{
-                      backgroundColor: 'var(--color-danger-soft)',
-                      color: 'var(--color-danger-main)',
-                      borderRadius: '999px',
-                      padding: '2px 8px',
-                      fontSize: '12px',
-                      fontWeight: 800,
-                    }}
-                  >
-                    {linkStats.pending}
-                  </span>
                 </button>
               </div>
 
@@ -606,9 +594,9 @@ export default function BeneficiariesPage() {
                   <TableHead className="beneficiary-table-head">이름 및 기본정보</TableHead>
                   <TableHead className="beneficiary-table-head">연락처</TableHead>
                   <TableHead className="beneficiary-table-head">담당자</TableHead>
-                  <TableHead className="beneficiary-table-head">보호자 연락처</TableHead>
                   <TableHead className="beneficiary-table-head">최근 안부</TableHead>
                   <TableHead className="beneficiary-table-head">정보 수정</TableHead>
+                  <TableHead className="beneficiary-table-head">연동현황</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -625,10 +613,11 @@ export default function BeneficiariesPage() {
                     onClick={() => setSelectedId(String(item.id))}
                     selected={selectedId === String(item.id)}
                     className="beneficiary-table-row"
+                    style={!item.isRegistered ? { backgroundColor: 'rgba(148, 163, 184, 0.15)' } : undefined}
                   >
                     <TableCell className="beneficiary-table-cell" style={{ textAlign: 'left' }}>
                       <div className="beneficiary-user-cell">
-                        <ProfileCircle status={item.status} name={item.name} isRegistered={item.isRegistered} />
+                        <ProfileCircle status={item.status} name={item.name} />
                         <div>
                           <div className="beneficiary-user-name">
                             {item.name}
@@ -643,7 +632,6 @@ export default function BeneficiariesPage() {
                     </TableCell>
                     <TableCell className="beneficiary-table-cell">{item.phoneNumber ?? '-'}</TableCell>
                     <TableCell className="beneficiary-table-cell">{item.manager ?? '-'}</TableCell>
-                    <TableCell className="beneficiary-table-cell">{item.guardianPhone ?? '-'}</TableCell>
                     <TableCell className="beneficiary-table-cell ">{formatRelativeTime(item.lastCall || null)}</TableCell>
                     <TableCell className="beneficiary-table-cell text-center" style={{ padding: '8px' }}>
                       <button
@@ -654,10 +642,10 @@ export default function BeneficiariesPage() {
                         }}
                         style={{
                           display: 'inline-flex',
-                          alignItems: 'center',
+                          alignItems: 'left',
                           gap: '4px',
                           padding: '6px 12px',
-                          fontSize: '13px',
+                          fontSize: '20px',
                           fontWeight: 600,
                           color: 'var(--color-primary)',
                           backgroundColor: 'var(--color-primary-soft)',
@@ -679,11 +667,24 @@ export default function BeneficiariesPage() {
                         </svg>
                       </button>
                     </TableCell>
+                    <TableCell className="beneficiary-table-cell" style={{ textAlign: 'center' }}>
+                      {item.isRegistered ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#22c55e', fontWeight: 600, fontSize: '14px' }}>
+                          <LinkOnIcon size={18} color="#22c55e" />
+                          연동됨
+                        </span>
+                      ) : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontWeight: 600, fontSize: '14px' }}>
+                          <LinkOffIcon size={18} color="#94a3b8" />
+                          미연동
+                        </span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
                 {displayList.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
+                    <TableCell colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
                       {search ? '검색 결과가 없습니다.' : '표시할 대상자가 없습니다.'}
                     </TableCell>
                   </TableRow>
@@ -715,11 +716,9 @@ export default function BeneficiariesPage() {
 function ProfileCircle({
   status,
   name,
-  isRegistered,
 }: {
   status: 'WARNING' | 'NORMAL' | 'CAUTION';
   name: string;
-  isRegistered?: boolean;
 }) {
   const initial = name ? name.slice(0, 1) : '?';
   let className = 'profile-circle';
@@ -727,31 +726,9 @@ function ProfileCircle({
   else if (status === 'CAUTION') className += ' caution';
   else className += ' normal';
 
-  // 연동 상태 bullet point 색상
-  const bulletColor = isRegistered === true
-    ? '#22c55e'  // 초록색 (soften green)
-    : isRegistered === false
-      ? 'var(--color-danger-border)'  // 빨간색
-      : '#94a3b8';  // 기본 (회색)
-
   return (
-    <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-      {/* Bullet point indicator */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '50%',
-          left: '-16px',
-          transform: 'translateY(-50%)',
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          backgroundColor: bulletColor,
-        }}
-      />
-      <div className={className}>
-        {initial}
-      </div>
+    <div className={className}>
+      {initial}
     </div>
   );
 }

@@ -77,6 +77,7 @@ export default function DetailModal({
     phoneNumber: '',
     birthDate: '',
     address: '',
+    emergencyContact: '',
     gender: '',
     wardType: '',
     guardian: '',
@@ -84,31 +85,19 @@ export default function DetailModal({
     medication: '',
     notes: '',
   });
-  const [guardianForm, setGuardianForm] = useState({
-    name: '',
-    relation: '',
-    contact: '',
-  });
   const [isDirty, setIsDirty] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
   const diseaseText = detail.diseases.join(', ');
-  const defaultGuardianForm = useMemo(
-    () => ({
-      name: '',
-      relation: '',
-      contact: '',
-    }),
-    [],
-  );
   const defaultForm = useMemo(
     () => ({
       name: detail.name ?? beneficiary?.name ?? '',
       phoneNumber: detail.phoneNumber ?? '',
       birthDate: detail.birthDate ?? '',
       address: detail.address ?? beneficiary?.address ?? '',
+      emergencyContact: detail.guardian ?? '',
       gender: detail.gender ?? beneficiary?.gender ?? '',
       wardType: detail.type ?? beneficiary?.type ?? '',
       guardian: detail.guardian ?? '',
@@ -251,14 +240,12 @@ export default function DetailModal({
 
   const handleEditStart = () => {
     setForm(defaultForm);
-    setGuardianForm(defaultGuardianForm);
     setIsEditing(true);
     setIsDirty(false);
   };
 
   const handleEditCancel = () => {
     setForm(defaultForm);
-    setGuardianForm(defaultGuardianForm);
     setIsEditing(false);
     setIsDirty(false);
     setSaveError(null);
@@ -437,7 +424,7 @@ export default function DetailModal({
                   />
                 </div>
                 <div className={styles.editField}>
-                  <span className={styles.editLabel}>생년월일</span>
+                  <span className={styles.editLabel}>생년월일 *</span>
                   <input
                     type="date"
                     className={styles.editInput}
@@ -451,7 +438,7 @@ export default function DetailModal({
                   />
                 </div>
                 <div className={`${styles.editField} ${styles.spanTwo}`}>
-                  <span className={styles.editLabel}>주소</span>
+                  <span className={styles.editLabel}>주소 *</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.address : displayAddress ?? ''}
@@ -463,86 +450,21 @@ export default function DetailModal({
                     }
                   />
                 </div>
-              </div>
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <SectionTitle>보호자 정보</SectionTitle>
-              </div>
-              <div className={styles.guardianGrid}>
                 <div className={styles.editField}>
-                  <span className={styles.editLabel}>보호자 성함</span>
+                  <span className={styles.editLabel}>비상 연락처</span>
                   <input
                     className={styles.editInput}
-                    value={
-                      isEditing
-                        ? guardianForm.name
-                        : guardianForm.name || '홍길동'
-                    }
+                    value={isEditing ? form.emergencyContact : detail.guardian ?? ''}
                     readOnly={!isEditing}
                     onChange={
                       isEditing
-                        ? e =>
-                          setGuardianForm(prev => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
+                        ? e => handleFieldChange('emergencyContact', e.target.value)
                         : undefined
                     }
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <span className={styles.editLabel}>보호자 관계</span>
-                  {isEditing ? (
-                    <select
-                      className={styles.editSelect}
-                      value={guardianForm.relation}
-                      onChange={e =>
-                        setGuardianForm(prev => ({
-                          ...prev,
-                          relation: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="">없음</option>
-                      <option value="자녀">자녀</option>
-                      <option value="지인">지인</option>
-                      <option value="기타">기타</option>
-                    </select>
-                  ) : (
-                    <input
-                      className={styles.editInput}
-                      value={guardianForm.relation || '자녀'}
-                      readOnly
-                    />
-                  )}
-                </div>
-                <div className={styles.editField}>
-                  <span className={styles.editLabel}>보호자 연락처</span>
-                  <input
-                    className={styles.editInput}
-                    value={
-                      isEditing
-                        ? guardianForm.contact
-                        : guardianForm.contact || '010-1234-5678'
-                    }
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e =>
-                          setGuardianForm(prev => ({
-                            ...prev,
-                            contact: e.target.value,
-                          }))
-                        : undefined
-                    }
+                    placeholder={isEditing ? '010-0000-0000' : '-'}
                   />
                 </div>
               </div>
-              {/* TODO: 보호자 관계/연락처 API 연동 후 저장/표시 로직 추가 */}
             </div>
           </section>
 
@@ -803,6 +725,7 @@ function isFormEqual(
     phoneNumber: string;
     birthDate: string;
     address: string;
+    emergencyContact: string;
     gender: string;
     wardType: string;
     guardian: string;
@@ -815,6 +738,7 @@ function isFormEqual(
     phoneNumber: string;
     birthDate: string;
     address: string;
+    emergencyContact: string;
     gender: string;
     wardType: string;
     guardian: string;
@@ -828,6 +752,7 @@ function isFormEqual(
     a.phoneNumber === b.phoneNumber &&
     a.birthDate === b.birthDate &&
     a.address === b.address &&
+    a.emergencyContact === b.emergencyContact &&
     a.gender === b.gender &&
     a.wardType === b.wardType &&
     a.guardian === b.guardian &&
@@ -842,6 +767,7 @@ function validateForm(form: {
   phoneNumber: string;
   birthDate: string;
   address: string;
+  emergencyContact: string;
   gender: string;
   wardType: string;
   guardian: string;
@@ -854,6 +780,12 @@ function validateForm(form: {
   }
   if (!form.phoneNumber.trim()) {
     return '전화번호는 필수입니다.';
+  }
+  if (!form.birthDate.trim()) {
+    return '생년월일은 필수입니다.';
+  }
+  if (!form.address.trim()) {
+    return '주소는 필수입니다.';
   }
   return null;
 }

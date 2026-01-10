@@ -17,21 +17,15 @@
   align-items: center;
   justify-content: center;
   padding: var(--beneficiary-modal-padding);
-  padding-left: calc(
-    var(--sidebar-width, 0px) + var(--beneficiary-modal-padding)
-  );
+  padding-left: calc(var(--sidebar-width, 0px) + var(--beneficiary-modal-padding));
   z-index: var(--beneficiary-modal-overlay-z);
 }
 
 .dialog {
-  width: min(
-    var(--beneficiary-modal-max-width),
-    calc(100vw - var(--sidebar-width, 0px) - 48px)
-  );
-  max-width: min(
-    var(--beneficiary-modal-max-width),
-    calc(100vw - var(--sidebar-width, 0px) - 48px)
-  );
+  width: min(var(--beneficiary-modal-max-width),
+      calc(100vw - var(--sidebar-width, 0px) - 48px));
+  max-width: min(var(--beneficiary-modal-max-width),
+      calc(100vw - var(--sidebar-width, 0px) - 48px));
   background-color: #FBFDF9;
   border-radius: 32px;
   box-shadow: var(--beneficiary-dialog-shadow);
@@ -342,7 +336,7 @@
   font-size: 14px;
   font-weight: 800;
   color: #64748b;
-  min-width: 80px;
+  min-width: 65px;
 }
 
 .editInput,
@@ -490,7 +484,7 @@
   font-size: 16px;
 }
 
-.card .infoRow + .infoRow {
+.card .infoRow+.infoRow {
   margin-top: 6px;
 }
 
@@ -712,12 +706,6 @@
   resize: vertical;
 }
 
-.guardianGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
 .cardHeader {
   display: flex;
   align-items: center;
@@ -797,8 +785,7 @@
 
   .basicGrid,
   .healthLogSection,
-  .editGrid,
-  .guardianGrid {
+  .editGrid {
     gap: 14px;
   }
 
