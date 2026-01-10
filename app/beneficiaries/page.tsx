@@ -12,7 +12,7 @@ import DetailModal, {
   type BeneficiaryUpdatePayload,
   type BeneficiarySummary,
 } from './DetailModal';
-import { StatCard } from '../my-wards/StatCard';
+import StatsSummary from '../../components/ui/StatsSummary';
 import {
   AlertTriangleIcon,
   CheckCircleIcon,
@@ -364,196 +364,49 @@ export default function BeneficiariesPage() {
 
   return (
     <DashboardLayout>
-      {/* Page Header */}
-      <div style={{ marginBottom: '20px' }}>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: '24px',
-            fontWeight: 700,
-            color: "var(--color-primary-dark)",
-          }}
-        >
-          전체 대상자 관리
-        </h1>
-        <p
-          style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
-        >
-          등록된 모든 대상자의 정보를 조회하고 관리합니다.
-        </p>
-      </div>
-
-      {/* 통계 카드 제거 - 경고 배너도 제거 */}
-      {/* 연동 대기 경고 배너 제거 */}
-      {false && linkStats.pending > 0 && (
-        <div
-          style={{
-            background: "var(--color-danger-soft)",
-            border: `1px solid var(--color-danger-border)`,
-            borderRadius: '16px',
-            padding: '18px 20px',
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            marginBottom: '20px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center',
-              flex: 1,
-              minWidth: 0,
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '12px',
-                backgroundColor: "var(--color-danger-soft)",
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <AlertTriangleIcon size={18} strokeWidth={2} color="#dc2626" />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 700,
-                  color: '#991b1b',
-                }}
-              >
-                아직 연동되지 않은 대상자가 {linkStats.pending}명 있습니다.
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 통계 카드 */}
       <div style={{ marginBottom: '20px' }}>
-        <StatCard
-          label="전체 현황"
+        <StatsSummary
+          title="전체 현황"
           icon={<UsersIcon size={24} />}
-          value={null}
-          color="#8FA963"
-          extra={
-            <div style={{ marginTop: '16px' }}>
-              {/* 3개 섹션: 연동된 대상자 | 전체 등록 인원 | 연동 대기중 */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '20px',
-                paddingBottom: '16px',
-                borderBottom: '1px solid var(--color-border)',
-              }}>
-                {/* 연동된 대상자 */}
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                    연동된 대상자
-                  </div>
-                  <div style={{ fontSize: '30px', fontWeight: 800, color: 'var(--color-primary)' }}>
-                    {linkStats.linked}명
-                  </div>
-                </div>
-
-                <div style={{ width: '1px', height: '50px', backgroundColor: 'var(--color-border)' }} />
-
-                {/* 전체 등록 인원 */}
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                    전체 등록 인원
-                  </div>
-                  <div style={{ fontSize: '30px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                    {linkStats.total}명
-                  </div>
-                </div>
-
-                <div style={{ width: '1px', height: '50px', backgroundColor: 'var(--color-border)' }} />
-
-                {/* 연동 대기중 */}
-                <div style={{ flex: 1, position: 'relative' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 600 }}>
-                      연동 대기중
-                    </div>
-                    <div style={{ fontSize: '30px', fontWeight: 800, color: linkStats.pending > 0 ? '#dc2626' : 'var(--color-text-primary)' }}>
-                      {linkStats.pending}명
-                    </div>
-                  </div>
-                  {linkStats.pending > 0 && (
-                    <button
-                      style={{
-                        position: 'absolute',
-                        right: '20%',
-                        top: '70%',
-                        transform: 'translateY(-50%)',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 10px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: '#dc2626',
-                        backgroundColor: '#fee2e2',
-                        border: '1px solid #fecaca',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#fecaca';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#fee2e2';
-                      }}
-                      onClick={handleReinviteAll}
-                      disabled={reinviting}
-                    >
-                      <RefreshIcon size={14} color="#dc2626" />
-                      재초대
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* 프로그레스 바 */}
-              <div style={{ marginTop: '16px' }}>
-                <div
+          items={[
+            { label: '연동된 대상자', value: `${linkStats.linked}명`, color: 'var(--color-primary)' },
+            { label: '전체 등록 인원', value: `${linkStats.total}명` },
+            {
+              label: '연동 대기중',
+              value: `${linkStats.pending}명`,
+              color: linkStats.pending > 0 ? '#dc2626' : undefined,
+              extra: linkStats.pending > 0 ? (
+                <button
                   style={{
-                    width: '100%',
-                    height: '10px',
-                    borderRadius: '999px',
-                    backgroundColor: "var(--color-border)",
-                    overflow: 'hidden',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: '#dc2626',
+                    backgroundColor: '#fee2e2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fecaca';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fee2e2';
+                  }}
+                  onClick={handleReinviteAll}
+                  disabled={reinviting}
                 >
-                  <div
-                    style={{
-                      width: `${linkStats.rate}%`,
-                      height: '100%',
-                      backgroundColor: "var(--color-primary)",
-                      transition: 'width 150ms ease',
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          }
-          footer={`연동률 ${linkStats.rate}%`}
+                  <RefreshIcon size={14} color="#dc2626" />
+                  재초대
+                </button>
+              ) : undefined
+            },
+          ]}
         />
       </div>
 
