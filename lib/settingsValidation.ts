@@ -22,11 +22,6 @@ export interface SettingsState {
         autoSMS: boolean;
         emailAlerts: boolean;
     };
-    aiVoice: {
-        gender: 'female' | 'male';
-        tone: 'soft' | 'bright' | 'calm';
-        speed: number;
-    };
     scheduledCalls: {
         preferredStartTime: string;
         preferredEndTime: string;
@@ -51,11 +46,6 @@ export const DEFAULT_SETTINGS: SettingsState = {
     guardianNotifications: {
         autoSMS: true,
         emailAlerts: false,
-    },
-    aiVoice: {
-        gender: 'female',
-        tone: 'soft',
-        speed: 2,
     },
     scheduledCalls: {
         preferredStartTime: '09:00',
@@ -101,13 +91,7 @@ export function validateSettings(settings: SettingsState): ValidationError[] {
         });
     }
 
-    // Validate AI voice speed
-    if (settings.aiVoice.speed < 1 || settings.aiVoice.speed > 3) {
-        errors.push({
-            field: 'aiVoice.speed',
-            message: '말하기 속도는 1에서 3 사이여야 합니다.',
-        });
-    }
+
 
     // Validate scheduled call times
     const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;

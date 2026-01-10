@@ -36,7 +36,7 @@ type BeneficiaryDetailResponse = {
 };
 
 const EMPTY_DETAIL: BeneficiaryDetail = {
-  name: null,
+  name: '',
   email: null,
   phoneNumber: null,
   birthDate: null,
@@ -334,8 +334,8 @@ export default function BeneficiariesPage() {
       const message = err instanceof AuthError
         ? '인증이 만료되었습니다. 다시 로그인해주세요.'
         : err instanceof Error
-        ? err.message
-        : '재초대에 실패했습니다.';
+          ? err.message
+          : '재초대에 실패했습니다.';
       alert(message);
     } finally {
       setReinviting(false);
@@ -446,6 +446,8 @@ export default function BeneficiariesPage() {
       {/* 통계 카드 */}
       <div style={{ marginBottom: '20px' }}>
         <StatCard
+          label="전체 현황"
+          icon={<UsersIcon size={24} />}
           value={null}
           color="#8FA963"
           extra={
@@ -593,13 +595,13 @@ export default function BeneficiariesPage() {
                     backgroundColor: isActive
                       ? 'var(--color-primary)'
                       : hasItems
-                      ? 'transparent'
-                      : 'transparent',
+                        ? 'transparent'
+                        : 'transparent',
                     color: isActive
                       ? 'white'
                       : hasItems
-                      ? 'var(--color-text-primary)'
-                      : 'var(--color-text-muted)',
+                        ? 'var(--color-text-primary)'
+                        : 'var(--color-text-muted)',
                     fontSize: '13px',
                     fontWeight: isActive ? 700 : 500,
                     cursor: hasItems ? 'pointer' : 'not-allowed',
@@ -623,219 +625,219 @@ export default function BeneficiariesPage() {
             })}
           </div>
 
-        <div className="beneficiary-table-container" style={{ flex: 1 }}>
-          <div style={{
-            padding: '16px 20px',
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center',
-            borderBottom: '1px solid var(--color-border)',
-            overflowX: 'auto',
-          }}>
-            {/* Filter Status Buttons (전체목록/미연동 대상자) */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                background: 'var(--color-accent-soft)',
-                padding: '6px',
-                borderRadius: '12px',
-                flexShrink: 0,
-              }}
-            >
-              <button
-                onClick={() => setFilterStatus('all')}
+          <div className="beneficiary-table-container" style={{ flex: 1 }}>
+            <div style={{
+              padding: '16px 20px',
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'center',
+              borderBottom: '1px solid var(--color-border)',
+              overflowX: 'auto',
+            }}>
+              {/* Filter Status Buttons (전체목록/미연동 대상자) */}
+              <div
                 style={{
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: filterStatus === 'all' ? 'white' : 'transparent',
-                  color: filterStatus === 'all' ? 'var(--color-primary-dark)' : 'var(--color-text-muted)',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  boxShadow: filterStatus === 'all' ? 'var(--shadow-raised)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  gap: '8px',
+                  background: 'var(--color-accent-soft)',
+                  padding: '6px',
+                  borderRadius: '12px',
+                  flexShrink: 0,
                 }}
               >
-                전체 목록
-              </button>
-              <button
-                onClick={() => setFilterStatus('pending')}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  border: 'none',
-                  backgroundColor: filterStatus === 'pending' ? 'white' : 'transparent',
-                  color: filterStatus === 'pending' ? 'var(--color-danger-main)' : 'var(--color-text-muted)',
-                  fontWeight: 700,
-                  fontSize: '14px',
-                  boxShadow: filterStatus === 'pending' ? 'var(--shadow-raised)' : 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                미연동 대상자
-                <span
+                <button
+                  onClick={() => setFilterStatus('all')}
                   style={{
-                    backgroundColor: 'var(--color-danger-soft)',
-                    color: 'var(--color-danger-main)',
-                    borderRadius: '999px',
-                    padding: '2px 8px',
-                    fontSize: '12px',
-                    fontWeight: 800,
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: filterStatus === 'all' ? 'white' : 'transparent',
+                    color: filterStatus === 'all' ? 'var(--color-primary-dark)' : 'var(--color-text-muted)',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    boxShadow: filterStatus === 'all' ? 'var(--shadow-raised)' : 'none',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  {linkStats.pending}
-                </span>
-              </button>
-            </div>
-
-            {/* Search and Sort Filters */}
-            <Input
-              value={search}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-              placeholder="이름, 주소, 담당자 검색..."
-              aria-label="이름, 주소 또는 담당자 검색"
-              style={{ width: '240px', flexShrink: 0 }}
-            />
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: '8px',
-                border: '1px solid var(--color-border)',
-                fontSize: '14px',
-                color: 'var(--color-text-primary)',
-                backgroundColor: 'var(--color-panel)',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              aria-label="정렬 기준"
-            >
-              <option value="lastCall-recent">최근 안부 - 최신순</option>
-              <option value="lastCall-old">최근 안부 - 오래된순</option>
-            </select>
-          </div>
-
-          {loading && (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-              데이터를 불러오는 중입니다...
-            </div>
-          )}
-
-          {error && !loading && (
-            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-danger-main)' }}>
-              {error}
-            </div>
-          )}
-
-          <Table>
-            <colgroup>
-              <col style={{ width: '24%' }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '16%' }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: '10%' }} />
-              <col style={{ width: '10%' }} />
-            </colgroup>
-            <TableHeader className="beneficiary-table-header">
-              <TableRow>
-                <TableHead className="beneficiary-table-head">이름 및 기본정보</TableHead>
-                <TableHead className="beneficiary-table-head">연락처</TableHead>
-                <TableHead className="beneficiary-table-head">담당자</TableHead>
-                <TableHead className="beneficiary-table-head">보호자 연락처</TableHead>
-                <TableHead className="beneficiary-table-head">최근 안부</TableHead>
-                <TableHead className="beneficiary-table-head">정보 수정</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {displayList.map(item => (
-                <TableRow
-                  key={item.id}
-                  ref={(el) => {
-                    if (el) {
-                      rowRefs.current.set(String(item.id), el);
-                    } else {
-                      rowRefs.current.delete(String(item.id));
-                    }
+                  전체 목록
+                </button>
+                <button
+                  onClick={() => setFilterStatus('pending')}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: filterStatus === 'pending' ? 'white' : 'transparent',
+                    color: filterStatus === 'pending' ? 'var(--color-danger-main)' : 'var(--color-text-muted)',
+                    fontWeight: 700,
+                    fontSize: '14px',
+                    boxShadow: filterStatus === 'pending' ? 'var(--shadow-raised)' : 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                    whiteSpace: 'nowrap',
                   }}
-                  onClick={() => setSelectedId(String(item.id))}
-                  selected={selectedId === String(item.id)}
-                  className="beneficiary-table-row"
                 >
-                  <TableCell className="beneficiary-table-cell" style={{ textAlign: 'left' }}>
-                    <div className="beneficiary-user-cell">
-                      <ProfileCircle status={item.status} name={item.name} isRegistered={item.isRegistered} />
-                      <div>
-                        <div className="beneficiary-user-name">
-                          {item.name}
-                          {item.age && (
-                            <span style={{ fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: '4px' }}>
-                              ({item.age}세{item.gender ? ', ' : ''}{item.gender === 'male' || item.gender === 'm' ? '남' : item.gender === 'female' || item.gender === 'f' ? '여' : ''})
-                            </span>
-                          )}
+                  미연동 대상자
+                  <span
+                    style={{
+                      backgroundColor: 'var(--color-danger-soft)',
+                      color: 'var(--color-danger-main)',
+                      borderRadius: '999px',
+                      padding: '2px 8px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {linkStats.pending}
+                  </span>
+                </button>
+              </div>
+
+              {/* Search and Sort Filters */}
+              <Input
+                value={search}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                placeholder="이름, 주소, 담당자 검색..."
+                aria-label="이름, 주소 또는 담당자 검색"
+                style={{ width: '240px', flexShrink: 0 }}
+              />
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--color-border)',
+                  fontSize: '14px',
+                  color: 'var(--color-text-primary)',
+                  backgroundColor: 'var(--color-panel)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                }}
+                aria-label="정렬 기준"
+              >
+                <option value="lastCall-recent">최근 안부 - 최신순</option>
+                <option value="lastCall-old">최근 안부 - 오래된순</option>
+              </select>
+            </div>
+
+            {loading && (
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                데이터를 불러오는 중입니다...
+              </div>
+            )}
+
+            {error && !loading && (
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-danger-main)' }}>
+                {error}
+              </div>
+            )}
+
+            <Table>
+              <colgroup>
+                <col style={{ width: '24%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+              </colgroup>
+              <TableHeader className="beneficiary-table-header">
+                <TableRow>
+                  <TableHead className="beneficiary-table-head">이름 및 기본정보</TableHead>
+                  <TableHead className="beneficiary-table-head">연락처</TableHead>
+                  <TableHead className="beneficiary-table-head">담당자</TableHead>
+                  <TableHead className="beneficiary-table-head">보호자 연락처</TableHead>
+                  <TableHead className="beneficiary-table-head">최근 안부</TableHead>
+                  <TableHead className="beneficiary-table-head">정보 수정</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayList.map(item => (
+                  <TableRow
+                    key={item.id}
+                    ref={(el) => {
+                      if (el) {
+                        rowRefs.current.set(String(item.id), el);
+                      } else {
+                        rowRefs.current.delete(String(item.id));
+                      }
+                    }}
+                    onClick={() => setSelectedId(String(item.id))}
+                    selected={selectedId === String(item.id)}
+                    className="beneficiary-table-row"
+                  >
+                    <TableCell className="beneficiary-table-cell" style={{ textAlign: 'left' }}>
+                      <div className="beneficiary-user-cell">
+                        <ProfileCircle status={item.status} name={item.name} isRegistered={item.isRegistered} />
+                        <div>
+                          <div className="beneficiary-user-name">
+                            {item.name}
+                            {item.age && (
+                              <span style={{ fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: '4px' }}>
+                                ({item.age}세{item.gender ? ', ' : ''}{item.gender === 'male' || item.gender === 'm' ? '남' : item.gender === 'female' || item.gender === 'f' ? '여' : ''})
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="beneficiary-table-cell">{item.phoneNumber ?? '-'}</TableCell>
-                  <TableCell className="beneficiary-table-cell">{item.manager ?? '-'}</TableCell>
-                  <TableCell className="beneficiary-table-cell">{item.guardianPhone ?? '-'}</TableCell>
-                  <TableCell className="beneficiary-table-cell ">{formatRelativeTime(item.lastCall)}</TableCell>
-                  <TableCell className="beneficiary-table-cell text-center" style={{ padding: '8px' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedId(String(item.id));
-                        setOpenInEditMode(true);
-                      }}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        padding: '6px 12px',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        color: 'var(--color-primary)',
-                        backgroundColor: 'var(--color-primary-soft)',
-                        border: '1px solid var(--color-primary-border)',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 150ms ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--color-primary-light)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--color-primary-soft)';
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                        <path d="m15 5 4 4" />
-                      </svg>
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {displayList.length === 0 && !loading && (
-                <TableRow>
-                  <TableCell colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
-                    {search ? '검색 결과가 없습니다.' : '표시할 대상자가 없습니다.'}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                    </TableCell>
+                    <TableCell className="beneficiary-table-cell">{item.phoneNumber ?? '-'}</TableCell>
+                    <TableCell className="beneficiary-table-cell">{item.manager ?? '-'}</TableCell>
+                    <TableCell className="beneficiary-table-cell">{item.guardianPhone ?? '-'}</TableCell>
+                    <TableCell className="beneficiary-table-cell ">{formatRelativeTime(item.lastCall || null)}</TableCell>
+                    <TableCell className="beneficiary-table-cell text-center" style={{ padding: '8px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedId(String(item.id));
+                          setOpenInEditMode(true);
+                        }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '6px 12px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: 'var(--color-primary)',
+                          backgroundColor: 'var(--color-primary-soft)',
+                          border: '1px solid var(--color-primary-border)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 150ms ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--color-primary-light)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'var(--color-primary-soft)';
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                          <path d="m15 5 4 4" />
+                        </svg>
+                      </button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {displayList.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={5} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
+                      {search ? '검색 결과가 없습니다.' : '표시할 대상자가 없습니다.'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
 
         {selectedData && (
@@ -876,8 +878,8 @@ function ProfileCircle({
   const bulletColor = isRegistered === true
     ? '#22c55e'  // 초록색 (soften green)
     : isRegistered === false
-    ? 'var(--color-danger-border)'  // 빨간색
-    : '#94a3b8';  // 기본 (회색)
+      ? 'var(--color-danger-border)'  // 빨간색
+      : '#94a3b8';  // 기본 (회색)
 
   return (
     <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>

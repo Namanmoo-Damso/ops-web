@@ -13,7 +13,7 @@
  * formatRelativeTime('2024-01-07T10:30:00Z') // "3일 전"
  * formatRelativeTime(null) // "-"
  */
-export function formatRelativeTime(dateString: string | null): string {
+export function formatRelativeTime(dateString: string | null | undefined): string {
   if (!dateString) return '-';
 
   try {

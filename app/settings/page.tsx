@@ -9,7 +9,7 @@ import Switch from '../../components/ui/Switch';
 import TimePicker from '../../components/ui/TimePicker';
 import Button from '../../components/ui/Button';
 import Toast, { type ToastType } from '../../components/ui/Toast';
-import { Phone, Activity, MessageCircle, Bell, Mic, Clock, History, AlertTriangle } from 'lucide-react';
+import { Phone, Activity, MessageCircle, Bell, Clock, History, AlertTriangle } from 'lucide-react';
 import { settingsReducer } from '../../lib/settingsReducer';
 import { DEFAULT_SETTINGS, validateSettings, areSettingsEqual, type SettingsState } from '../../lib/settingsValidation';
 import { SENSITIVITY_DESCRIPTIONS } from '../../lib/sensitivityConfig';
@@ -329,152 +329,7 @@ export default function SettingsPage() {
                     </div>
                 </Card>
 
-                {/* Section 5: AI Voice and Tone */}
-                <Card padding="lg" className="settings-section">
-                    <div className="settings-section-header">
-                        <div className="settings-section-icon">
-                            <Mic size={24} />
-                        </div>
-                        <div>
-                            <h2 className="settings-section-title">AI 목소리 및 톤 설정</h2>
-                            <p className="settings-section-description">
-                                대상자에게 맞는 AI 음성 특성을 설정합니다
-                            </p>
-                        </div>
-                    </div>
 
-                    <div className="settings-form-group">
-                        <div>
-                            <label
-                                style={{
-                                    display: 'block',
-                                    fontSize: 'var(--font-size-caption)',
-                                    fontWeight: 'var(--font-weight-semibold)',
-                                    color: 'var(--color-text-primary)',
-                                    marginBottom: 'var(--spacing-md)',
-                                }}
-                            >
-                                목소리 성별
-                            </label>
-                            <div className="settings-voice-options">
-                                <label
-                                    className={`settings-voice-option ${
-                                        settings.aiVoice.gender === 'female' ? 'selected' : ''
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="gender"
-                                        value="female"
-                                        checked={settings.aiVoice.gender === 'female'}
-                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_GENDER', payload: 'female' })}
-                                        className="settings-voice-option-radio"
-                                    />
-                                    <span className="settings-voice-option-label">여성 목소리</span>
-                                </label>
-                                <label
-                                    className={`settings-voice-option ${
-                                        settings.aiVoice.gender === 'male' ? 'selected' : ''
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="gender"
-                                        value="male"
-                                        checked={settings.aiVoice.gender === 'male'}
-                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_GENDER', payload: 'male' })}
-                                        className="settings-voice-option-radio"
-                                    />
-                                    <span className="settings-voice-option-label">남성 목소리</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label
-                                style={{
-                                    display: 'block',
-                                    fontSize: 'var(--font-size-caption)',
-                                    fontWeight: 'var(--font-weight-semibold)',
-                                    color: 'var(--color-text-primary)',
-                                    marginBottom: 'var(--spacing-md)',
-                                }}
-                            >
-                                목소리 톤
-                            </label>
-                            <div className="settings-voice-options">
-                                <label
-                                    className={`settings-voice-option ${
-                                        settings.aiVoice.tone === 'soft' ? 'selected' : ''
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="tone"
-                                        value="soft"
-                                        checked={settings.aiVoice.tone === 'soft'}
-                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_TONE', payload: 'soft' })}
-                                        className="settings-voice-option-radio"
-                                    />
-                                    <span className="settings-voice-option-label">부드러운</span>
-                                </label>
-                                <label
-                                    className={`settings-voice-option ${
-                                        settings.aiVoice.tone === 'bright' ? 'selected' : ''
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="tone"
-                                        value="bright"
-                                        checked={settings.aiVoice.tone === 'bright'}
-                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_TONE', payload: 'bright' })}
-                                        className="settings-voice-option-radio"
-                                    />
-                                    <span className="settings-voice-option-label">밝은</span>
-                                </label>
-                                <label
-                                    className={`settings-voice-option ${
-                                        settings.aiVoice.tone === 'calm' ? 'selected' : ''
-                                    }`}
-                                >
-                                    <input
-                                        type="radio"
-                                        name="tone"
-                                        value="calm"
-                                        checked={settings.aiVoice.tone === 'calm'}
-                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_TONE', payload: 'calm' })}
-                                        className="settings-voice-option-radio"
-                                    />
-                                    <span className="settings-voice-option-label">차분한</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label
-                                style={{
-                                    display: 'block',
-                                    fontSize: 'var(--font-size-caption)',
-                                    fontWeight: 'var(--font-weight-semibold)',
-                                    color: 'var(--color-text-primary)',
-                                    marginBottom: 'var(--spacing-md)',
-                                }}
-                            >
-                                말하기 속도
-                            </label>
-                            <Slider
-                                value={settings.aiVoice.speed}
-                                onChange={(value) => dispatch({ type: 'SET_AI_VOICE_SPEED', payload: value })}
-                                min={1}
-                                max={3}
-                                step={1}
-                                labels={['느리게', '보통', '빠르게']}
-                                aria-label="말하기 속도"
-                            />
-                        </div>
-                    </div>
-                </Card>
 
                 {/* Section 6: Scheduled Call Times */}
                 <Card padding="lg" className="settings-section">
@@ -494,13 +349,13 @@ export default function SettingsPage() {
                         <TimePicker
                             label="시작 시간"
                             value={settings.scheduledCalls.preferredStartTime}
-                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_preferredStartTime'.upper().replace('PREFERRED', ''), payload: value })}
+                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_START_TIME', payload: value })}
                             fullWidth
                         />
                         <TimePicker
                             label="종료 시간"
                             value={settings.scheduledCalls.preferredEndTime}
-                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_preferredEndTime'.upper().replace('PREFERRED', ''), payload: value })}
+                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_END_TIME', payload: value })}
                             fullWidth
                         />
                     </div>
