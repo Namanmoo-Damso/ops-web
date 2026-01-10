@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../hooks/useAuth';
 
 // OAuth 설정
-const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
 export default function AdminLoginPage() {
@@ -35,10 +34,11 @@ function LoadingScreen() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPopupOverlay, setShowPopupOverlay] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -66,38 +66,50 @@ function LoginContent() {
     return `${window.location.origin}/login/callback`;
   };
 
-  const handleKakaoLogin = () => {
-    try {
-      if (!KAKAO_CLIENT_ID) {
-        throw new Error('Configuration Missing');
+  const handleGoogleLogin = () => {
+    let popup: Window | null = null;
+    let checkPopupInterval: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      if (checkPopupInterval) {
+        clearInterval(checkPopupInterval);
+        checkPopupInterval = null;
+      }
+      window.removeEventListener('message', handleMessage);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) {
+        return;
       }
 
-      setIsLoading(true);
-      const state = generateState();
-      const redirectUri = getRedirectUri();
+      if (event.data.type === 'oauth-success') {
+        cleanup();
+        setShowPopupOverlay(false);
 
-      const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
-      kakaoAuthUrl.searchParams.set('client_id', KAKAO_CLIENT_ID);
-      kakaoAuthUrl.searchParams.set('redirect_uri', `${redirectUri}?provider=kakao`);
-      kakaoAuthUrl.searchParams.set('response_type', 'code');
-      kakaoAuthUrl.searchParams.set('scope', 'profile_nickname,account_email');
-      kakaoAuthUrl.searchParams.set('state', state);
+        // Login with the received credentials
+        login(event.data.accessToken, event.data.refreshToken, event.data.admin);
 
-      window.location.href = kakaoAuthUrl.toString();
-    } catch (err) {
-      console.error('[Login] Kakao login error'); // Log internal, don't expose
-      setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
-      setIsLoading(false);
-    }
-  };
+        // Redirect based on organization
+        if (event.data.hasOrganization) {
+          router.replace('/dashboard');
+        } else {
+          router.replace('/select-organization');
+        }
+      } else if (event.data.type === 'oauth-error') {
+        cleanup();
+        setShowPopupOverlay(false);
+        setError(event.data.message || '로그인 처리에 실패했습니다.');
+        setIsLoading(false);
+      }
+    };
 
-  const handleGoogleLogin = () => {
     try {
       if (!GOOGLE_CLIENT_ID) {
         throw new Error('Configuration Missing');
       }
 
-      setIsLoading(true);
       const state = generateState();
       const redirectUri = getRedirectUri();
 
@@ -112,10 +124,47 @@ function LoginContent() {
       googleAuthUrl.searchParams.set('prompt', 'consent');
       googleAuthUrl.searchParams.set('state', state);
 
-      window.location.href = googleAuthUrl.toString();
+      // Show overlay to indicate popup is open
+      setShowPopupOverlay(true);
+      setIsLoading(true);
+
+      // Center the popup on screen
+      const POPUP_WIDTH = 500;
+      const POPUP_HEIGHT = 600;
+      const left = Math.max(0, (window.screen.width - POPUP_WIDTH) / 2);
+      const top = Math.max(0, (window.screen.height - POPUP_HEIGHT) / 2);
+
+      // Open OAuth in popup instead of redirect
+      popup = window.open(
+        googleAuthUrl.toString(),
+        '_blank',
+        `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},scrollbars=yes,resizable=yes`
+      );
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        cleanup();
+        setError('팝업이 차단되었습니다. 팝업을 허용해주세요.');
+        setIsLoading(false);
+        setShowPopupOverlay(false);
+        return;
+      }
+
+      // Listen for message from popup
+      window.addEventListener('message', handleMessage);
+
+      // Cleanup if popup is closed manually
+      checkPopupInterval = setInterval(() => {
+        if (popup && popup.closed) {
+          cleanup();
+          setShowPopupOverlay(false);
+          setIsLoading(false);
+        }
+      }, 500);
     } catch (err) {
       console.error('[Login] Google login error');
+      cleanup();
       setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
+      setShowPopupOverlay(false);
       setIsLoading(false);
     }
   };
@@ -129,8 +178,64 @@ function LoginContent() {
         justifyContent: 'center',
         backgroundColor: '#F7F9F2',
         fontFamily: 'sans-serif',
+        position: 'relative',
       }}
     >
+      {/* Popup overlay - shown when OAuth popup is open */}
+      {showPopupOverlay && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '32px',
+              borderRadius: '16px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+              textAlign: 'center',
+              maxWidth: '400px',
+            }}
+          >
+            <div
+              style={{
+                width: '48px',
+                height: '48px',
+                margin: '0 auto 16px',
+                border: '4px solid #E9F0DF',
+                borderTopColor: '#8FA963',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+              }}
+            />
+            <style jsx>{`
+              @keyframes spin {
+                to {
+                  transform: rotate(360deg);
+                }
+              }
+            `}</style>
+            <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#4A5D23' }}>
+              Google 로그인 진행 중
+            </h3>
+            <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+              팝업 창에서 로그인을 완료해주세요
+            </p>
+          </div>
+        </div>
+      )}
+
+
       <div
         style={{
           width: '100%',
@@ -184,79 +289,37 @@ function LoginContent() {
             이동 중...
           </div>
         ) : (
-          <div
-            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+          <button
+            onClick={handleGoogleLogin}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '14px 20px',
+              backgroundColor: 'white',
+              color: '#4A5D23',
+              border: '1px solid #E9F0DF',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseOver={e =>
+              (e.currentTarget.style.backgroundColor = '#F7F9F2')
+            }
+            onMouseOut={e =>
+              (e.currentTarget.style.backgroundColor = 'white')
+            }
           >
-            <button
-              onClick={handleKakaoLogin}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                width: '100%',
-                padding: '14px 20px',
-                backgroundColor: '#FEE500',
-                color: '#191919',
-                border: 'none',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'opacity 0.2s',
-              }}
-              onMouseOver={e => (e.currentTarget.style.opacity = '0.9')}
-              onMouseOut={e => (e.currentTarget.style.opacity = '1')}
-            >
-              <KakaoIcon />
-              카카오로 로그인
-            </button>
-
-            <button
-              onClick={handleGoogleLogin}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px',
-                width: '100%',
-                padding: '14px 20px',
-                backgroundColor: 'white',
-                color: '#4A5D23',
-                border: '1px solid #E9F0DF',
-                borderRadius: '12px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseOver={e =>
-                (e.currentTarget.style.backgroundColor = '#F7F9F2')
-              }
-              onMouseOut={e =>
-                (e.currentTarget.style.backgroundColor = 'white')
-              }
-            >
-              <GoogleIcon />
-              Google로 로그인
-            </button>
-          </div>
+            <GoogleIcon />
+            Google로 로그인
+          </button>
         )}
       </div>
     </div>
-  );
-}
-
-function KakaoIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M10 2C5.02944 2 1 5.36131 1 9.47368C1 12.1172 2.8377 14.4386 5.55185 15.7088L4.50555 19.4013C4.41748 19.6881 4.73941 19.9231 4.98666 19.7538L9.36334 16.8129C9.57055 16.8373 9.78273 16.8496 10 16.8496C14.9706 16.8496 19 13.4883 19 9.37591C19 5.26352 14.9706 2 10 2Z"
-        fill="#191919"
-      />
-    </svg>
   );
 }
 
