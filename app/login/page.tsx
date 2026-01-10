@@ -34,11 +34,10 @@ function LoadingScreen() {
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPopupOverlay, setShowPopupOverlay] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -67,49 +66,12 @@ function LoginContent() {
   };
 
   const handleGoogleLogin = () => {
-    let popup: Window | null = null;
-    let checkPopupInterval: NodeJS.Timeout | null = null;
-
-    const cleanup = () => {
-      if (checkPopupInterval) {
-        clearInterval(checkPopupInterval);
-        checkPopupInterval = null;
-      }
-      window.removeEventListener('message', handleMessage);
-    };
-
-    const handleMessage = (event: MessageEvent) => {
-      // Verify origin for security
-      if (event.origin !== window.location.origin) {
-        return;
-      }
-
-      if (event.data.type === 'oauth-success') {
-        cleanup();
-        setShowPopupOverlay(false);
-
-        // Login with the received credentials
-        login(event.data.accessToken, event.data.refreshToken, event.data.admin);
-
-        // Redirect based on organization
-        if (event.data.hasOrganization) {
-          router.replace('/dashboard');
-        } else {
-          router.replace('/select-organization');
-        }
-      } else if (event.data.type === 'oauth-error') {
-        cleanup();
-        setShowPopupOverlay(false);
-        setError(event.data.message || '로그인 처리에 실패했습니다.');
-        setIsLoading(false);
-      }
-    };
-
     try {
       if (!GOOGLE_CLIENT_ID) {
         throw new Error('Configuration Missing');
       }
 
+      setIsLoading(true);
       const state = generateState();
       const redirectUri = getRedirectUri();
 
@@ -124,47 +86,10 @@ function LoginContent() {
       googleAuthUrl.searchParams.set('prompt', 'consent');
       googleAuthUrl.searchParams.set('state', state);
 
-      // Show overlay to indicate popup is open
-      setShowPopupOverlay(true);
-      setIsLoading(true);
-
-      // Center the popup on screen
-      const POPUP_WIDTH = 500;
-      const POPUP_HEIGHT = 600;
-      const left = Math.max(0, (window.screen.width - POPUP_WIDTH) / 2);
-      const top = Math.max(0, (window.screen.height - POPUP_HEIGHT) / 2);
-
-      // Open OAuth in popup instead of redirect
-      popup = window.open(
-        googleAuthUrl.toString(),
-        '_blank',
-        `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},scrollbars=yes,resizable=yes`
-      );
-
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        cleanup();
-        setError('팝업이 차단되었습니다. 팝업을 허용해주세요.');
-        setIsLoading(false);
-        setShowPopupOverlay(false);
-        return;
-      }
-
-      // Listen for message from popup
-      window.addEventListener('message', handleMessage);
-
-      // Cleanup if popup is closed manually
-      checkPopupInterval = setInterval(() => {
-        if (popup && popup.closed) {
-          cleanup();
-          setShowPopupOverlay(false);
-          setIsLoading(false);
-        }
-      }, 500);
+      window.location.href = googleAuthUrl.toString();
     } catch (err) {
       console.error('[Login] Google login error');
-      cleanup();
       setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
-      setShowPopupOverlay(false);
       setIsLoading(false);
     }
   };
@@ -178,64 +103,8 @@ function LoginContent() {
         justifyContent: 'center',
         backgroundColor: '#F7F9F2',
         fontFamily: 'sans-serif',
-        position: 'relative',
       }}
     >
-      {/* Popup overlay - shown when OAuth popup is open */}
-      {showPopupOverlay && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '32px',
-              borderRadius: '16px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-              textAlign: 'center',
-              maxWidth: '400px',
-            }}
-          >
-            <div
-              style={{
-                width: '48px',
-                height: '48px',
-                margin: '0 auto 16px',
-                border: '4px solid #E9F0DF',
-                borderTopColor: '#8FA963',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-              }}
-            />
-            <style jsx>{`
-              @keyframes spin {
-                to {
-                  transform: rotate(360deg);
-                }
-              }
-            `}</style>
-            <h3 style={{ margin: '0 0 8px', fontSize: '18px', color: '#4A5D23' }}>
-              Google 로그인 진행 중
-            </h3>
-            <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-              팝업 창에서 로그인을 완료해주세요
-            </p>
-          </div>
-        </div>
-      )}
-
-
       <div
         style={{
           width: '100%',

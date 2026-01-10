@@ -51,40 +51,25 @@ function CallbackContent() {
       const state = searchParams.get('state');
       const errorParam = searchParams.get('error');
 
-      // Helper to send error to parent
-      const sendError = (message: string) => {
-        // Clear OAuth state in all cases
-        sessionStorage.removeItem('oauth_state');
-
-        if (window.opener && !window.opener.closed) {
-          window.opener.postMessage(
-            { type: 'oauth-error', message },
-            window.location.origin
-          );
-          // Small delay to ensure message is sent before closing
-          setTimeout(() => {
-            window.close();
-          }, 100);
-        } else {
-          setStatus('error');
-          setError(message);
-        }
-      };
-
       if (errorParam) {
-        sendError('로그인 과정에서 오류가 발생했습니다.');
+        setStatus('error');
+        setError('로그인 과정에서 오류가 발생했습니다.');
         return;
       }
 
       if (!provider || !code) {
-        sendError('잘못된 요청입니다.');
+        setStatus('error');
+        setError('잘못된 요청입니다.');
         return;
       }
 
       // CSRF State Verification
       const savedState = sessionStorage.getItem('oauth_state');
       if (!state || state !== savedState) {
-        sendError('보안 검증에 실패했습니다. (State Mismatch)');
+        setStatus('error');
+        setError('보안 검증에 실패했습니다. (State Mismatch)');
+        // Clear state to preventing replay
+        sessionStorage.removeItem('oauth_state');
         return;
       }
 
@@ -100,54 +85,18 @@ function CallbackContent() {
           { skipAuth: true }
         );
 
-        // Check if this is a popup window
-        if (window.opener && !window.opener.closed) {
-          // Send auth data to parent window (parent will handle login)
-          window.opener.postMessage(
-            {
-              type: 'oauth-success',
-              accessToken: data.accessToken,
-              refreshToken: data.refreshToken,
-              admin: data.admin,
-              hasOrganization: !!data.admin.organizationId,
-            },
-            window.location.origin
-          );
-          // Small delay to ensure message is sent before closing
-          setTimeout(() => {
-            window.close();
-          }, 100);
+        login(data.accessToken, data.refreshToken, data.admin);
+
+        if (!data.admin.organizationId) {
+          router.replace('/select-organization');
         } else {
-          // Fallback to normal flow if not in popup
-          login(data.accessToken, data.refreshToken, data.admin);
-          if (!data.admin.organizationId) {
-            router.replace('/select-organization');
-          } else {
-            router.replace('/dashboard');
-          }
+          router.replace('/dashboard');
         }
       } catch (err) {
         console.error('[Callback] Login failed'); // Log for dev
-
-        // Check if this is a popup window
-        if (window.opener && !window.opener.closed) {
-          // Send error message to parent window
-          window.opener.postMessage(
-            {
-              type: 'oauth-error',
-              message: '로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.',
-            },
-            window.location.origin
-          );
-          // Small delay to ensure message is sent before closing
-          setTimeout(() => {
-            window.close();
-          }, 100);
-        } else {
-          // Fallback to showing error in popup
-          setStatus('error');
-          setError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
-        }
+        setStatus('error');
+        // Generic error message
+        setError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     };
 
