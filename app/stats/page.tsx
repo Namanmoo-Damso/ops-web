@@ -110,11 +110,16 @@ function formatTimeAgo(timestamp: string): string {
     const now = new Date();
     const then = new Date(timestamp);
     const diffMs = now.getTime() - then.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
     const diffDays = Math.floor(diffHours / 24);
+
+    // Handle future dates (negative diff)
+    if (diffMs < 0) return '예정';
 
     if (diffDays > 0) return `${diffDays}일 전`;
     if (diffHours > 0) return `${diffHours}시간 전`;
+    if (diffMinutes > 0) return `${diffMinutes}분 전`;
     return '방금 전';
 }
 
@@ -124,31 +129,57 @@ function formatDateToInput(date: Date): string {
 
 function getEndDateForPeriod(startDateStr: string, periodKey: PeriodFilter): string {
     const start = new Date(startDateStr);
-    const end = new Date(start);
+
+    // Clone start date for manipulation
+    let end: Date;
 
     switch (periodKey) {
         case 'daily':
             // Same day
+            end = new Date(start);
             break;
         case 'weekly':
+            end = new Date(start);
             end.setDate(start.getDate() + 6);
             break;
-        case 'monthly':
-            end.setMonth(start.getMonth() + 1);
+        case 'monthly': {
+            // Get same date next month, then subtract 1 day
+            // Handle month-end edge cases (e.g., Jan 31 -> Feb 28)
+            end = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate());
+            // If day changed due to overflow, go to last day of intended month  
+            if (end.getDate() !== start.getDate()) {
+                end = new Date(start.getFullYear(), start.getMonth() + 2, 0);
+            }
             end.setDate(end.getDate() - 1);
             break;
-        case '3months':
-            end.setMonth(start.getMonth() + 3);
+        }
+        case '3months': {
+            end = new Date(start.getFullYear(), start.getMonth() + 3, start.getDate());
+            if (end.getDate() !== start.getDate()) {
+                end = new Date(start.getFullYear(), start.getMonth() + 4, 0);
+            }
             end.setDate(end.getDate() - 1);
             break;
-        case '6months':
-            end.setMonth(start.getMonth() + 6);
+        }
+        case '6months': {
+            end = new Date(start.getFullYear(), start.getMonth() + 6, start.getDate());
+            if (end.getDate() !== start.getDate()) {
+                end = new Date(start.getFullYear(), start.getMonth() + 7, 0);
+            }
             end.setDate(end.getDate() - 1);
             break;
-        case '1year':
-            end.setFullYear(start.getFullYear() + 1);
+        }
+        case '1year': {
+            end = new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
+            // Handle Feb 29 -> Feb 28 in non-leap year
+            if (end.getDate() !== start.getDate()) {
+                end = new Date(start.getFullYear() + 1, start.getMonth() + 1, 0);
+            }
             end.setDate(end.getDate() - 1);
             break;
+        }
+        default:
+            end = new Date(start);
     }
 
     return formatDateToInput(end);
@@ -222,9 +253,13 @@ export default function StatsPage() {
         setEndDate(value);
     };
 
+    const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
+
     const handleDownload = () => {
         // TODO: Implement download modal with component selection
-        alert('다운로드 기능은 추후 구현 예정입니다. 리포트 구성 요소를 선택하여 다운로드할 수 있습니다.');
+        setDownloadMessage('다운로드 기능은 추후 구현 예정입니다.');
+        // Auto-hide after 3 seconds
+        setTimeout(() => setDownloadMessage(null), 3000);
     };
 
     // In real implementation, this would fetch data based on period/dates
@@ -236,13 +271,16 @@ export default function StatsPage() {
     return (
         <DashboardLayout>
             <div className="stats-container">
-                {/* Page Header
-                <div className="stats-page-header">
-                    <h1 className="stats-page-title">통계 및 리포트</h1>
-                    <p className="stats-page-description">
-                        기간별 통화 데이터, 정서 분석, 위험 감지 현황을 확인합니다.
-                    </p>
-                </div> */}
+                {/* Notification Toast */}
+                {downloadMessage && (
+                    <div
+                        className="stats-notification-toast"
+                        role="alert"
+                        aria-live="polite"
+                    >
+                        {downloadMessage}
+                    </div>
+                )}
 
                 {/* Period Filter */}
                 <div className="stats-filter-section">
