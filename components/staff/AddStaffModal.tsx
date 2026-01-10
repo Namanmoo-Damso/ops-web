@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import styles from './AddStaffModal.module.css';
-import Button from '../ui/Button';
+import { Button, IconButton } from '../ui';
 
 export type NewStaffData = {
     name: string;
@@ -100,14 +100,11 @@ export default function AddStaffModal({ open, onClose, onAdd }: AddStaffModalPro
                 {/* Header */}
                 <div className={styles.header}>
                     <h2 className={styles.title}>신규 직원 추가</h2>
-                    <button
-                        type="button"
-                        className={styles.closeButton}
+                    <IconButton
+                        variant="close"
                         onClick={onClose}
                         aria-label="닫기"
-                    >
-                        ×
-                    </button>
+                    />
                 </div>
 
                 {/* Body */}

@@ -84,7 +84,38 @@ export default function SettingsPage() {
     return (
         <DashboardLayout>
             <div className="settings-container">
-                {/* Section 1: Retry Policy */}
+
+                {/* Section 1: Scheduled Call Times */}
+                <Card padding="lg" className="settings-section">
+                    <div className="settings-section-header">
+                        <div className="settings-section-icon">
+                            <Clock size={24} />
+                        </div>
+                        <div>
+                            <h2 className="settings-section-title">전화 서비스 제공 시간대 설정</h2>
+                            <p className="settings-section-description">
+                                전화 서비스가 운영되는 시간대를 설정합니다
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="settings-form-row">
+                        <TimePicker
+                            label="시작 시간"
+                            value={settings.scheduledCalls.preferredStartTime}
+                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_START_TIME', payload: value })}
+                            fullWidth
+                        />
+                        <TimePicker
+                            label="종료 시간"
+                            value={settings.scheduledCalls.preferredEndTime}
+                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_END_TIME', payload: value })}
+                            fullWidth
+                        />
+                    </div>
+                </Card>
+
+                {/* Section 2: Retry Policy */}
                 <Card padding="lg" className="settings-section">
                     <div className="settings-section-header">
                         <div className="settings-section-icon">
@@ -136,15 +167,14 @@ export default function SettingsPage() {
                             <AlertTriangle size={20} />
                         </div>
                         <div className="settings-warning-content">
-                            <div className="settings-warning-title">긴급 알림 정책</div>
                             <div className="settings-warning-text">
-                                설정된 횟수만큼 재시도 후에도 연락이 닿지 않으면, 관리자와 등록된 보호자에게 긴급 알림이 자동으로 발송됩니다.
+                                설정된 횟수만큼 재시도 후에도 연락이 닿지 않으면 담당자에게 부재중 알림이 발송됩니다.
                             </div>
                         </div>
                     </div>
                 </Card>
 
-                {/* Section 2: AI Risk Detection Sensitivity */}
+                {/* Section 3: AI Risk Detection Sensitivity */}
                 <Card padding="lg" className="settings-section">
                     <div className="settings-section-header">
                         <div className="settings-section-icon">
@@ -189,7 +219,7 @@ export default function SettingsPage() {
                     </div>
                 </Card>
 
-                {/* Section 3: Conversation Topics */}
+                {/* Section 4: Conversation Topics */}
                 <Card padding="lg" className="settings-section">
                     <div className="settings-section-header">
                         <div className="settings-section-icon">
@@ -278,97 +308,7 @@ export default function SettingsPage() {
                     </div>
                 </Card>
 
-                {/* Section 4: Guardian Notifications */}
-                <Card padding="lg" className="settings-section">
-                    <div className="settings-section-header">
-                        <div className="settings-section-icon">
-                            <Bell size={24} />
-                        </div>
-                        <div>
-                            <h2 className="settings-section-title">보호자 알림 설정</h2>
-                            <p className="settings-section-description">
-                                위기 상황 발생 시 보호자 알림 방법을 설정합니다
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="settings-topic-list">
-                        <div className="settings-topic-item">
-                            <div className="settings-topic-info">
-                                <div className="settings-topic-label">위기 상황 자동 문자 발송</div>
-                                <div className="settings-topic-description">
-                                    위험 신호 감지 시 등록된 보호자에게 즉시 문자를 발송합니다
-                                </div>
-                            </div>
-                            <Switch
-                                checked={settings.guardianNotifications.autoSMS}
-                                onChange={() => dispatch({ type: 'TOGGLE_GUARDIAN_NOTIFICATION', payload: 'autoSMS' })}
-                                aria-label="위기 상황 자동 문자 발송"
-                            />
-                        </div>
-
-                        <div className="settings-topic-item">
-                            <div className="settings-topic-info">
-                                <div className="settings-topic-label">이메일 알림</div>
-                                <div className="settings-topic-description">
-                                    일일 리포트 및 중요 알림을 이메일로 받습니다
-                                </div>
-                            </div>
-                            <Switch
-                                checked={settings.guardianNotifications.emailAlerts}
-                                onChange={() => dispatch({ type: 'TOGGLE_GUARDIAN_NOTIFICATION', payload: 'emailAlerts' })}
-                                aria-label="이메일 알림"
-                            />
-                        </div>
-                    </div>
-                </Card>
-
-
-
-                {/* Section 6: Scheduled Call Times */}
-                <Card padding="lg" className="settings-section">
-                    <div className="settings-section-header">
-                        <div className="settings-section-icon">
-                            <Clock size={24} />
-                        </div>
-                        <div>
-                            <h2 className="settings-section-title">예약 전화 집중 시간대</h2>
-                            <p className="settings-section-description">
-                                시스템 부하를 분산하기 위한 선호 전화 시간대를 설정합니다
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="settings-form-row">
-                        <TimePicker
-                            label="시작 시간"
-                            value={settings.scheduledCalls.preferredStartTime}
-                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_START_TIME', payload: value })}
-                            fullWidth
-                        />
-                        <TimePicker
-                            label="종료 시간"
-                            value={settings.scheduledCalls.preferredEndTime}
-                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_END_TIME', payload: value })}
-                            fullWidth
-                        />
-                    </div>
-
-                    <div
-                        style={{
-                            marginTop: 'var(--spacing-lg)',
-                            padding: 'var(--spacing-md)',
-                            backgroundColor: 'var(--color-bg-elevated-1)',
-                            borderRadius: 'var(--radius-md)',
-                            fontSize: 'var(--font-size-small)',
-                            color: 'var(--color-text-muted)',
-                        }}
-                    >
-                        💡 설정된 시간대 내에서 예약 전화가 우선 배치되며, 긴급 상황 시에는 시간대와 관계없이 즉시 전화가 발신됩니다.
-                    </div>
-                </Card>
-
-                {/* Section 7: Change History */}
+                {/* Section 5: Change History */}
                 <Card padding="lg" className="settings-section">
                     <div className="settings-section-header">
                         <div className="settings-section-icon">
@@ -376,9 +316,6 @@ export default function SettingsPage() {
                         </div>
                         <div>
                             <h2 className="settings-section-title">설정 변경 이력</h2>
-                            <p className="settings-section-description">
-                                최근 설정 변경 내역을 확인합니다
-                            </p>
                         </div>
                     </div>
 

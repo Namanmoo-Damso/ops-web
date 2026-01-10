@@ -13,6 +13,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
 import { useRoomContext } from '@livekit/components-react';
 import { RoomEvent, DataPacket_Kind } from 'livekit-client';
+import { IconButton } from '../ui';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
@@ -64,9 +65,8 @@ const InfoCard = ({
       style={{
         position: 'relative',
         background: '#ffffff',
-        border: `1px solid ${
-          highlight ? hexToRgba(color, 0.45) : 'rgba(226,232,240,1)'
-        }`,
+        border: `1px solid ${highlight ? hexToRgba(color, 0.45) : 'rgba(226,232,240,1)'
+          }`,
         borderRadius: '18px',
         padding: '14px 20px',
         boxShadow: highlight
@@ -284,31 +284,15 @@ export const ParticipantDetailSidebar = ({
                 세부 모니터링
               </h3>
             </div>
-            <button
+            <IconButton
+              variant="close"
               onClick={onClose}
+              aria-label="닫기"
               style={{
-                padding: '10px',
                 background: '#F7F9F2',
-                whiteSpace: 'nowrap',
-                margin: 0,
                 border: '1px solid rgba(203,213,225,1)',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s',
-                color: '#4A5D23',
               }}
-              onMouseOver={e => {
-                e.currentTarget.style.background = '#ffffff';
-              }}
-              onMouseOut={e => {
-                e.currentTarget.style.background = '#F7F9F2';
-              }}
-            >
-              <X size={18} strokeWidth={2.5} />
-            </button>
+            />
           </div>
         </div>
 
@@ -357,9 +341,8 @@ export const ParticipantDetailSidebar = ({
               {/* Status */}
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    isWarning ? 'bg-red-500 animate-ping' : 'bg-emerald-500'
-                  }`}
+                  className={`w-2 h-2 rounded-full ${isWarning ? 'bg-red-500 animate-ping' : 'bg-emerald-500'
+                    }`}
                 />
                 <span
                   style={{

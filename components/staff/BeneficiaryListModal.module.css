@@ -19,6 +19,7 @@
     flex-direction: column;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     overflow: hidden;
+    position: relative;
 }
 
 .header {
@@ -30,30 +31,16 @@
 }
 
 .title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--color-text-primary);
+    /* Inherits from .ui-section-title via SectionTitle */
     margin: 0;
 }
 
 .closeButton {
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    font-size: 20px;
-    color: var(--color-text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 150ms ease;
-}
-
-.closeButton:hover {
-    background: var(--color-bg-elevated-1);
-    color: var(--color-text-primary);
+    /* Anchored to top-right of the dialog */
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 10;
 }
 
 .body {

@@ -44,7 +44,7 @@
 }
 
 .settings-section-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
@@ -52,7 +52,7 @@
 }
 
 .settings-section-description {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-text-muted);
   margin-top: 4px;
   line-height: 1.5;
@@ -102,7 +102,7 @@
 }
 
 .settings-warning-text {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-text-secondary);
   line-height: 1.6;
 }
@@ -130,7 +130,7 @@
 }
 
 .settings-sensitivity-description p {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-text-secondary);
   line-height: 1.6;
   margin-bottom: 10px;
@@ -186,7 +186,7 @@
 }
 
 .settings-topic-label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--color-text-primary);
   margin-bottom: 3px;
@@ -194,7 +194,7 @@
 }
 
 .settings-topic-description {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-text-muted);
   line-height: 1.5;
 }
@@ -269,7 +269,7 @@
 
 .settings-history-table tbody td {
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-text-secondary);
   border-bottom: 1px solid var(--color-border);
   line-height: 1.5;

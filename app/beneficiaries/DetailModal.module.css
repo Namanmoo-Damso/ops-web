@@ -1,6 +1,6 @@
 :global(:root) {
   --beneficiary-modal-overlay-z: 2000;
-  --beneficiary-modal-max-width: 1000px;
+  --beneficiary-modal-max-width: 900px;
   --beneficiary-modal-padding: 16px;
   --beneficiary-border-color: #E9F0DF;
   --beneficiary-muted: #94a3b8;
@@ -17,21 +17,15 @@
   align-items: center;
   justify-content: center;
   padding: var(--beneficiary-modal-padding);
-  padding-left: calc(
-    var(--sidebar-width, 0px) + var(--beneficiary-modal-padding)
-  );
+  padding-left: calc(var(--sidebar-width, 0px) + var(--beneficiary-modal-padding));
   z-index: var(--beneficiary-modal-overlay-z);
 }
 
 .dialog {
-  width: min(
-    var(--beneficiary-modal-max-width),
-    calc(100vw - var(--sidebar-width, 0px) - 48px)
-  );
-  max-width: min(
-    var(--beneficiary-modal-max-width),
-    calc(100vw - var(--sidebar-width, 0px) - 48px)
-  );
+  width: min(var(--beneficiary-modal-max-width),
+      calc(100vw - var(--sidebar-width, 0px) - 48px));
+  max-width: min(var(--beneficiary-modal-max-width),
+      calc(100vw - var(--sidebar-width, 0px) - 48px));
   background-color: #FBFDF9;
   border-radius: 32px;
   box-shadow: var(--beneficiary-dialog-shadow);
@@ -40,6 +34,8 @@
   flex-direction: column;
   max-height: 90vh;
   border: 1px solid var(--beneficiary-border-color);
+  transition: all var(--transition-slow);
+  position: relative;
 }
 
 .header {
@@ -90,7 +86,7 @@
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
@@ -189,7 +185,7 @@
 }
 
 .managerLabel {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   color: #4A5D23;
 }
@@ -199,7 +195,7 @@
   background: transparent;
   color: #4A5D23;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
   cursor: pointer;
 }
@@ -209,30 +205,23 @@
 }
 
 .closeButton {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  border: none;
-  background-color: transparent;
-  color: #64748b;
-  font-weight: 900;
-  font-size: 28px;
-  cursor: pointer;
+  /* Using global .ui-icon-btn-close via IconButton variant="close" */
+  flex-shrink: 0;
 }
 
 .body {
-  padding: 24px;
+  padding: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
   background-color: #FBFDF9;
 }
 
 .column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .card {
@@ -241,6 +230,10 @@
   border-radius: 28px;
   padding: 14px;
   box-shadow: var(--beneficiary-card-shadow);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 .noteCard {
@@ -250,64 +243,63 @@
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
   box-shadow: var(--beneficiary-card-shadow);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .basicCard {
   background-color: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 28px;
-  padding: 16px;
+  padding: 14px;
   box-shadow: var(--beneficiary-card-shadow);
 }
 
 .basicGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 10px;
 }
 
 .healthLogSection {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 20px;
+  gap: 10px;
 }
 
 .healthColumn {
   grid-column: span 2;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .logsColumn {
   grid-column: span 3;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 }
 
 .healthGrid {
   display: grid;
-  gap: 18px;
+  gap: 10px;
 }
 
 .logsCard {
   background-color: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 28px;
-  padding: 16px;
+  padding: 14px;
+  /* Unified with .card */
   box-shadow: var(--beneficiary-card-shadow);
   display: flex;
   flex-direction: column;
-  gap: 12px;
   height: 100%;
 }
 
@@ -339,15 +331,16 @@
 }
 
 .editLabel {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   color: #64748b;
-  min-width: 80px;
+  min-width: 65px;
 }
 
 .editInput,
 .editTextarea,
-.editSelect {
+.editSelect,
+.editInputTwoLine {
   border: none;
   border-left: 1px solid #E2E8F0;
   border-radius: 0;
@@ -372,13 +365,25 @@
   resize: vertical;
 }
 
+.editInputTwoLine {
+  min-height: 48px;
+  resize: none;
+  line-height: 1.4;
+  padding-top: 11px;
+  padding-bottom: 11px;
+  display: flex;
+  align-items: center;
+}
+
+.editInputTwoLine:focus {
+  outline: none;
+}
+
 .editTextarea[readonly] {
   background-color: transparent;
 }
 
 .editHelper {
-  font-size: 14px;
-  color: #94a3b8;
   font-weight: 700;
 }
 
@@ -430,11 +435,15 @@
 }
 
 .sectionTitle {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--beneficiary-heading);
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .footer {
@@ -490,7 +499,7 @@
   font-size: 16px;
 }
 
-.card .infoRow + .infoRow {
+.card .infoRow+.infoRow {
   margin-top: 6px;
 }
 
@@ -501,13 +510,13 @@
 }
 
 .logMoreButton {
-  padding: 10px 14px;
-  border-radius: 16px;
+  padding: 8px 12px;
+  border-radius: 12px;
   border: 1px solid var(--beneficiary-border-color);
   background: #F7F9F2;
   color: #6E7F4F;
   font-weight: 900;
-  font-size: 16px;
+  font-size: 15px;
   cursor: pointer;
   transition: all 150ms ease;
 }
@@ -685,45 +694,9 @@
   font-weight: 700;
 }
 
-.sentiment {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 12px;
-  border: 1px solid transparent;
-}
 
 .spanTwo {
   grid-column: span 2;
-}
-
-.noteTextarea {
-  width: 100%;
-  min-height: 160px;
-  padding: 0;
-  border: none;
-  background-color: transparent;
-  font-size: 17px;
-  font-weight: 700;
-  color: #4A5D23;
-  outline: none;
-  resize: vertical;
-}
-
-.guardianGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.cardHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
 }
 
 .noteField {
@@ -731,6 +704,10 @@
   border-radius: 16px;
   padding: 14px 16px;
   background-color: #F7F9F2;
+  flex: 1;
+  /* Match the height of healthGrid modules */
+  display: flex;
+  flex-direction: column;
 }
 
 .noteField:focus-within {
@@ -738,22 +715,19 @@
   box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.2);
 }
 
-.sentimentNegative {
-  background-color: #fef2f2;
-  color: #dc2626;
-  border-color: #fecdd3;
-}
-
-.sentimentPositive {
-  background-color: #ecfdf3;
-  color: #15803d;
-  border-color: #bbf7d0;
-}
-
-.sentimentNeutral {
-  background-color: #F7F9F2;
+.noteTextarea {
+  width: 100%;
+  flex: 1;
+  /* Fill the noteField */
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  font-size: 17px;
+  font-weight: 700;
   color: #4A5D23;
-  border-color: var(--beneficiary-border-color);
+  outline: none;
+  resize: none;
 }
 
 @media (max-width: 1024px) {
@@ -781,8 +755,8 @@
   }
 
   .body {
-    padding: 22px;
-    gap: 20px;
+    padding: 10px;
+    gap: 10px;
   }
 
   .section {
@@ -797,9 +771,8 @@
 
   .basicGrid,
   .healthLogSection,
-  .editGrid,
-  .guardianGrid {
-    gap: 14px;
+  .editGrid {
+    gap: 10px;
   }
 
   .healthLogSection {
@@ -821,7 +794,6 @@
 
   .editField {
     padding: 8px 12px;
-    gap: 10px;
   }
 
   .editLabel {

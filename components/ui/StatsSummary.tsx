@@ -35,11 +35,16 @@ export default function StatsSummary({ items, title, icon }: StatsSummaryProps) 
                     <Fragment key={item.label}>
                         <div className="stats-summary-item">
                             <div className="stats-summary-label">{item.label}</div>
-                            <div
-                                className="stats-summary-value"
-                                style={item.color ? { color: item.color } : undefined}
-                            >
-                                {item.value}
+                            <div className="stats-summary-value-wrapper">
+                                <div
+                                    className="stats-summary-value"
+                                    style={item.color ? { color: item.color } : undefined}
+                                >
+                                    {item.value}
+                                </div>
+                                {item.extra && (
+                                    <div className="stats-summary-extra">{item.extra}</div>
+                                )}
                             </div>
                             {item.subtext && (
                                 <div className="stats-summary-subtext">{item.subtext}</div>

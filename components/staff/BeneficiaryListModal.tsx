@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import styles from './BeneficiaryListModal.module.css';
-import Button from '../ui/Button';
+import { Button, IconButton, SectionTitle } from '../ui';
 import { UserPlus, Phone, User, Trash2 } from 'lucide-react';
 
 export type Beneficiary = {
@@ -69,17 +69,15 @@ export default function BeneficiaryListModal({
             >
                 {/* Header */}
                 <div className={styles.header}>
-                    <h2 className={styles.title}>
+                    <SectionTitle className={styles.title}>
                         {staffName} 담당 대상자 ({beneficiaries.length}명)
-                    </h2>
-                    <button
-                        type="button"
+                    </SectionTitle>
+                    <IconButton
+                        variant="close"
                         className={styles.closeButton}
                         onClick={onClose}
                         aria-label="닫기"
-                    >
-                        ×
-                    </button>
+                    />
                 </div>
 
                 {/* Body */}

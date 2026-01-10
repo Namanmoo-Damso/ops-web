@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { IconMic } from '../Icons';
 import { getInitials } from './VideoTiles';
+import { IconButton } from '../ui';
 import styles from '../../app/page.module.css';
 
 export type MockParticipant = {
@@ -61,9 +62,12 @@ export const ParticipantSidebar = ({
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
         <span>Participants ({participants.length})</span>
-        <span className={styles.topIcon} onClick={onClose}>
-          X
-        </span>
+        <IconButton
+          variant="close"
+          onClick={onClose}
+          aria-label="닫기"
+          className={styles.topIcon}
+        />
       </div>
       <div className={styles.sidebarSearch}>
         <input
@@ -77,11 +81,9 @@ export const ParticipantSidebar = ({
         {filteredParticipants.map(participant => (
           <div
             key={participant.id}
-            className={`${styles.participantRow} ${
-              participant.speaking ? styles.active : ''
-            } ${participant.online === false ? styles.offline : ''} ${
-              !participant.you ? styles.participantClickable : ''
-            } ${participant.id === selectedParticipantId ? styles.participantSelected : ''}`}
+            className={`${styles.participantRow} ${participant.speaking ? styles.active : ''
+              } ${participant.online === false ? styles.offline : ''} ${!participant.you ? styles.participantClickable : ''
+              } ${participant.id === selectedParticipantId ? styles.participantSelected : ''}`}
             onClick={() => {
               if (participant.you) return;
               onSelectParticipant(participant.id);
