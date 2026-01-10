@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useReducer, useState, useEffect, useRef, useCallback } from 'react';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import Card from '../../components/ui/Card';
 import Select from '../../components/ui/Select';
@@ -8,90 +8,58 @@ import Slider from '../../components/ui/Slider';
 import Switch from '../../components/ui/Switch';
 import TimePicker from '../../components/ui/TimePicker';
 import Button from '../../components/ui/Button';
+import Toast, { type ToastType } from '../../components/ui/Toast';
 import { Phone, Activity, MessageCircle, Bell, Mic, Clock, History, AlertTriangle } from 'lucide-react';
-
-interface SettingsState {
-    retryPolicy: {
-        maxRetries: number;
-        retryInterval: number;
-    };
-    riskDetection: {
-        sensitivity: 1 | 2 | 3;
-    };
-    conversationTopics: {
-        healthCheck: boolean;
-        mealCheck: boolean;
-        medicationCheck: boolean;
-        sleepCheck: boolean;
-        moodCheck: boolean;
-    };
-    guardianNotifications: {
-        autoSMS: boolean;
-        emailAlerts: boolean;
-    };
-    aiVoice: {
-        gender: 'female' | 'male';
-        tone: 'soft' | 'bright' | 'calm';
-        speed: number;
-    };
-    scheduledCalls: {
-        preferredStartTime: string;
-        preferredEndTime: string;
-    };
-}
-
-const SENSITIVITY_DESCRIPTIONS = {
-    1: {
-        title: '둔감 모드',
-        description: '명확한 위험 신호만 감지합니다. 사투리, 추임새, 일상적 감탄사는 무시됩니다.',
-        examples: ['살려주세요', '도와주세요', '119'],
-    },
-    2: {
-        title: '보통 모드',
-        description: '일반적인 위험 징후를 감지합니다. 약간의 불안감이나 고통 표현도 포착합니다.',
-        examples: ['아이고', '힘들어', '아파', '살려주세요'],
-    },
-    3: {
-        title: '민감 모드',
-        description: '매우 세밀한 위험 신호까지 감지합니다. 작은 변화도 알림을 발생시킬 수 있습니다.',
-        examples: ['아이고야', '에고', '힘들어', '아파', '불안해'],
-    },
-};
+import { settingsReducer } from '../../lib/settingsReducer';
+import { DEFAULT_SETTINGS, validateSettings, areSettingsEqual, type SettingsState } from '../../lib/settingsValidation';
+import { SENSITIVITY_DESCRIPTIONS } from '../../lib/sensitivityConfig';
 
 export default function SettingsPage() {
-    const [settings, setSettings] = useState<SettingsState>({
-        retryPolicy: {
-            maxRetries: 3,
-            retryInterval: 30,
-        },
-        riskDetection: {
-            sensitivity: 2,
-        },
-        conversationTopics: {
-            healthCheck: true,
-            mealCheck: true,
-            medicationCheck: true,
-            sleepCheck: false,
-            moodCheck: true,
-        },
-        guardianNotifications: {
-            autoSMS: true,
-            emailAlerts: false,
-        },
-        aiVoice: {
-            gender: 'female',
-            tone: 'soft',
-            speed: 2,
-        },
-        scheduledCalls: {
-            preferredStartTime: '09:00',
-            preferredEndTime: '18:00',
-        },
+    const [settings, dispatch] = useReducer(settingsReducer, DEFAULT_SETTINGS);
+    const [savedSettings, setSavedSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
+    const [isSaving, setIsSaving] = useState(false);
+    const [toast, setToast] = useState<{ isOpen: boolean; message: string; type: ToastType }>({
+        isOpen: false,
+        message: '',
+        type: 'info',
     });
 
-    const [isSaving, setIsSaving] = useState(false);
+    const hasUnsavedChanges = !areSettingsEqual(settings, savedSettings);
+    const isInitialMount = useRef(true);
 
+    // Show toast notification
+    const showToast = useCallback((message: string, type: ToastType = 'info') => {
+        setToast({ isOpen: true, message, type });
+    }, []);
+
+    // Warn user about unsaved changes before leaving
+    useEffect(() => {
+        // Skip on initial mount
+        if (isInitialMount.current) {
+            isInitialMount.current = false;
+            return;
+        }
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
+
+    // Save settings
     const handleSave = async () => {
+        // Validate settings
+        const validationErrors = validateSettings(settings);
+        if (validationErrors.length > 0) {
+            showToast(validationErrors[0].message, 'error');
+            return;
+        }
+
         setIsSaving(true);
         try {
             // TODO: API call to save settings
@@ -100,10 +68,12 @@ export default function SettingsPage() {
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
 
-            alert('설정이 성공적으로 저장되었습니다.');
+            setSavedSettings(settings);
+            showToast('설정이 성공적으로 저장되었습니다.', 'success');
         } catch (error) {
             console.error('Failed to save settings:', error);
-            alert('설정 저장 중 오류가 발생했습니다.');
+            const errorMessage = error instanceof Error ? error.message : '설정 저장 중 오류가 발생했습니다.';
+            showToast(errorMessage, 'error');
         } finally {
             setIsSaving(false);
         }
@@ -139,10 +109,7 @@ export default function SettingsPage() {
                             label="최대 재시도 횟수"
                             value={settings.retryPolicy.maxRetries}
                             onChange={(value) =>
-                                setSettings({
-                                    ...settings,
-                                    retryPolicy: { ...settings.retryPolicy, maxRetries: Number(value) },
-                                })
+                                dispatch({ type: 'SET_RETRY_MAX_RETRIES', payload: Number(value) })
                             }
                             options={[
                                 { value: 1, label: '1회 재시도' },
@@ -158,10 +125,7 @@ export default function SettingsPage() {
                             label="재시도 간격"
                             value={settings.retryPolicy.retryInterval}
                             onChange={(value) =>
-                                setSettings({
-                                    ...settings,
-                                    retryPolicy: { ...settings.retryPolicy, retryInterval: Number(value) },
-                                })
+                                dispatch({ type: 'SET_RETRY_INTERVAL', payload: Number(value) })
                             }
                             options={[
                                 { value: 10, label: '10분 후' },
@@ -203,10 +167,7 @@ export default function SettingsPage() {
                     <Slider
                         value={settings.riskDetection.sensitivity}
                         onChange={(value) =>
-                            setSettings({
-                                ...settings,
-                                riskDetection: { sensitivity: value as 1 | 2 | 3 },
-                            })
+                            dispatch({ type: 'SET_RISK_SENSITIVITY', payload: value as 1 | 2 | 3 })
                         }
                         min={1}
                         max={3}
@@ -258,11 +219,8 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.conversationTopics.healthCheck}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        conversationTopics: { ...settings.conversationTopics, healthCheck: checked },
-                                    })
+                                onChange={() =>
+                                    dispatch({ type: 'TOGGLE_CONVERSATION_TOPIC', payload: 'healthCheck' })
                                 }
                                 aria-label="건강 상태 확인"
                             />
@@ -277,12 +235,7 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.conversationTopics.mealCheck}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        conversationTopics: { ...settings.conversationTopics, mealCheck: checked },
-                                    })
-                                }
+                                onChange={() => dispatch({ type: 'TOGGLE_CONVERSATION_TOPIC', payload: 'mealCheck' })}
                                 aria-label="식사 여부 확인"
                             />
                         </div>
@@ -296,12 +249,7 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.conversationTopics.medicationCheck}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        conversationTopics: { ...settings.conversationTopics, medicationCheck: checked },
-                                    })
-                                }
+                                onChange={() => dispatch({ type: 'TOGGLE_CONVERSATION_TOPIC', payload: 'medicationCheck' })}
                                 aria-label="약 복용 체크"
                             />
                         </div>
@@ -315,12 +263,7 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.conversationTopics.sleepCheck}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        conversationTopics: { ...settings.conversationTopics, sleepCheck: checked },
-                                    })
-                                }
+                                onChange={() => dispatch({ type: 'TOGGLE_CONVERSATION_TOPIC', payload: 'sleepCheck' })}
                                 aria-label="수면 패턴 확인"
                             />
                         </div>
@@ -334,12 +277,7 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.conversationTopics.moodCheck}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        conversationTopics: { ...settings.conversationTopics, moodCheck: checked },
-                                    })
-                                }
+                                onChange={() => dispatch({ type: 'TOGGLE_CONVERSATION_TOPIC', payload: 'moodCheck' })}
                                 aria-label="기분 상태 확인"
                             />
                         </div>
@@ -370,12 +308,7 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.guardianNotifications.autoSMS}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        guardianNotifications: { ...settings.guardianNotifications, autoSMS: checked },
-                                    })
-                                }
+                                onChange={() => dispatch({ type: 'TOGGLE_GUARDIAN_NOTIFICATION', payload: 'autoSMS' })}
                                 aria-label="위기 상황 자동 문자 발송"
                             />
                         </div>
@@ -389,12 +322,7 @@ export default function SettingsPage() {
                             </div>
                             <Switch
                                 checked={settings.guardianNotifications.emailAlerts}
-                                onChange={(checked) =>
-                                    setSettings({
-                                        ...settings,
-                                        guardianNotifications: { ...settings.guardianNotifications, emailAlerts: checked },
-                                    })
-                                }
+                                onChange={() => dispatch({ type: 'TOGGLE_GUARDIAN_NOTIFICATION', payload: 'emailAlerts' })}
                                 aria-label="이메일 알림"
                             />
                         </div>
@@ -439,12 +367,7 @@ export default function SettingsPage() {
                                         name="gender"
                                         value="female"
                                         checked={settings.aiVoice.gender === 'female'}
-                                        onChange={() =>
-                                            setSettings({
-                                                ...settings,
-                                                aiVoice: { ...settings.aiVoice, gender: 'female' },
-                                            })
-                                        }
+                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_GENDER', payload: 'female' })}
                                         className="settings-voice-option-radio"
                                     />
                                     <span className="settings-voice-option-label">여성 목소리</span>
@@ -459,12 +382,7 @@ export default function SettingsPage() {
                                         name="gender"
                                         value="male"
                                         checked={settings.aiVoice.gender === 'male'}
-                                        onChange={() =>
-                                            setSettings({
-                                                ...settings,
-                                                aiVoice: { ...settings.aiVoice, gender: 'male' },
-                                            })
-                                        }
+                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_GENDER', payload: 'male' })}
                                         className="settings-voice-option-radio"
                                     />
                                     <span className="settings-voice-option-label">남성 목소리</span>
@@ -495,12 +413,7 @@ export default function SettingsPage() {
                                         name="tone"
                                         value="soft"
                                         checked={settings.aiVoice.tone === 'soft'}
-                                        onChange={() =>
-                                            setSettings({
-                                                ...settings,
-                                                aiVoice: { ...settings.aiVoice, tone: 'soft' },
-                                            })
-                                        }
+                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_TONE', payload: 'soft' })}
                                         className="settings-voice-option-radio"
                                     />
                                     <span className="settings-voice-option-label">부드러운</span>
@@ -515,12 +428,7 @@ export default function SettingsPage() {
                                         name="tone"
                                         value="bright"
                                         checked={settings.aiVoice.tone === 'bright'}
-                                        onChange={() =>
-                                            setSettings({
-                                                ...settings,
-                                                aiVoice: { ...settings.aiVoice, tone: 'bright' },
-                                            })
-                                        }
+                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_TONE', payload: 'bright' })}
                                         className="settings-voice-option-radio"
                                     />
                                     <span className="settings-voice-option-label">밝은</span>
@@ -535,12 +443,7 @@ export default function SettingsPage() {
                                         name="tone"
                                         value="calm"
                                         checked={settings.aiVoice.tone === 'calm'}
-                                        onChange={() =>
-                                            setSettings({
-                                                ...settings,
-                                                aiVoice: { ...settings.aiVoice, tone: 'calm' },
-                                            })
-                                        }
+                                        onChange={() => dispatch({ type: 'SET_AI_VOICE_TONE', payload: 'calm' })}
                                         className="settings-voice-option-radio"
                                     />
                                     <span className="settings-voice-option-label">차분한</span>
@@ -562,12 +465,7 @@ export default function SettingsPage() {
                             </label>
                             <Slider
                                 value={settings.aiVoice.speed}
-                                onChange={(value) =>
-                                    setSettings({
-                                        ...settings,
-                                        aiVoice: { ...settings.aiVoice, speed: value },
-                                    })
-                                }
+                                onChange={(value) => dispatch({ type: 'SET_AI_VOICE_SPEED', payload: value })}
                                 min={1}
                                 max={3}
                                 step={1}
@@ -596,23 +494,13 @@ export default function SettingsPage() {
                         <TimePicker
                             label="시작 시간"
                             value={settings.scheduledCalls.preferredStartTime}
-                            onChange={(value) =>
-                                setSettings({
-                                    ...settings,
-                                    scheduledCalls: { ...settings.scheduledCalls, preferredStartTime: value },
-                                })
-                            }
+                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_preferredStartTime'.upper().replace('PREFERRED', ''), payload: value })}
                             fullWidth
                         />
                         <TimePicker
                             label="종료 시간"
                             value={settings.scheduledCalls.preferredEndTime}
-                            onChange={(value) =>
-                                setSettings({
-                                    ...settings,
-                                    scheduledCalls: { ...settings.scheduledCalls, preferredEndTime: value },
-                                })
-                            }
+                            onChange={(value) => dispatch({ type: 'SET_SCHEDULED_preferredEndTime'.upper().replace('PREFERRED', ''), payload: value })}
                             fullWidth
                         />
                     </div>
@@ -694,7 +582,36 @@ export default function SettingsPage() {
                         {isSaving ? '저장 중...' : '설정 저장하기'}
                     </Button>
                 </div>
+
+                {/* Unsaved changes indicator */}
+                {hasUnsavedChanges && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            bottom: '100px',
+                            right: '24px',
+                            padding: '12px 16px',
+                            backgroundColor: 'var(--color-warning-light)',
+                            border: '1px solid var(--color-warning-main)',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            color: 'var(--color-text-primary)',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                            zIndex: 1000,
+                        }}
+                    >
+                        ⚠️ 저장하지 않은 변경사항이 있습니다
+                    </div>
+                )}
             </div>
+
+            {/* Toast Notification */}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isOpen={toast.isOpen}
+                onClose={() => setToast({ ...toast, isOpen: false })}
+            />
         </DashboardLayout>
     );
 }
