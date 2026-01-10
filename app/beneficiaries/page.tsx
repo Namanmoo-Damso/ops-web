@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/layouts/DashboardLayout';
 
 import { useApi } from '../../hooks/useApi';
 import { apiClient, AuthError } from '../../lib/api-client';
+import { formatRelativeTime, getKoreanConsonant, KOREAN_CONSONANTS } from '../../lib/date-utils';
 import type { DataListResponse } from '../../types/api';
 import DetailModal, {
   type BeneficiaryDetail,
@@ -25,65 +26,6 @@ import Button from '../../components/ui/Button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
-
-// 한글 초성 추출 함수
-function getKoreanConsonant(name: string): string {
-  if (!name || name.length === 0) return '';
-
-  const firstChar = name.charAt(0);
-  const code = firstChar.charCodeAt(0);
-
-  // 한글 유니코드 범위: 0xAC00 ~ 0xD7A3
-  if (code >= 0xAC00 && code <= 0xD7A3) {
-    const consonants = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
-    const consonantIndex = Math.floor((code - 0xAC00) / 588);
-    return consonants[consonantIndex];
-  }
-
-  return '';
-}
-
-// 한글 자음 목록
-const KOREAN_CONSONANTS = ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
-
-// 날짜를 상대적 시간으로 포맷팅
-function formatRelativeTime(dateString: string | null): string {
-  if (!dateString) return '-';
-
-  const date = new Date(dateString);
-  const now = new Date();
-
-  // 오늘 날짜인지 확인
-  const isToday = date.getDate() === now.getDate() &&
-                  date.getMonth() === now.getMonth() &&
-                  date.getFullYear() === now.getFullYear();
-
-  if (isToday) {
-    // 오늘이면 시간 표시 (오전/오후 형식)
-    const hours = date.getHours();
-    const period = hours < 12 ? '오전' : '오후';
-    const displayHours = hours % 12 === 0 ? 12 : hours % 12;
-    return `${period} ${displayHours}시`;
-  }
-
-  // 며칠 전인지 계산
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
-    return '오늘';
-  } else if (diffDays === 1) {
-    return '1일 전';
-  } else if (diffDays < 30) {
-    return `${diffDays}일 전`;
-  } else if (diffDays < 365) {
-    const diffMonths = Math.floor(diffDays / 30);
-    return `${diffMonths}개월 전`;
-  } else {
-    const diffYears = Math.floor(diffDays / 365);
-    return `${diffYears}년 전`;
-  }
-}
 
 type BeneficiaryDetailPayload = BeneficiaryDetail & {
   id: string;
@@ -124,6 +66,7 @@ export default function BeneficiariesPage() {
     useState<BeneficiaryDetailPayload | null>(null);
   const [activeConsonant, setActiveConsonant] = useState<string | null>(null);
   const [openInEditMode, setOpenInEditMode] = useState(false);
+  const [reinviting, setReinviting] = useState(false);
 
   // Refs for scrolling to specific rows
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
@@ -365,6 +308,40 @@ export default function BeneficiariesPage() {
     }
   };
 
+  const handleReinviteAll = async () => {
+    if (reinviting) return;
+
+    const unregisteredWards = items.filter(item => item.isRegistered === false);
+    if (unregisteredWards.length === 0) {
+      alert('재초대할 대상자가 없습니다.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${unregisteredWards.length}명의 미연동 대상자에게 초대 이메일을 다시 보내시겠습니까?`
+    );
+
+    if (!confirmed) return;
+
+    setReinviting(true);
+    try {
+      // API endpoint for reinviting - adjust based on your actual API
+      const wardIds = unregisteredWards.map(ward => ward.id);
+      await apiClient.post('/v1/admin/wards/reinvite', { wardIds });
+
+      alert(`${unregisteredWards.length}명에게 초대 이메일을 발송했습니다.`);
+    } catch (err) {
+      const message = err instanceof AuthError
+        ? '인증이 만료되었습니다. 다시 로그인해주세요.'
+        : err instanceof Error
+        ? err.message
+        : '재초대에 실패했습니다.';
+      alert(message);
+    } finally {
+      setReinviting(false);
+    }
+  };
+
   const selectedData = useMemo(() => {
     if (!selectedId) return null;
     const base = items.find(item => item.id === selectedId);
@@ -541,10 +518,8 @@ export default function BeneficiariesPage() {
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = '#fee2e2';
                       }}
-                      onClick={() => {
-                        // TODO: Implement reinvite logic
-                        console.log('Reinvite all pending users');
-                      }}
+                      onClick={handleReinviteAll}
+                      disabled={reinviting}
                     >
                       <RefreshIcon size={14} color="#dc2626" />
                       재초대
