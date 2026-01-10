@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Button from './Button';
 import Input from './Input';
-import { Settings, X } from 'lucide-react';
+import IconButton from './IconButton';
+import { Settings } from 'lucide-react';
 
 // Chart Display Settings Types (for axis labels and display options, not data)
 export type ChartDisplayConfig = {
@@ -83,23 +84,11 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                     fontWeight: 700,
                     color: 'var(--color-text-primary)',
                 }}>차트 설정</span>
-                <button
+                <IconButton
+                    variant="close"
                     onClick={onClose}
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '24px',
-                        height: '24px',
-                        border: 'none',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: 'transparent',
-                        color: 'var(--color-text-muted)',
-                        cursor: 'pointer',
-                    }}
-                >
-                    <X size={16} />
-                </button>
+                    aria-label="닫기"
+                />
             </div>
 
             {/* Title Input */}

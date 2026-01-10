@@ -401,3 +401,44 @@
 .ui-input-msg.helper {
     color: var(--color-text-muted);
 }
+
+/* --- Section Title --- */
+.ui-section-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--color-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+/* --- Icon Button --- */
+.ui-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    transition: all 150ms ease;
+    color: var(--color-text-muted);
+}
+
+.ui-icon-btn:hover {
+    background-color: var(--color-bg-elevated-1);
+    color: var(--color-text-primary);
+}
+
+.ui-icon-btn:active {
+    transform: scale(0.95);
+}
+
+.ui-icon-btn-close {
+    color: #94a3b8;
+}
+
+.ui-icon-btn-close:hover {
+    background-color: #f1f5f9;
+    color: #64748b;
+}

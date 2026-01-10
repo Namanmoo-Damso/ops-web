@@ -1,10 +1,7 @@
 import React from 'react';
 import styles from './LogsModal.module.css';
 import { BeneficiaryLog } from './DetailModal';
-
-function SectionTitle({ children }: { children: string }) {
-    return <div className={styles.sectionTitle}>{children}</div>;
-}
+import { IconButton, SectionTitle } from '../../components/ui';
 
 interface LogsModalProps {
     isOpen: boolean;
@@ -17,13 +14,13 @@ const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose, logs }) => {
         <div className={`${styles.logsModal} ${isOpen ? styles.logsModalOpen : ''}`}>
             <div className={styles.header}>
                 <SectionTitle>담소일지 전체 기록</SectionTitle>
-                <button className={styles.closeButton} onClick={onClose} aria-label="닫기">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
             </div>
+            <IconButton
+                variant="close"
+                onClick={onClose}
+                aria-label="닫기"
+                className={styles.closeButton}
+            />
 
             <div className={styles.body}>
                 {logs.length === 0 ? (

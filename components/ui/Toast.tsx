@@ -1,5 +1,6 @@
 import { type CSSProperties, useEffect } from 'react';
-import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import IconButton from './IconButton';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -154,20 +155,12 @@ export default function Toast({
             <div style={containerStyle} role="alert" aria-live="polite">
                 <div style={iconStyle}>{getIcon()}</div>
                 <div style={contentStyle}>{message}</div>
-                <button
-                    type="button"
+                <IconButton
+                    variant="close"
                     onClick={onClose}
-                    style={closeButtonStyle}
                     aria-label="닫기"
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated-2)';
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                >
-                    <X size={16} />
-                </button>
+                    style={{ padding: '4px' }}
+                />
             </div>
         </>
     );

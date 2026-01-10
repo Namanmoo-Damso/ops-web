@@ -4,8 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
 import LogsModal from './LogsModal';
 import { formatTags } from '../../utils/formatters';
-import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
+import { Button, Badge, IconButton, SectionTitle } from '../../components/ui';
 import type { BeneficiarySummary } from '../../types/models';
 
 export type BeneficiaryLog = {
@@ -386,14 +385,12 @@ export default function DetailModal({
               </select>
               {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
             </div>
-            <button
-              type="button"
+            <IconButton
+              variant="close"
               aria-label="닫기"
               onClick={onClose}
               className={styles.closeButton}
-            >
-              ×
-            </button>
+            />
           </div>
         </div >
 
@@ -689,9 +686,7 @@ export default function DetailModal({
   );
 }
 
-function SectionTitle({ children }: { children: string }) {
-  return <div className={styles.sectionTitle}>{children}</div>;
-}
+
 
 function SentimentBadge({
   sentiment,
