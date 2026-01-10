@@ -175,7 +175,7 @@ export interface SidebarProps {
     className?: string;
 }
 
-const SIDEBAR_WIDTH = '200px';
+const SIDEBAR_WIDTH = '220px';
 
 /**
  * Sidebar component for dashboard navigation
@@ -236,8 +236,8 @@ const Sidebar = forwardRef<HTMLElement, SidebarProps>(
                                         borderRadius: borderRadius.sm,
                                         border: 'none',
                                         textDecoration: 'none',
-                                        fontSize: typography.fontSize.caption,
-                                        fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.medium,
+                                        fontSize: typography.fontSize.body,
+                                        fontWeight: isActive ? typography.fontWeight.bold : typography.fontWeight.semibold,
                                         color: isActive ? colors.primary.dark : colors.text.muted,
                                         backgroundColor: isActive ? colors.accent.soft : 'transparent',
                                         transition: 'all 150ms ease',
