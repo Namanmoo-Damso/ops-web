@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
+import LogsModal from './LogsModal';
 import { formatTags } from '../../utils/formatters';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -71,6 +72,7 @@ export default function DetailModal({
   const confirmDialogRef = useRef<HTMLDivElement>(null);
   const confirmPrimaryRef = useRef<HTMLButtonElement>(null);
   const [isEditing, setIsEditing] = useState(initialEditMode);
+  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -141,6 +143,8 @@ export default function DetailModal({
         e.stopPropagation();
         if (showDeleteConfirm) {
           setShowDeleteConfirm(false);
+        } else if (isLogsModalOpen) {
+          setIsLogsModalOpen(false);
         } else {
           onClose();
         }
@@ -208,7 +212,11 @@ export default function DetailModal({
 
   const handleOverlayClick: React.MouseEventHandler<HTMLDivElement> = e => {
     if (e.target === e.currentTarget) {
-      onClose();
+      if (isLogsModalOpen) {
+        setIsLogsModalOpen(false);
+      } else {
+        onClose();
+      }
     }
   };
 
@@ -322,7 +330,7 @@ export default function DetailModal({
         ref={dialogRef}
         tabIndex={-1}
         onClick={e => e.stopPropagation()}
-        className={styles.dialog}
+        className={`${styles.dialog} ${isLogsModalOpen ? styles.dialogShifted : ''}`}
       >
         <div className={headerClassName}>
           <div className={styles.userRow}>
@@ -451,7 +459,7 @@ export default function DetailModal({
                   />
                 </div>
                 <div className={styles.editField}>
-                  <span className={styles.editLabel}>비상 연락처</span>
+                  <span className={styles.editLabel}>비상연락처</span>
                   <input
                     className={styles.editInput}
                     value={isEditing ? form.emergencyContact : detail.guardian ?? ''}
@@ -539,7 +547,11 @@ export default function DetailModal({
             <div className={styles.card}>
               <div className={styles.cardHeader}>
                 <SectionTitle>담소일지</SectionTitle>
-                <button type="button" className={styles.logMoreButton}>
+                <button
+                  type="button"
+                  className={styles.logMoreButton}
+                  onClick={() => setIsLogsModalOpen(true)}
+                >
                   자세히 보기 →
                 </button>
               </div>
@@ -547,7 +559,7 @@ export default function DetailModal({
                 <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
               ) : (
                 <div className={styles.logList}>
-                  {detail.recentLogs.map(log => (
+                  {detail.recentLogs.slice(0, 1).map(log => (
                     <div key={log.id} className={styles.logCard}>
                       <div className={styles.logTextBlock}>
                         <span className={styles.logType}>{log.type}</span>
@@ -667,8 +679,12 @@ export default function DetailModal({
             </div>
           </div>
         </div>
-      )
-      }
+      )}
+      <LogsModal
+        isOpen={isLogsModalOpen}
+        onClose={() => setIsLogsModalOpen(false)}
+        logs={detail.recentLogs}
+      />
     </div>
   );
 }

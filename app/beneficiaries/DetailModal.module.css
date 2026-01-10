@@ -1,6 +1,6 @@
 :global(:root) {
   --beneficiary-modal-overlay-z: 2000;
-  --beneficiary-modal-max-width: 860px;
+  --beneficiary-modal-max-width: 900px;
   --beneficiary-modal-padding: 16px;
   --beneficiary-border-color: #E9F0DF;
   --beneficiary-muted: #94a3b8;
@@ -34,6 +34,11 @@
   flex-direction: column;
   max-height: 90vh;
   border: 1px solid var(--beneficiary-border-color);
+  transition: all 0.3s ease;
+}
+
+.dialogShifted {
+  /* Removed translateX to let flexbox handle centering as a group */
 }
 
 .header {
@@ -183,7 +188,7 @@
 }
 
 .managerLabel {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 800;
   color: #4A5D23;
 }
@@ -193,7 +198,7 @@
   background: transparent;
   color: #4A5D23;
   font-weight: 800;
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
   cursor: pointer;
 }
@@ -336,7 +341,7 @@
 }
 
 .editLabel {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   color: #64748b;
   min-width: 65px;

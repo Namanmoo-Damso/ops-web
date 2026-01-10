@@ -1,0 +1,66 @@
+import React from 'react';
+import styles from './LogsModal.module.css';
+import { BeneficiaryLog } from './DetailModal';
+
+function SectionTitle({ children }: { children: string }) {
+    return <div className={styles.sectionTitle}>{children}</div>;
+}
+
+interface LogsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    logs: BeneficiaryLog[];
+}
+
+const LogsModal: React.FC<LogsModalProps> = ({ isOpen, onClose, logs }) => {
+    return (
+        <div className={`${styles.logsModal} ${isOpen ? styles.logsModalOpen : ''}`}>
+            <div className={styles.header}>
+                <SectionTitle>담소일지 전체 기록</SectionTitle>
+                <button className={styles.closeButton} onClick={onClose} aria-label="닫기">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div className={styles.body}>
+                {logs.length === 0 ? (
+                    <div className={styles.emptyLogs}>기록이 없습니다.</div>
+                ) : (
+                    <div className={styles.logList}>
+                        {logs.map(log => (
+                            <div key={log.id} className={styles.logCard}>
+                                <div className={styles.logHeader}>
+                                    <span className={styles.logType}>{log.type}</span>
+                                    <span className={styles.logDate}>{log.date}</span>
+                                </div>
+                                <p className={styles.logContent}>{log.content}</p>
+                                {log.sentiment && (
+                                    <div className={`${styles.sentiment} ${styles[`sentiment${log.sentiment.charAt(0).toUpperCase() + log.sentiment.slice(1)}`]}`}>
+                                        {log.sentiment === 'positive' ? '긍정' : log.sentiment === 'negative' ? '부정' : '중립'}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div className={styles.footer}>
+                <button
+                    className={styles.writeButton}
+                    onClick={() => alert('담소일지 작성 기능은 준비 중입니다.')}
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 5v14M5 12h14" />
+                    </svg>
+                    담소일지 작성
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default LogsModal;
