@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import Card from '../../components/ui/Card';
+import StatsSummary from '../../components/ui/StatsSummary';
 import { ChartSettingsButton, CHART_COLORS, type ChartDisplayConfig } from '../../components/ui/ChartSettings';
 import {
     Phone,
@@ -318,71 +319,32 @@ export default function StatsPage() {
                 </div>
 
                 {/* Call Statistics - Combined Module */}
-                <Card padding="lg">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-lg)' }}>
-                        <Phone size={20} color="var(--color-primary)" />
-                        <h3 style={{ fontSize: 'var(--font-size-h2)', fontWeight: 700, color: 'var(--color-text-primary)', margin: 0 }}>통화 통계</h3>
-                    </div>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--spacing-xl)',
-                        paddingBottom: 'var(--spacing-lg)',
-                        borderBottom: '1px solid var(--color-border)',
-                    }}>
-                        {/* 총 통화 건수 */}
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--font-size-label)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xs)', fontWeight: 600 }}>
-                                총 통화 건수
-                            </div>
-                            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-primary)' }}>
-                                {callStats.totalCalls.toLocaleString()}건
-                            </div>
-                            <div style={{ fontSize: 'var(--font-size-caption)', color: 'var(--color-text-muted)', marginTop: 'var(--spacing-xs)' }}>
-                                수신 {callStats.inboundCalls}건 / 발신 {callStats.outboundCalls}건
-                            </div>
-                        </div>
-
-                        <div style={{ width: '1px', height: '60px', backgroundColor: 'var(--color-border)' }} />
-
-                        {/* 위험 감지 / 대응 */}
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--font-size-label)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xs)', fontWeight: 600 }}>
-                                위험 대응 / 감지
-                            </div>
-                            <div style={{ fontSize: '28px', fontWeight: 800, color: riskCount > 0 ? 'var(--color-danger-main)' : 'var(--color-success-main)' }}>
-                                {riskResponseCount}건 / {riskCount}건
-                            </div>
-                            <div style={{ fontSize: 'var(--font-size-caption)', color: 'var(--color-text-muted)', marginTop: 'var(--spacing-xs)' }}>
-                                대응율 {riskCount > 0 ? Math.round((riskResponseCount / riskCount) * 100) : 100}%
-                            </div>
-                        </div>
-
-                        <div style={{ width: '1px', height: '60px', backgroundColor: 'var(--color-border)' }} />
-
-                        {/* 평균 통화 횟수 */}
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--font-size-label)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xs)', fontWeight: 600 }}>
-                                평균 통화 횟수
-                            </div>
-                            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                                {callStats.avgCallsPerWard}회
-                            </div>
-                        </div>
-
-                        <div style={{ width: '1px', height: '60px', backgroundColor: 'var(--color-border)' }} />
-
-                        {/* 평균 통화 시간 */}
-                        <div style={{ flex: 1, textAlign: 'center' }}>
-                            <div style={{ fontSize: 'var(--font-size-label)', color: 'var(--color-text-muted)', marginBottom: 'var(--spacing-xs)', fontWeight: 600 }}>
-                                평균 통화 시간
-                            </div>
-                            <div style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text-primary)' }}>
-                                {callStats.avgCallDuration}
-                            </div>
-                        </div>
-                    </div>
-                </Card>
+                <StatsSummary
+                    title="통화 통계"
+                    icon={<Phone size={20} />}
+                    items={[
+                        {
+                            label: '총 통화 건수',
+                            value: `${callStats.totalCalls.toLocaleString()}건`,
+                            color: 'var(--color-primary)',
+                            subtext: `수신 ${callStats.inboundCalls}건 / 발신 ${callStats.outboundCalls}건`
+                        },
+                        {
+                            label: '위험 대응 / 감지',
+                            value: `${riskResponseCount}건 / ${riskCount}건`,
+                            color: riskCount > 0 ? 'var(--color-danger-main)' : 'var(--color-success-main)',
+                            subtext: `대응율 ${riskCount > 0 ? Math.round((riskResponseCount / riskCount) * 100) : 100}%`
+                        },
+                        {
+                            label: '평균 통화 횟수',
+                            value: `${callStats.avgCallsPerWard}회`
+                        },
+                        {
+                            label: '평균 통화 시간',
+                            value: callStats.avgCallDuration
+                        },
+                    ]}
+                />
 
                 {/* Charts Row 1: Weekly Trend + Sentiment */}
                 <div className="stats-charts-row">

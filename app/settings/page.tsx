@@ -82,14 +82,8 @@ export default function SettingsPage() {
     const currentSensitivityInfo = SENSITIVITY_DESCRIPTIONS[settings.riskDetection.sensitivity];
 
     return (
-        <DashboardLayout title="설정">
+        <DashboardLayout>
             <div className="settings-container">
-                {/* Page Header */}
-                <div className="settings-header">
-                    <h1>설정</h1>
-                    <p>AI 통화 및 위기 감지 시스템 설정을 관리합니다.</p>
-                </div>
-
                 {/* Section 1: Retry Policy */}
                 <Card padding="lg" className="settings-section">
                     <div className="settings-section-header">

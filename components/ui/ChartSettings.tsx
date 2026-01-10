@@ -79,7 +79,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                 marginBottom: 'var(--spacing-md)',
             }}>
                 <span style={{
-                    fontSize: 'var(--font-size-caption)',
+                    fontSize: '20px',
                     fontWeight: 700,
                     color: 'var(--color-text-primary)',
                 }}>차트 설정</span>
@@ -106,7 +106,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
             <div style={{ marginBottom: 'var(--spacing-md)' }}>
                 <label style={{
                     display: 'block',
-                    fontSize: 'var(--font-size-small)',
+                    fontSize: '16px',
                     fontWeight: 600,
                     color: 'var(--color-text-muted)',
                     marginBottom: 'var(--spacing-xs)',
@@ -114,7 +114,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                 <Input
                     value={editedConfig.title}
                     onChange={(e) => setEditedConfig({ ...editedConfig, title: e.target.value })}
-                    style={{ fontSize: 'var(--font-size-small)' }}
+                    style={{ fontSize: '16px' }}
                     fullWidth
                 />
             </div>
@@ -123,7 +123,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
             <div style={{ marginBottom: 'var(--spacing-md)' }}>
                 <label style={{
                     display: 'block',
-                    fontSize: 'var(--font-size-small)',
+                    fontSize: '16px',
                     fontWeight: 600,
                     color: 'var(--color-text-muted)',
                     marginBottom: 'var(--spacing-xs)',
@@ -131,7 +131,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                 <Input
                     value={editedConfig.xAxisLabel}
                     onChange={(e) => setEditedConfig({ ...editedConfig, xAxisLabel: e.target.value })}
-                    style={{ fontSize: 'var(--font-size-small)' }}
+                    style={{ fontSize: '16px' }}
                     placeholder="예: 요일"
                     fullWidth
                 />
@@ -141,7 +141,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
             <div style={{ marginBottom: 'var(--spacing-md)' }}>
                 <label style={{
                     display: 'block',
-                    fontSize: 'var(--font-size-small)',
+                    fontSize: '16px',
                     fontWeight: 600,
                     color: 'var(--color-text-muted)',
                     marginBottom: 'var(--spacing-xs)',
@@ -149,7 +149,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                 <Input
                     value={editedConfig.yAxisLabel}
                     onChange={(e) => setEditedConfig({ ...editedConfig, yAxisLabel: e.target.value })}
-                    style={{ fontSize: 'var(--font-size-small)' }}
+                    style={{ fontSize: '16px' }}
                     placeholder="예: 건수"
                     fullWidth
                 />
@@ -164,7 +164,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                         onChange={(e) => setEditedConfig({ ...editedConfig, showLegend: e.target.checked })}
                         style={{ accentColor: 'var(--color-primary)' }}
                     />
-                    <span style={{ fontSize: 'var(--font-size-small)', color: 'var(--color-text-secondary)' }}>범례 표시</span>
+                    <span style={{ fontSize: '16px', color: 'var(--color-text-secondary)' }}>범례 표시</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', cursor: 'pointer' }}>
                     <input
@@ -173,7 +173,7 @@ export function ChartSettingsPopover({ open, onClose, config, onSave, anchorRef 
                         onChange={(e) => setEditedConfig({ ...editedConfig, showGrid: e.target.checked })}
                         style={{ accentColor: 'var(--color-primary)' }}
                     />
-                    <span style={{ fontSize: 'var(--font-size-small)', color: 'var(--color-text-secondary)' }}>그리드 표시</span>
+                    <span style={{ fontSize: '16px', color: 'var(--color-text-secondary)' }}>그리드 표시</span>
                 </label>
             </div>
 
