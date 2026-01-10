@@ -1,8 +1,15 @@
-# 통계 페이지 데이터 연동 계획
+# 통계 및 직원관리 페이지 데이터 연동 계획
 
 ## 현재 상태 요약
 
-통계 페이지(`/app/stats`)는 현재 모든 데이터를 Mock 데이터로 표시합니다. 이 문서는 기존 스키마로 연동 가능한 데이터와 추가 스키마가 필요한 데이터를 정리합니다.
+통계 페이지(`/app/stats`)와 직원관리 페이지(`/app/employees`)는 현재 대부분 데이터를 Mock 데이터로 표시합니다. 이 문서는 기존 스키마로 연동 가능한 데이터와 추가 스키마가 필요한 데이터를 정리합니다.
+
+### 대상 페이지
+
+| 페이지 | 경로 | 주요 데이터 |
+|--------|------|-------------|
+| 통계/리포트 | `/app/stats` | 통화 건수, 정서 분석, 위험 감지 |
+| 직원 관리 | `/app/employees` | 직원 목록, 업무 부하, 대상자 배정 |
 
 ---
 
@@ -188,29 +195,107 @@ interface StatsQueryParams {
 
 ---
 
-## 5. 구현 우선순위
+## 5. 직원관리 페이지 데이터 연동
+
+### 5.1 ✅ 연동 가능 (기존 스키마 활용)
+
+#### 직원 목록
+
+| 항목 | 모델 | 필드 | 쿼리 |
+|------|------|------|------|
+| 직원 목록 | `Admin` | `id`, `name`, `email`, `role` | `WHERE organizationId = ?` |
+| 소속 팀 | `Admin` | `role` + 추가 필드 필요 | - |
+
+#### 미배정 대상자 수
+
+```sql
+SELECT COUNT(*) FROM organization_wards 
+WHERE organization_id = ? AND ward_id IS NULL;
+```
+
+### 5.2 ❌ 스키마 추가 필요
+
+#### 직원 확장 모델
+
+```prisma
+model Admin {
+  // 기존 필드...
+  team           String?   // '방문 1팀' | '방문 2팀' | '방문 3팀'
+  jobTitle       String?   @map("job_title")  // '사회복지사' | '팀장'
+  phoneNumber    String?   @map("phone_number")
+  maxCapacity    Int       @default(20) @map("max_capacity")
+}
+```
+
+#### 직원-대상자 배정 관계
+
+```prisma
+model WardAssignment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId     String   @map("admin_id") @db.Uuid
+  wardId      String   @map("ward_id") @db.Uuid
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  assignedBy  String?  @map("assigned_by") @db.Uuid
+  isActive    Boolean  @default(true) @map("is_active")
+  
+  admin Admin @relation(fields: [adminId], references: [id])
+  ward  OrganizationWard @relation(fields: [wardId], references: [id])
+  
+  @@unique([adminId, wardId])
+  @@index([adminId, isActive])
+  @@map("ward_assignments")
+}
+```
+
+### 5.3 API 엔드포인트
+
+| 엔드포인트 | 메서드 | 설명 |
+|-----------|--------|------|
+| `/v1/admin/employees` | GET | 직원 목록 + 업무 부하 |
+| `/v1/admin/employees/:id` | GET | 직원 상세 정보 |
+| `/v1/admin/employees/:id/assignments` | GET | 담당 대상자 목록 |
+| `/v1/admin/employees/:id/assign` | POST | 대상자 배정 |
+| `/v1/admin/stats/unassigned` | GET | 미배정 대상자 수 |
+
+---
+
+## 6. 구현 우선순위
 
 ### Phase 1: 즉시 연동 가능
 1. ✅ 위험 감지/대응 건수 (`Emergency` 모델)
 2. ✅ 정서 분석 분포 (`CallSummary.mood`)
 3. ✅ 총 통화 건수 (`Call` 모델)
+4. ✅ 미배정 대상자 수 (`OrganizationWard` 모델)
 
 ### Phase 2: API 개발 필요
-4. ⚠️ 평균 통화 시간 계산
-5. ⚠️ 시간대별 통화 분포
-6. ⚠️ 주요 키워드 집계
+5. ⚠️ 평균 통화 시간 계산
+6. ⚠️ 시간대별 통화 분포
+7. ⚠️ 주요 키워드 집계
+8. ⚠️ 직원 목록 API (`Admin` 모델)
 
 ### Phase 3: 스키마 변경 필요
-7. ❌ 수신/발신 명시적 구분
-8. ❌ 통화 통계 집계 테이블
-9. ❌ 키워드 통계 테이블
+9. ❌ 수신/발신 명시적 구분
+10. ❌ 통화 통계 집계 테이블
+11. ❌ 키워드 통계 테이블
+12. ❌ 직원 확장 필드 (team, jobTitle, maxCapacity)
+13. ❌ 직원-대상자 배정 테이블 (`WardAssignment`)
 
 ---
 
-## 6. 마이그레이션 체크리스트
+## 7. 마이그레이션 체크리스트
 
+### 통계 페이지
 - [ ] `CallStats` 모델 추가
 - [ ] `Call.direction` 필드 추가
 - [ ] `Call.isScheduled` 필드 추가
 - [ ] `KeywordStats` 모델 추가
+
+### 직원관리 페이지
+- [ ] `Admin.team` 필드 추가
+- [ ] `Admin.jobTitle` 필드 추가
+- [ ] `Admin.phoneNumber` 필드 추가
+- [ ] `Admin.maxCapacity` 필드 추가
+- [ ] `WardAssignment` 모델 추가
+
+### 공통
 - [ ] 배치 작업: 기존 데이터 기반 집계 테이블 초기화

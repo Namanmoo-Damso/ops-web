@@ -1,0 +1,327 @@
+/* ========================================
+   Employee Management Page Styles
+   ======================================== */
+
+.employees-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2xl);
+}
+
+/* --- Summary Cards --- */
+.employees-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+}
+
+@media (max-width: 1024px) {
+    .employees-summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .employees-summary-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.employees-summary-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+}
+
+.employees-summary-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.employees-summary-content {
+    flex: 1;
+}
+
+.employees-summary-label {
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-xs);
+}
+
+.employees-summary-value {
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-black);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.employees-summary-sub {
+    font-size: var(--font-size-small);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+}
+
+/* --- Filter Bar --- */
+.employees-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+.employees-filter-title {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.employees-filter-count {
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-medium);
+}
+
+.employees-filter-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    background: var(--color-accent-soft);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-lg);
+}
+
+.employees-filter-tab {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-caption);
+    font-weight: var(--font-weight-semibold);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 150ms ease;
+    white-space: nowrap;
+}
+
+.employees-filter-tab:hover {
+    color: var(--color-text-primary);
+}
+
+.employees-filter-tab.active {
+    background: var(--color-panel);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-sm);
+}
+
+.employees-search {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-left: auto;
+    position: relative;
+}
+
+.employees-search-icon {
+    position: absolute;
+    left: var(--spacing-md);
+    color: var(--color-text-muted);
+    pointer-events: none;
+}
+
+.employees-search-input {
+    padding-left: 40px !important;
+    min-width: 240px;
+}
+
+/* --- Employee Grid --- */
+.employees-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-lg);
+}
+
+@media (max-width: 1200px) {
+    .employees-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .employees-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Employee Card --- */
+.employee-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.employee-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.employee-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-value);
+    font-weight: var(--font-weight-bold);
+    flex-shrink: 0;
+}
+
+.employee-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.employee-name {
+    font-size: var(--font-size-value);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+}
+
+.employee-role {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.employee-more-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 150ms ease;
+}
+
+.employee-more-btn:hover {
+    background: var(--color-bg-elevated-1);
+    color: var(--color-text-primary);
+}
+
+/* --- Contact Info --- */
+.employee-contact {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.employee-contact-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-size-small);
+    color: var(--color-primary-dark);
+}
+
+.employee-contact-item svg {
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+}
+
+/* --- Workload Progress --- */
+.employee-workload {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.employee-workload-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.employee-workload-label {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+    font-weight: var(--font-weight-medium);
+}
+
+.employee-workload-value {
+    font-size: var(--font-size-small);
+    color: var(--color-text-primary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.employee-progress-bar {
+    height: 8px;
+    background: var(--color-bg-elevated-1);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+.employee-progress-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 300ms ease;
+}
+
+/* --- Assign Button --- */
+.employee-assign-btn {
+    margin-top: auto;
+}
+
+/* --- Add Employee Card --- */
+.employee-add-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    min-height: 280px;
+    border: 2px dashed var(--color-border-strong);
+    border-radius: var(--radius-2xl);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    transition: all 200ms ease;
+}
+
+.employee-add-card:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-accent-soft);
+}
+
+/* --- Empty State --- */
+.employees-empty-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-4xl);
+    color: var(--color-text-muted);
+    text-align: center;
+}
+
+.employees-empty-state p {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-medium);
+    margin: 0;
+}
