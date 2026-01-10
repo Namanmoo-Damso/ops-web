@@ -57,10 +57,25 @@
     font-size: var(--font-size-caption);
     color: var(--color-text-muted);
     margin-top: var(--spacing-xs);
+    position: relative;
+    z-index: 1;
+}
+
+.stats-summary-value-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .stats-summary-extra {
-    margin-top: var(--spacing-sm);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 20px;
+    z-index: 2;
+    white-space: nowrap;
 }
 
 /* Divider between items */
@@ -81,5 +96,18 @@
     .stats-summary-divider {
         width: 100%;
         height: 1px;
+    }
+
+    .stats-summary-value-wrapper {
+        display: inline-flex;
+    }
+
+    .stats-summary-extra {
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-left: 20px;
+        white-space: nowrap;
     }
 }

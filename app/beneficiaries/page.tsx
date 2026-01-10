@@ -380,9 +380,9 @@ export default function BeneficiariesPage() {
                 <button
                   style={{
                     display: 'inline-flex',
-                    alignItems: 'left',
-                    gap: '6px',
-                    padding: '6px 10px',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
                     fontSize: '12px',
                     fontWeight: 600,
                     color: '#dc2626',
@@ -391,6 +391,7 @@ export default function BeneficiariesPage() {
                     borderRadius: '6px',
                     cursor: 'pointer',
                     transition: 'all 150ms ease',
+                    whiteSpace: 'nowrap',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#fecaca';
