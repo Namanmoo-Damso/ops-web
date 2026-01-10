@@ -51,29 +51,36 @@ function CallbackContent() {
       const state = searchParams.get('state');
       const errorParam = searchParams.get('error');
 
-      if (errorParam) {
+      // Helper function to cleanup and show error
+      const handleError = (errorMessage: string) => {
+        // Always clean up OAuth state on error
+        sessionStorage.removeItem('oauth_state');
         setStatus('error');
-        setError('로그인 과정에서 오류가 발생했습니다.');
+        setError(errorMessage);
+        // Auto redirect to login page after 3 seconds
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      };
+
+      if (errorParam) {
+        handleError('로그인 과정에서 오류가 발생했습니다.');
         return;
       }
 
       if (!provider || !code) {
-        setStatus('error');
-        setError('잘못된 요청입니다.');
+        handleError('잘못된 요청입니다.');
         return;
       }
 
       // CSRF State Verification
       const savedState = sessionStorage.getItem('oauth_state');
       if (!state || state !== savedState) {
-        setStatus('error');
-        setError('보안 검증에 실패했습니다. (State Mismatch)');
-        // Clear state to preventing replay
-        sessionStorage.removeItem('oauth_state');
+        handleError('보안 검증에 실패했습니다. (State Mismatch)');
         return;
       }
 
-      // Clear state after usage
+      // Clear state after successful verification
       sessionStorage.removeItem('oauth_state');
 
       try {
@@ -81,22 +88,28 @@ function CallbackContent() {
 
         const data = await apiClient.post<OAuthResponse>(
           '/admin/auth/oauth/code',
-          { provider, code, redirectUri }, // Ensure request is exactly as server expects
+          { provider, code, redirectUri },
           { skipAuth: true }
         );
 
+        // Login and wait for completion
         login(data.accessToken, data.refreshToken, data.admin);
 
+        // Clear OAuth state on success
+        sessionStorage.removeItem('oauth_state');
+
+        // Redirect based on organization
         if (!data.admin.organizationId) {
           router.replace('/select-organization');
         } else {
           router.replace('/dashboard');
         }
       } catch (err) {
-        console.error('[Callback] Login failed'); // Log for dev
-        setStatus('error');
-        // Generic error message
-        setError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        // Log actual error for debugging
+        console.error('[Callback] Login failed:', err);
+        // Clean up OAuth state on API failure
+        sessionStorage.removeItem('oauth_state');
+        handleError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     };
 
@@ -142,8 +155,11 @@ function CallbackContent() {
           <h1 style={{ margin: '0 0 8px', fontSize: '20px', color: '#4A5D23' }}>
             로그인 실패
           </h1>
-          <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b' }}>
+          <p style={{ margin: '0 0 12px', fontSize: '14px', color: '#64748b' }}>
             {error}
+          </p>
+          <p style={{ margin: '0 0 24px', fontSize: '12px', color: '#94a3b8' }}>
+            3초 후 로그인 페이지로 이동합니다...
           </p>
           <button
             onClick={() => router.push('/login')}
@@ -157,7 +173,7 @@ function CallbackContent() {
               cursor: 'pointer',
             }}
           >
-            다시 시도
+            지금 이동
           </button>
         </div>
       </div>
