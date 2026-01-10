@@ -67,6 +67,44 @@ function LoginContent() {
   };
 
   const handleGoogleLogin = () => {
+    let popup: Window | null = null;
+    let checkPopupInterval: NodeJS.Timeout | null = null;
+
+    const cleanup = () => {
+      if (checkPopupInterval) {
+        clearInterval(checkPopupInterval);
+        checkPopupInterval = null;
+      }
+      window.removeEventListener('message', handleMessage);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      // Verify origin for security
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data.type === 'oauth-success') {
+        cleanup();
+        setShowPopupOverlay(false);
+
+        // Login with the received credentials
+        login(event.data.accessToken, event.data.refreshToken, event.data.admin);
+
+        // Redirect based on organization
+        if (event.data.hasOrganization) {
+          router.replace('/dashboard');
+        } else {
+          router.replace('/select-organization');
+        }
+      } else if (event.data.type === 'oauth-error') {
+        cleanup();
+        setShowPopupOverlay(false);
+        setError(event.data.message || '로그인 처리에 실패했습니다.');
+        setIsLoading(false);
+      }
+    };
+
     try {
       if (!GOOGLE_CLIENT_ID) {
         throw new Error('Configuration Missing');
@@ -86,28 +124,25 @@ function LoginContent() {
       googleAuthUrl.searchParams.set('prompt', 'consent');
       googleAuthUrl.searchParams.set('state', state);
 
-      console.log('[Login] Opening popup for Google OAuth');
-
       // Show overlay to indicate popup is open
       setShowPopupOverlay(true);
       setIsLoading(true);
 
       // Center the popup on screen
-      const width = 500;
-      const height = 600;
-      const left = window.screen.width / 2 - width / 2;
-      const top = window.screen.height / 2 - height / 2;
+      const POPUP_WIDTH = 500;
+      const POPUP_HEIGHT = 600;
+      const left = Math.max(0, (window.screen.width - POPUP_WIDTH) / 2);
+      const top = Math.max(0, (window.screen.height - POPUP_HEIGHT) / 2);
 
       // Open OAuth in popup instead of redirect
-      const popup = window.open(
+      popup = window.open(
         googleAuthUrl.toString(),
         '_blank',
-        `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        `width=${POPUP_WIDTH},height=${POPUP_HEIGHT},left=${left},top=${top},scrollbars=yes,resizable=yes`
       );
 
-      console.log('[Login] Popup object:', popup);
-
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        cleanup();
         setError('팝업이 차단되었습니다. 팝업을 허용해주세요.');
         setIsLoading(false);
         setShowPopupOverlay(false);
@@ -115,46 +150,19 @@ function LoginContent() {
       }
 
       // Listen for message from popup
-      const handleMessage = (event: MessageEvent) => {
-        // Verify origin for security
-        if (event.origin !== window.location.origin) {
-          return;
-        }
-
-        if (event.data.type === 'oauth-success') {
-          window.removeEventListener('message', handleMessage);
-          setShowPopupOverlay(false);
-
-          // Login with the received credentials
-          login(event.data.accessToken, event.data.refreshToken, event.data.admin);
-
-          // Redirect based on organization
-          if (event.data.hasOrganization) {
-            router.replace('/dashboard');
-          } else {
-            router.replace('/select-organization');
-          }
-        } else if (event.data.type === 'oauth-error') {
-          window.removeEventListener('message', handleMessage);
-          setShowPopupOverlay(false);
-          setError(event.data.message || '로그인 처리에 실패했습니다.');
-          setIsLoading(false);
-        }
-      };
-
       window.addEventListener('message', handleMessage);
 
       // Cleanup if popup is closed manually
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkPopup);
-          window.removeEventListener('message', handleMessage);
+      checkPopupInterval = setInterval(() => {
+        if (popup && popup.closed) {
+          cleanup();
           setShowPopupOverlay(false);
           setIsLoading(false);
         }
       }, 500);
     } catch (err) {
       console.error('[Login] Google login error');
+      cleanup();
       setError('로그인 설정을 불러오는 중 문제가 발생했습니다.');
       setShowPopupOverlay(false);
       setIsLoading(false);

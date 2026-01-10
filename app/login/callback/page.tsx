@@ -53,12 +53,18 @@ function CallbackContent() {
 
       // Helper to send error to parent
       const sendError = (message: string) => {
+        // Clear OAuth state in all cases
+        sessionStorage.removeItem('oauth_state');
+
         if (window.opener && !window.opener.closed) {
           window.opener.postMessage(
             { type: 'oauth-error', message },
             window.location.origin
           );
-          window.close();
+          // Small delay to ensure message is sent before closing
+          setTimeout(() => {
+            window.close();
+          }, 100);
         } else {
           setStatus('error');
           setError(message);
@@ -79,8 +85,6 @@ function CallbackContent() {
       const savedState = sessionStorage.getItem('oauth_state');
       if (!state || state !== savedState) {
         sendError('보안 검증에 실패했습니다. (State Mismatch)');
-        // Clear state to preventing replay
-        sessionStorage.removeItem('oauth_state');
         return;
       }
 
@@ -109,8 +113,10 @@ function CallbackContent() {
             },
             window.location.origin
           );
-          // Close popup
-          window.close();
+          // Small delay to ensure message is sent before closing
+          setTimeout(() => {
+            window.close();
+          }, 100);
         } else {
           // Fallback to normal flow if not in popup
           login(data.accessToken, data.refreshToken, data.admin);
@@ -133,8 +139,10 @@ function CallbackContent() {
             },
             window.location.origin
           );
-          // Close popup
-          window.close();
+          // Small delay to ensure message is sent before closing
+          setTimeout(() => {
+            window.close();
+          }, 100);
         } else {
           // Fallback to showing error in popup
           setStatus('error');
