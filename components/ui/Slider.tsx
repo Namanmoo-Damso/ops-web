@@ -113,7 +113,7 @@ export default function Slider({
     };
 
     const labelStyle: CSSProperties = {
-        fontSize: 'var(--font-size-small)',
+        fontSize: '16px',
         color: 'var(--color-text-muted)',
         fontWeight: 'var(--font-weight-medium)',
     };

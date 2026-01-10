@@ -65,10 +65,10 @@ export default function Select({
     };
 
     const labelStyle: CSSProperties = {
-        fontSize: 'var(--font-size-caption)',
+        fontSize: '16px',
         fontWeight: 'var(--font-weight-semibold)',
         color: error ? 'var(--color-danger-main)' : 'var(--color-text-primary)',
-        marginBottom: '2px',
+        marginBottom: '4px',
     };
 
     const selectWrapperStyle: CSSProperties = {
