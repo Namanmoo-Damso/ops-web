@@ -6,9 +6,6 @@ export type SettingsAction =
     | { type: 'SET_RISK_SENSITIVITY'; payload: 1 | 2 | 3 }
     | { type: 'TOGGLE_CONVERSATION_TOPIC'; payload: keyof SettingsState['conversationTopics'] }
     | { type: 'TOGGLE_GUARDIAN_NOTIFICATION'; payload: keyof SettingsState['guardianNotifications'] }
-    | { type: 'SET_AI_VOICE_GENDER'; payload: 'female' | 'male' }
-    | { type: 'SET_AI_VOICE_TONE'; payload: 'soft' | 'bright' | 'calm' }
-    | { type: 'SET_AI_VOICE_SPEED'; payload: number }
     | { type: 'SET_SCHEDULED_START_TIME'; payload: string }
     | { type: 'SET_SCHEDULED_END_TIME'; payload: string }
     | { type: 'RESET_SETTINGS'; payload: SettingsState }
@@ -60,33 +57,6 @@ export function settingsReducer(state: SettingsState, action: SettingsAction): S
                 guardianNotifications: {
                     ...state.guardianNotifications,
                     [action.payload]: !state.guardianNotifications[action.payload],
-                },
-            };
-
-        case 'SET_AI_VOICE_GENDER':
-            return {
-                ...state,
-                aiVoice: {
-                    ...state.aiVoice,
-                    gender: action.payload,
-                },
-            };
-
-        case 'SET_AI_VOICE_TONE':
-            return {
-                ...state,
-                aiVoice: {
-                    ...state.aiVoice,
-                    tone: action.payload,
-                },
-            };
-
-        case 'SET_AI_VOICE_SPEED':
-            return {
-                ...state,
-                aiVoice: {
-                    ...state.aiVoice,
-                    speed: action.payload,
                 },
             };
 
