@@ -2,10 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DetailModal.module.css';
-import LogsModal from './LogsModal';
 import { formatTags } from '../../utils/formatters';
-import { Button, Badge, IconButton, SectionTitle } from '../../components/ui';
+import { Button } from '../../components/ui';
 import type { BeneficiarySummary } from '../../types/models';
+import TabNavigation, { type TabType } from './tabs/TabNavigation';
+import BasicInfoTab, { type BasicInfoFormData } from './tabs/BasicInfoTab';
+import UsageInfoTab from './tabs/UsageInfoTab';
+import DamsoLogTab from './tabs/DamsoLogTab';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -43,18 +46,8 @@ export type BeneficiaryUpdatePayload = {
   notes: string | null;
 };
 
-type BeneficiaryFormData = {
-  name: string;
-  phoneNumber: string;
-  birthDate: string;
-  address: string;
-  emergencyContact: string;
-  gender: string;
-  wardType: string;
-  diseases: string;
-  medication: string;
-  notes: string;
-};
+// Form data type now imported from BasicInfoTab
+type BeneficiaryFormData = BasicInfoFormData;
 
 // Re-export for backward compatibility
 export type { BeneficiarySummary } from '../../types/models';
@@ -83,8 +76,8 @@ export default function DetailModal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmDialogRef = useRef<HTMLDivElement>(null);
   const confirmPrimaryRef = useRef<HTMLButtonElement>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('basic');
   const [isEditing, setIsEditing] = useState(initialEditMode);
-  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [form, setForm] = useState<BeneficiaryFormData>({
     name: '',
@@ -149,12 +142,10 @@ export default function DetailModal({
   const handleCloseRequest = useCallback(() => {
     if (showDeleteConfirm) {
       setShowDeleteConfirm(false);
-    } else if (isLogsModalOpen) {
-      setIsLogsModalOpen(false);
     } else {
       onClose();
     }
-  }, [isLogsModalOpen, onClose, showDeleteConfirm]);
+  }, [onClose, showDeleteConfirm]);
 
   // ESC로 닫기 + 포커스 트랩
   useEffect(() => {
@@ -340,300 +331,45 @@ export default function DetailModal({
         ref={dialogRef}
         tabIndex={-1}
         onClick={e => e.stopPropagation()}
-        className={`${styles.dialog} ${isLogsModalOpen ? styles.dialogShifted : ''}`}
+        className={styles.dialog}
       >
-        <div className={headerClassName}>
-          <div className={styles.userRow}>
-            <div
-              aria-hidden="true"
-              className={`${styles.avatar} ${isWarning ? styles.avatarWarning : styles.avatarDefault
-                }`}
-            >
-              {displayName ? displayName.charAt(0) : '?'}
-            </div>
-            <div className={styles.titleBlock}>
-              <div className={styles.titleRow}>
-                <div className={styles.name}>{displayName}</div>
-                <span className={styles.age}>
-                  ({displayAge ?? '-'}세 /{' '}
-                  {isEditing ? (
-                    <select
-                      className={styles.genderSelect}
-                      value={form.gender}
-                      onChange={e => handleFieldChange('gender', e.target.value)}
-                    >
-                      <option value="">-</option>
-                      <option value="male">남</option>
-                      <option value="female">여</option>
-                      <option value="other">기타</option>
-                    </select>
-                  ) : (
-                    displayGenderShort
-                  )}
-                  )
-                </span>
-                <span className={`${styles.tag} ${statusTagClass}`}>
-                  ●{' '}
-                  {status === 'WARNING'
-                    ? '케어 필요'
-                    : status === 'CAUTION'
-                      ? '주의 필요'
-                      : '안정적'}
-                </span>
-              </div>
-            </div>
-          </div >
+        {/* Tab Navigation replaces old header */}
+        <TabNavigation
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          onClose={onClose}
+        />
 
-          <div className={styles.actions}>
-            <div className={styles.managerToggle}>
-              <span className={styles.managerLabel}>담당자</span>
-              <select
-                className={styles.managerSelect}
-                value={managerName}
-                disabled={!isEditing}
-              >
-                <option value={managerName}>{managerName}</option>
-              </select>
-              {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
-            </div>
-            <IconButton
-              variant="close"
-              aria-label="닫기"
-              onClick={onClose}
-              className={styles.closeButton}
-            />
-          </div>
-        </div >
-
+        {/* Tab Content */}
         <div className={styles.body}>
-          <section className={styles.section}>
-            <div className={styles.basicCard}>
-              <div className={styles.cardHeader}>
-                <SectionTitle>기본 정보</SectionTitle>
-              </div>
-              <div className={styles.basicGrid}>
-                <div className={styles.editField}>
-                  <span className={styles.editLabel}>이름 *</span>
-                  <input
-                    className={styles.editInput}
-                    value={isEditing ? form.name : detail.name ?? beneficiary?.name ?? ''}
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e => handleFieldChange('name', e.target.value)
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <span className={styles.editLabel}>전화번호 *</span>
-                  <input
-                    className={styles.editInput}
-                    value={isEditing ? form.phoneNumber : detail.phoneNumber ?? ''}
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e => handleFieldChange('phoneNumber', e.target.value)
-                        : undefined
-                    }
-                    placeholder={isEditing ? '' : '-'}
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <span className={styles.editLabel}>생년월일 *</span>
-                  <input
-                    type="date"
-                    className={styles.editInput}
-                    value={isEditing ? form.birthDate : detail.birthDate ?? ''}
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e => handleFieldChange('birthDate', e.target.value)
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className={`${styles.editField} ${styles.spanTwo}`}>
-                  <span className={styles.editLabel}>주소 *</span>
-                  <input
-                    className={styles.editInput}
-                    value={isEditing ? form.address : displayAddress ?? ''}
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e => handleFieldChange('address', e.target.value)
-                        : undefined
-                    }
-                  />
-                </div>
-                <div className={styles.editField}>
-                  <span className={styles.editLabel}>비상연락처</span>
-                  <input
-                    className={styles.editInput}
-                    value={isEditing ? form.emergencyContact : detail.emergencyContact ?? ''}
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e => handleFieldChange('emergencyContact', e.target.value)
-                        : undefined
-                    }
-                    placeholder={isEditing ? '010-0000-0000' : '-'}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+          {activeTab === 'basic' && (
+            <BasicInfoTab
+              beneficiary={beneficiary}
+              detail={detail}
+              isEditing={isEditing}
+              form={form}
+              onChange={handleFieldChange}
+              managerName={managerName}
+              onEditToggle={isEditing ? handleEditCancel : handleEditStart}
+              onDelete={handleDeleteClick}
+              onSave={handleSave}
+              isSaving={saveLoading}
+            />
+          )}
 
-          <section className={styles.healthLogSection}>
-            <div className={styles.healthColumn}>
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <SectionTitle>건강 정보</SectionTitle>
-                </div>
-                <div className={styles.healthGrid}>
-                  <div className={styles.editField}>
-                    <span className={styles.editLabel}>기저질환</span>
-                    <textarea
-                      className={styles.editInputTwoLine}
-                      value={
-                        isEditing ? form.diseases : formatTags(detail.diseases)
-                      }
-                      readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('diseases', e.target.value)
-                          : undefined
-                      }
-                      placeholder={isEditing ? '예: 고혈압, 당뇨' : ''}
-                    />
-                  </div>
-                  <div className={styles.editField}>
-                    <span className={styles.editLabel}>복약 정보</span>
-                    <textarea
-                      className={styles.editInputTwoLine}
-                      value={
-                        isEditing ? form.medication : formatTags(detail.medication)
-                      }
-                      readOnly={!isEditing}
-                      onChange={
-                        isEditing
-                          ? e => handleFieldChange('medication', e.target.value)
-                          : undefined
-                      }
-                      placeholder={isEditing ? '예: 위장약, 혈압약' : ''}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className={styles.logsColumn}>
-              <div className={styles.logsCard}>
-                <div className={styles.cardHeader}>
-                  <SectionTitle>참고 및 특이사항</SectionTitle>
-                </div>
-                <div className={styles.noteField}>
-                  <textarea
-                    className={styles.noteTextarea}
-                    value={
-                      isEditing
-                        ? form.notes
-                        : detail.notes || '추가 메모가 없습니다.'
-                    }
-                    readOnly={!isEditing}
-                    onChange={
-                      isEditing
-                        ? e => handleFieldChange('notes', e.target.value)
-                        : undefined
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
+          {activeTab === 'usage' && (
+            <UsageInfoTab
+              beneficiaryId={beneficiary.id}
+              beneficiaryName={beneficiary.name}
+            />
+          )}
 
-          <section className={styles.section}>
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <SectionTitle>담소일지</SectionTitle>
-                <button
-                  type="button"
-                  className={styles.logMoreButton}
-                  onClick={() => setIsLogsModalOpen(true)}
-                >
-                  자세히 보기 →
-                </button>
-              </div>
-              {detail.recentLogs.length === 0 ? (
-                <div className={styles.emptyLogs}>최근 기록이 없습니다.</div>
-              ) : (
-                <div className={styles.logList}>
-                  {detail.recentLogs.slice(0, 1).map(log => (
-                    <div key={log.id} className={styles.logCard}>
-                      <div className={styles.logTextBlock}>
-                        <span className={styles.logType}>{log.type}</span>
-                        <p className={styles.logContent}>{log.content}</p>
-                      </div>
-                      <span className={styles.logDate}>{log.date}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
-        </div>
-
-        <div className={styles.footer}>
-          <div className={styles.footerLeft}>
-            <Button
-              type="button"
-              variant="secondary"
-              className={styles.deleteButton}
-              onClick={handleDeleteClick}
-              disabled={!onDelete || deleting || isEditing || saveLoading}
-            >
-              {deleting ? '삭제 중...' : '대상자 삭제'}
-            </Button>
-            {deleteError && <div className={styles.deleteError}>{deleteError}</div>}
-          </div>
-          <div className={styles.footerActions}>
-            {isEditing ? (
-              <div className={styles.footerEditActions}>
-                <Button
-                  type="button"
-                  variant="primary"
-                  className={styles.editSave}
-                  onClick={handleSave}
-                  disabled={saveLoading}
-                  loading={saveLoading}
-                >
-                  {saveLoading ? '저장 중...' : '저장하기'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className={styles.editCancel}
-                  onClick={handleEditCancel}
-                  disabled={saveLoading}
-                >
-                  취소
-                </Button>
-                {saveError && <div className={styles.editError}>{saveError}</div>}
-                {saveSuccess && (
-                  <div className={styles.editSuccess}>{saveSuccess}</div>
-                )}
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="primary"
-                className={styles.editButton}
-                onClick={handleEditStart}
-              >
-                정보 수정
-              </Button>
-            )}
-          </div>
+          {activeTab === 'logs' && (
+            <DamsoLogTab
+              logs={detail.recentLogs ?? []}
+              beneficiaryName={beneficiary.name}
+            />
+          )}
         </div>
       </div >
 
@@ -688,11 +424,6 @@ export default function DetailModal({
           </div>
         </div>
       )}
-      <LogsModal
-        isOpen={isLogsModalOpen}
-        onClose={() => setIsLogsModalOpen(false)}
-        logs={detail.recentLogs}
-      />
     </div>
   );
 }
