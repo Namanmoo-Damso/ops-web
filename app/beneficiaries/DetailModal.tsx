@@ -8,6 +8,7 @@ import type { BeneficiarySummary } from '../../types/models';
 import TabNavigation, { type TabType } from './tabs/TabNavigation';
 import BasicInfoTab, { type BasicInfoFormData } from './tabs/BasicInfoTab';
 import UsageInfoTab from './tabs/UsageInfoTab';
+import DamsoLogTab from './tabs/DamsoLogTab';
 
 export type BeneficiaryLog = {
   id: string | number;
@@ -364,9 +365,10 @@ export default function DetailModal({
           )}
 
           {activeTab === 'logs' && (
-            <div className={styles.tabContent} style={{ textAlign: 'center', color: 'var(--beneficiary-muted)', padding: '48px' }}>
-              <p>담소일지 탭 준비 중...</p>
-            </div>
+            <DamsoLogTab
+              logs={detail.recentLogs ?? []}
+              beneficiaryName={beneficiary.name}
+            />
           )}
         </div>
       </div >

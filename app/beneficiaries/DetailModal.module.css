@@ -1487,3 +1487,187 @@
   background: var(--color-primary, #8fa963);
   color: #ffffff;
 }
+
+/* ===== Logs Tab ===== */
+.logsTabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.logsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.writeLogButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--color-primary, #8fa963);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.writeLogButton:hover {
+  background: var(--color-primary-dark, #6b8a3f);
+}
+
+/* Sentiment Filter */
+.logsFilter {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filterBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filterBtn:hover {
+  background: #f0f5e8;
+  color: var(--beneficiary-heading);
+}
+
+.filterBtn.filterBtnActive {
+  background: var(--beneficiary-heading);
+  border-color: var(--beneficiary-heading);
+  color: #ffffff;
+}
+
+.filterPositive.filterBtnActive {
+  background: #22c55e;
+  border-color: #22c55e;
+}
+
+.filterNeutral.filterBtnActive {
+  background: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.filterNegative.filterBtnActive {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.filterCount {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Logs List */
+.logsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.emptyLogs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: var(--beneficiary-muted);
+  text-align: center;
+}
+
+.emptyIcon {
+  color: var(--beneficiary-border-color);
+}
+
+.emptyLogs p {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Log Card with Left Border */
+.logCard {
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 12px;
+  border-left: 4px solid var(--beneficiary-muted);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.logCard:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.logCardPositive {
+  border-left-color: #22c55e;
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.03) 0%, #ffffff 20%);
+}
+
+.logCardNeutral {
+  border-left-color: #f59e0b;
+  background: linear-gradient(90deg, rgba(245, 158, 11, 0.03) 0%, #ffffff 20%);
+}
+
+.logCardNegative {
+  border-left-color: #ef4444;
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.03) 0%, #ffffff 20%);
+}
+
+.logCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.logType {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary, #8fa963);
+  background: var(--color-bg-elevated-1, #f0f5e8);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.logDate {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-muted);
+}
+
+.logContent {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  line-height: 1.6;
+  margin: 0;
+  text-align: left;
+}
