@@ -24,7 +24,7 @@ export default function TabNavigation({
 }: TabNavigationProps) {
     return (
         <div className={styles.tabHeader}>
-            <div className={styles.tabGroup}>
+            <div className={styles.tabGroup} role="tablist" aria-label="수급자 정보 탭">
                 {TABS.map(({ key, label, icon }) => (
                     <button
                         key={key}

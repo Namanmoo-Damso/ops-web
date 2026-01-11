@@ -103,6 +103,10 @@ export default function BasicInfoTab({
                             className={styles.profileManagerSelect}
                             value={managerName}
                             disabled={!isEditing}
+                            onChange={(e) => {
+                                // TODO: API 연동 시 매니저 변경 로직 구현
+                                console.log('매니저 변경:', e.target.value);
+                            }}
                         >
                             <option value={managerName}>{managerName}</option>
                             {/* TODO: 직원 목록 API 연동 시 실제 담당자 리스트로 교체 */}
