@@ -1,420 +1,220 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
-
 import { LocationMap, type WardLocation } from '../../components/LocationMap';
+import MonitoringSidebar from '../../components/monitoring/MonitoringSidebar';
 import { useApi } from '../../hooks/useApi';
-
-
+import { apiClient } from '../../lib/api-client';
+import DetailModal, {
+  type BeneficiaryDetail,
+  type BeneficiaryUpdatePayload,
+  type BeneficiarySummary,
+} from '../beneficiaries/DetailModal';
+import '../../styles/monitoring.css';
 
 type LocationsResponse = {
   locations: WardLocation[];
 };
 
+type BeneficiaryDetailResponse = {
+  data: BeneficiaryDetail & { id: string };
+};
+
+// Type from my-wards API to build the mapping
+type MyWardsResponse = {
+  wards: Array<{
+    id: string;      // Beneficiary ID (used for details)
+    wardId: string | null; // Device ID (used for location)
+    name: string;
+    // ... other fields
+  }>;
+};
+
+const EMPTY_DETAIL: BeneficiaryDetail = {
+  name: '',
+  email: null,
+  phoneNumber: null,
+  birthDate: null,
+  address: null,
+  gender: null,
+  type: null,
+  emergencyContact: null,
+  diseases: [],
+  medication: null,
+  notes: null,
+  recentLogs: [],
+};
+
 export default function LocationsPage() {
   const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const { data, loading, error, refetch } = useApi<LocationsResponse>({
+
+  // 1. Fetch Locations (Auto-refresh every 30s)
+  const { data: locationsDataRaw, loading: locationsLoading, refetch: refetchLocations } = useApi<unknown>({
     deps: [],
     fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
   });
 
-  const locations = data?.locations || [];
+  // 1-1. Fetch MyWards to map wardId (device) -> id (beneficiary)
+  // This is needed because the location API relies on wardId, but details API uses beneficiary ID
+  const { data: myWardsData } = useApi<MyWardsResponse>({
+    deps: [],
+    fetcher: (client, signal) => client.get('/v1/admin/my-wards', { signal }),
+  });
+
+  // Build ID Mapping: wardId -> beneficiaryId
+  const wardIdToBeneficiaryId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (myWardsData?.wards && Array.isArray(myWardsData.wards)) {
+      myWardsData.wards.forEach(w => {
+        if (w.wardId && w.id) {
+          map.set(w.wardId, w.id);
+        }
+      });
+    }
+    return map;
+  }, [myWardsData]);
+
+  // Robustly parse locations
+  const locations: WardLocation[] = useMemo(() => {
+    if (!locationsDataRaw) return [];
+    if (Array.isArray(locationsDataRaw)) {
+      return locationsDataRaw as WardLocation[];
+    }
+    const response = locationsDataRaw as LocationsResponse;
+    if (Array.isArray(response.locations)) {
+      return response.locations;
+    }
+    return [];
+  }, [locationsDataRaw]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    if (autoRefresh) {
-      interval = setInterval(() => {
-        refetch();
-      }, 30000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [autoRefresh, refetch]);
+    const interval = setInterval(() => {
+      refetchLocations();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [refetchLocations]);
 
-  const handleWardClick = useCallback((wardId: string) => {
-    setSelectedWardId(wardId);
-  }, []);
+  // Determine the correct ID to fetch details for
+  const targetBeneficiaryId = useMemo(() => {
+    if (!selectedWardId) return null;
+    // Start with the selected ID (from map/list, which is wardId)
+    // Check if we have a mapping to a beneficiary ID
+    return wardIdToBeneficiaryId.get(selectedWardId) || selectedWardId;
+  }, [selectedWardId, wardIdToBeneficiaryId]);
 
-  const selectedLocation = selectedWardId
-    ? locations.find(loc => loc.wardId === selectedWardId)
-    : null;
-
-  const statusCounts = locations.reduce(
-    (acc, loc) => {
-      acc[loc.status] = (acc[loc.status] || 0) + 1;
-      return acc;
+  // 2. Fetch Detail when Ward Selected (using the resolved ID)
+  const {
+    data: detailResponse,
+    refetch: refetchDetail,
+    error: detailError, // Allow checking for error
+  } = useApi<BeneficiaryDetailResponse>({
+    deps: [targetBeneficiaryId],
+    skip: !targetBeneficiaryId,
+    fetcher: (client, signal) => {
+      if (!targetBeneficiaryId) throw new Error('No Target ID');
+      return client.get(`/v1/admin/beneficiaries/${targetBeneficiaryId}`, { signal });
     },
-    { normal: 0, warning: 0, emergency: 0 } as Record<string, number>,
-  );
+  });
 
-  const isLoading = loading && !data;
+  // 3. Construct Data for Modal
+  const selectedData = useMemo(() => {
+    if (!selectedWardId) return null;
 
-  // Manual refresh handler
-  const handleRefresh = () => {
-    refetch();
+    const location = locations.find(loc => loc.wardId === selectedWardId);
+    if (!location) return null;
+
+    // Minimal Summary from Location Data
+    const summary: BeneficiarySummary = {
+      id: targetBeneficiaryId || location.wardId, // Use the resolved ID if available
+      name: location.wardName,
+      status: location.status === 'emergency' ? 'WARNING' : location.status === 'warning' ? 'CAUTION' : 'NORMAL',
+      isRegistered: true,
+      phoneNumber: null, // Location data doesn't have this
+      address: null,
+      age: null,
+      gender: null,
+      manager: null,
+      emergencyContact: null,
+      lastCall: null,
+      type: null
+    };
+
+    // If detail fetch succeeded, use it. If not (or 404), fallback to partial data + empty fields.
+    const detailApiData = detailResponse?.data;
+
+    // Check if the loaded data matches our target ID
+    const isMatchingData = detailApiData && detailApiData.id === targetBeneficiaryId;
+
+    const detail: BeneficiaryDetail = isMatchingData
+      ? detailApiData
+      : {
+        ...EMPTY_DETAIL,
+        name: location.wardName, // Fallback name at minimum
+        // We could try to enrich more here if myWardsData has it
+      };
+
+    // Try to enrich from myWardsData if detail API failed but we have ward info
+    if (!isMatchingData && myWardsData?.wards) {
+      const wardInfo = myWardsData.wards.find(w => w.wardId === selectedWardId);
+      if (wardInfo) {
+        if (!detail.name) detail.name = wardInfo.name;
+        if (!detail.phoneNumber) detail.phoneNumber = wardInfo.phoneNumber;
+        if (!detail.address) detail.address = wardInfo.address;
+        if (wardInfo.birthDate) detail.birthDate = wardInfo.birthDate;
+      }
+    }
+
+    return { summary, detail };
+  }, [selectedWardId, locations, detailResponse, targetBeneficiaryId, myWardsData]);
+
+  const handleUpdate = async (payload: BeneficiaryUpdatePayload) => {
+    if (!targetBeneficiaryId) return null;
+    try {
+      const result = await apiClient.put<BeneficiaryDetailResponse>(
+        `/v1/admin/beneficiaries/${targetBeneficiaryId}`,
+        payload
+      );
+      refetchDetail();
+      return result.data;
+    } catch (err) {
+      console.error(err);
+      throw new Error('Update failed');
+    }
   };
 
   return (
-    <DashboardLayout>
-      <div
-        style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 80px)' }}
-      >
-        {/* Ward List Panel */}
-        <aside
-          style={{
-            width: '340px',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            border: "1px solid var(--color-border)",
-            display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              padding: '20px',
-              borderBottom: "1px solid var(--color-border)",
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: '18px',
-                fontWeight: 700,
-                color: "var(--color-primary-dark)",
-              }}
-            >
-              실시간 위치 현황
-            </h2>
-            <p
-              style={{ margin: '6px 0 0', fontSize: '14px', color: "var(--color-text-muted)" }}
-            >
-              등록된 피보호자: {locations.length}명
-            </p>
-          </div>
-
-          {/* Status Summary */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              padding: '14px 20px',
-              borderBottom: "1px solid var(--color-border)",
-            }}
-          >
-            <StatusBadge
-              label="정상"
-              count={statusCounts.normal}
-              color="#22c55e"
-            />
-            <StatusBadge
-              label="주의"
-              count={statusCounts.warning}
-              color="#f59e0b"
-            />
-            <StatusBadge
-              label="비상"
-              count={statusCounts.emergency}
-              color="#ef4444"
-            />
-          </div>
-
-          {/* Controls */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 20px',
-              borderBottom: "1px solid var(--color-border)",
-            }}
-          >
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={e => setAutoRefresh(e.target.checked)}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  accentColor: "var(--color-primary)",
-                }}
-              />
-              <span
-                style={{ fontSize: '14px', color: "var(--color-primary-dark)", fontWeight: 500 }}
-              >
-                자동 새로고침
-              </span>
-            </label>
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              style={{
-                padding: '8px 14px',
-                fontSize: '13px',
-                backgroundColor: loading ? "var(--color-accent-soft)" : "var(--color-primary)",
-                color: loading ? "var(--color-text-muted)" : 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontWeight: 600,
-                transition: 'all 0.2s',
-              }}
-            >
-              {loading ? '로딩 중...' : '새로고침'}
-            </button>
-          </div>
-
-          {/* Ward List */}
-          <div style={{ flex: 1, overflow: 'auto' }}>
-            {isLoading ? (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                로딩 중...
-              </div>
-            ) : error ? (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: '#dc2626',
-                }}
-              >
-                오류: {error}
-              </div>
-            ) : locations.length === 0 ? (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: "var(--color-text-muted)",
-                }}
-              >
-                등록된 위치 정보가 없습니다.
-              </div>
-            ) : (
-              locations.map(loc => (
-                <WardListItem
-                  key={loc.wardId}
-                  location={loc}
-                  isSelected={loc.wardId === selectedWardId}
-                  onClick={() => handleWardClick(loc.wardId)}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Selected Ward Detail */}
-          {selectedLocation && (
-            <div
-              style={{
-                padding: '20px',
-                borderTop: "1px solid var(--color-border)",
-                backgroundColor: "var(--color-bg)",
-              }}
-            >
-              <h3
-                style={{
-                  margin: '0 0 14px',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: "var(--color-primary-dark)",
-                }}
-              >
-                {selectedLocation.wardName}
-              </h3>
-              <div
-                style={{
-                  fontSize: '13px',
-                  color: "var(--color-primary-dark)",
-                  lineHeight: '1.9',
-                }}
-              >
-                <div>
-                  <strong style={{ color: "var(--color-primary-dark)" }}>위치:</strong>{' '}
-                  {selectedLocation.latitude.toFixed(6)},{' '}
-                  {selectedLocation.longitude.toFixed(6)}
-                </div>
-                {selectedLocation.accuracy && (
-                  <div>
-                    <strong style={{ color: "var(--color-primary-dark)" }}>정확도:</strong>{' '}
-                    {selectedLocation.accuracy.toFixed(1)}m
-                  </div>
-                )}
-                <div>
-                  <strong style={{ color: "var(--color-primary-dark)" }}>마지막 업데이트:</strong>{' '}
-                  {new Date(selectedLocation.lastUpdated).toLocaleString(
-                    'ko-KR',
-                  )}
-                </div>
-              </div>
+    <DashboardLayout noPadding>
+      <div className="monitoring-container">
+        {/* Map takes up the main area, Sidebar on the right */}
+        <main className="monitoring-map-section">
+          {locationsLoading && locations.length === 0 && (
+            <div className="map-loading-overlay">
+              데이터 불러오는 중...
             </div>
           )}
-        </aside>
-
-        {/* Map */}
-        <main
-          style={{
-            flex: 1,
-            borderRadius: '12px',
-            overflow: 'hidden',
-            border: "1px solid var(--color-border)",
-          }}
-        >
           <LocationMap
             locations={locations}
-            onWardClick={handleWardClick}
             selectedWardId={selectedWardId || undefined}
+            onWardClick={setSelectedWardId}
           />
         </main>
+
+        <MonitoringSidebar
+          locations={locations}
+          selectedWardId={selectedWardId}
+          onSelect={setSelectedWardId}
+        />
+
+        {selectedData && (
+          <DetailModal
+            beneficiary={selectedData.summary}
+            detail={selectedData.detail}
+            onClose={() => setSelectedWardId(null)}
+            onUpdate={handleUpdate}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
-}
-
-function StatusBadge({
-  label,
-  count,
-  color,
-}: {
-  label: string;
-  count: number;
-  color: string;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 12px',
-        backgroundColor: color + '15',
-        borderRadius: '20px',
-        border: `1px solid ${color}30`,
-      }}
-    >
-      <div
-        style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          backgroundColor: color,
-        }}
-      />
-      <span style={{ fontSize: '13px', color: "var(--color-primary-dark)", fontWeight: 500 }}>
-        {label}: {count}
-      </span>
-    </div>
-  );
-}
-
-function WardListItem({
-  location,
-  isSelected,
-  onClick,
-}: {
-  location: WardLocation;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  const statusColors: Record<string, string> = {
-    normal: '#22c55e',
-    warning: '#f59e0b',
-    emergency: '#ef4444',
-  };
-
-  const timeAgo = getTimeAgo(new Date(location.lastUpdated));
-
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        padding: '14px 20px',
-        border: 'none',
-        borderBottom: '1px solid #F0F5E8',
-        backgroundColor: isSelected ? "var(--color-accent-soft)" : 'transparent',
-        cursor: 'pointer',
-        textAlign: 'left',
-        transition: 'background 150ms ease',
-      }}
-      onMouseEnter={e =>
-        !isSelected && (e.currentTarget.style.backgroundColor = "var(--color-bg)")
-      }
-      onMouseLeave={e =>
-        !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')
-      }
-    >
-      <div
-        style={{
-          width: '42px',
-          height: '42px',
-          borderRadius: '50%',
-          backgroundColor: statusColors[location.status],
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: '14px',
-          flexShrink: 0,
-        }}
-      >
-        {location.wardName.charAt(0)}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: isSelected ? 600 : 500,
-            fontSize: '14px',
-            color: "var(--color-primary-dark)",
-            marginBottom: '4px',
-          }}
-        >
-          {location.wardName}
-        </div>
-        <div style={{ fontSize: '12px', color: "var(--color-text-muted)" }}>{timeAgo}</div>
-      </div>
-      <div
-        style={{
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          backgroundColor: statusColors[location.status],
-          flexShrink: 0,
-        }}
-      />
-    </button>
-  );
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return '방금 전';
-  if (diffMin < 60) return `${diffMin}분 전`;
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return date.toLocaleDateString('ko-KR');
 }
