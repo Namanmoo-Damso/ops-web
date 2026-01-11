@@ -128,7 +128,6 @@ export default function Toast({
     const closeButtonStyle: CSSProperties = {
         background: 'none',
         border: 'none',
-        padding: '4px',
         cursor: 'pointer',
         color: 'var(--color-text-muted)',
         display: 'flex',

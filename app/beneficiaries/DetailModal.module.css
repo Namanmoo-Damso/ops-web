@@ -21,6 +21,14 @@
   z-index: var(--beneficiary-modal-overlay-z);
 }
 
+/* Small screens: position modal below navbar */
+@media (max-height: 700px) {
+  .overlay {
+    align-items: flex-start;
+    padding-top: calc(var(--header-height, 64px) + var(--beneficiary-modal-padding));
+  }
+}
+
 .dialog {
   width: min(var(--beneficiary-modal-max-width),
       calc(100vw - var(--sidebar-width, 0px) - 48px));
@@ -32,6 +40,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: min(650px, 85vh);
   max-height: 90vh;
   border: 1px solid var(--beneficiary-border-color);
   transition: all var(--transition-slow);
@@ -258,6 +267,7 @@
   border-radius: 28px;
   padding: 14px;
   box-shadow: var(--beneficiary-card-shadow);
+  margin-bottom: 10px;
 }
 
 .basicGrid {
@@ -447,7 +457,7 @@
 }
 
 .footer {
-  padding: 20px 28px;
+  padding: 10px 28px;
   border-top: 1px solid var(--beneficiary-border-color);
   background-color: #ffffff;
   display: flex;
@@ -755,7 +765,7 @@
   }
 
   .body {
-    padding: 10px;
+    padding: 16px;
     gap: 10px;
   }
 
@@ -816,4 +826,664 @@
   .footer {
     padding: 16px 20px;
   }
+}
+
+/* ===== Tab Navigation ===== */
+.tabHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--beneficiary-border-color);
+  height: 56px;
+  flex-shrink: 0;
+}
+
+.tabGroup {
+  display: flex;
+  gap: 4px;
+  padding-left: 4px;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 20px;
+  background: #f8fafc;
+  border: 1px solid var(--beneficiary-border-color);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  color: var(--primary-color-dark);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: -1px;
+}
+
+.tabButton:hover {
+  background: #f0f5e8;
+  color: var(--beneficiary-heading);
+}
+
+.tabButton.tabActive {
+  background: var(--color-primary, #8fa963);
+  border-color: var(--color-primary, #8fa963);
+  color: #ffffff;
+}
+
+.tabCloseButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--beneficiary-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabCloseButton:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ===== Tab Content ===== */
+.tabContent {
+  overflow-y: auto;
+  flex: 1;
+  padding: 10px;
+}
+
+/* ===== Profile Section ===== */
+.profileSection {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  margin-bottom: 24px;
+  box-shadow: none;
+}
+
+.profileLeft {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.profileAvatar {
+  width: 128px;
+  height: 128px;
+  border-radius: 28px;
+  color: #FBFDF9;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 52px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.profileRight {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profileNameRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profileName {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--beneficiary-heading);
+}
+
+.profileMeta {
+  color: var(--beneficiary-muted);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Manager selector in profile */
+.profileManagerRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.profileManagerLabel {
+  font-size: 14px;
+  color: var(--beneficiary-muted);
+  font-weight: 600;
+}
+
+.profileManagerSelect {
+  padding: 6px 12px;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--beneficiary-heading);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.profileManagerSelect:disabled {
+  background: #f8fafc;
+  cursor: default;
+}
+
+/* Profile action buttons */
+.profileActions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+}
+
+.profileActionButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--beneficiary-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profileActionButton:hover {
+  background: var(--color-bg-elevated-1, #f0f5e8);
+  color: var(--beneficiary-heading);
+  border-color: var(--color-primary-light, #c2d5a8);
+}
+
+.profileActionButton.editActive {
+  background: var(--color-primary, #8fa963);
+  border-color: var(--color-primary, #8fa963);
+  color: #ffffff;
+}
+
+.profileActionButton.deleteButton:hover {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecdd3;
+}
+
+.profileActionButton.saveButton {
+  background: var(--color-primary, #8fa963);
+  border-color: var(--color-primary, #8fa963);
+  color: #ffffff;
+}
+
+.profileActionButton.saveButton:hover {
+  background: var(--color-primary-dark, #6b8a3f);
+  border-color: var(--color-primary-dark, #6b8a3f);
+}
+
+/* ===== Usage Info Tab ===== */
+.usageSection {
+  margin-bottom: 24px;
+}
+
+.usageSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.scheduleCard {
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.applyAllRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--beneficiary-border-color);
+}
+
+.applyAllInput {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--beneficiary-muted);
+}
+
+.timeInput {
+  padding: 8px 12px;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: var(--color-primary, #8fa963);
+}
+
+.applyAllButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--color-primary, #8fa963);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.applyAllButton:hover {
+  background: var(--color-primary-dark, #6b8a3f);
+}
+
+/* ===== Usage Tab - Full Height Layout ===== */
+
+.usageTabContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* Stats Section */
+.usageStatsSection {
+  flex-shrink: 0;
+}
+
+.usageStatsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.usageFilterRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.periodToggleBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.periodToggleBtn:hover {
+  background: #f0f5e8;
+}
+
+.periodToggleBtn .rotated {
+  transform: rotate(180deg);
+}
+
+/* Period dropdown select */
+.periodSelect {
+  padding: 8px 14px;
+  background: #f8fafc;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.periodSelect:hover {
+  background: #f0f5e8;
+}
+
+.periodSelect:focus {
+  outline: none;
+  border-color: var(--color-primary, #8fa963);
+}
+
+.usageDateInputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usageDateInput {
+  padding: 8px 12px;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  background: #ffffff;
+}
+
+.usageDateSep {
+  color: var(--beneficiary-muted);
+  font-size: 14px;
+}
+
+.periodFilterRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.periodBtn {
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.periodBtn:hover {
+  background: #f0f5e8;
+  color: var(--beneficiary-heading);
+}
+
+.periodBtn.periodBtnActive {
+  background: var(--color-primary, #8fa963);
+  border-color: var(--color-primary, #8fa963);
+  color: #ffffff;
+}
+
+/* Period filter dropdown - ensure visibility */
+.periodFilterRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* Stats Row */
+.usageStatsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 20px 24px;
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 16px;
+}
+
+.usageStatItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usageStatIcon {
+  color: var(--color-primary, #8fa963);
+}
+
+.usageStatValue {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--beneficiary-heading);
+}
+
+.usageStatLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-muted);
+}
+
+/* Vertical stat item layout */
+.usageStatItemV {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.usageStatItemV .usageStatIcon {
+  margin-bottom: 4px;
+}
+
+.usageStatDivider {
+  width: 1px;
+  height: 60px;
+  background: var(--beneficiary-border-color);
+}
+
+/* Bottom Row - Schedule + Calendar */
+.usageBottomRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 700px) {
+  .usageBottomRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Schedule Card */
+.usageScheduleCard {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.usageScheduleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--beneficiary-border-color);
+}
+
+.usageScheduleTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--beneficiary-heading);
+}
+
+.usageApplyAll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.usageTimeInput {
+  padding: 8px 10px;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  background: #f8fafc;
+}
+
+.usageApplyBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--color-primary, #8fa963);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.usageApplyBtn:hover {
+  background: var(--color-primary-dark, #6b8a3f);
+}
+
+.usageScheduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.usageScheduleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.usageDayLabel {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--beneficiary-heading);
+}
+
+/* Calendar */
+.usageCalendar {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.usageCalendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.usageCalendarMonth {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--beneficiary-heading);
+}
+
+.usageCalendarNav {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 18px;
+  color: var(--beneficiary-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.usageCalendarNav:hover {
+  background: var(--color-bg-elevated-1, #f0f5e8);
+  color: var(--beneficiary-heading);
+}
+
+.usageCalendarWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.usageWeekdayLabel {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--beneficiary-muted);
+  text-align: center;
+}
+
+.usageCalendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 1;
+}
+
+.usageCalendarDay {
+  width: 100%;
+  height: 75%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.usageCalendarDayEmpty {
+  color: transparent;
+}
+
+.usageCalendarDayHasCall {
+  background: var(--color-primary, #8fa963);
+  color: #ffffff;
 }
