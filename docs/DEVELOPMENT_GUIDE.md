@@ -85,9 +85,12 @@ export default function MyPage() {
 |------|------|--------|--------|-------|
 | **Dashboard** | `/app/dashboard/page.tsx` | DashboardLayout | ✅ Modern | Template for new pages |
 | **Beneficiaries** | `/app/beneficiaries/page.tsx` | DashboardLayout | ✅ Modern | Full CRUD with table |
-| **My Wards** | `/app/my-wards/page.tsx` | DashboardLayout | 🔄 Partial | Needs StatCard refactor |
+| **My Wards** | `/app/my-wards/page.tsx` | DashboardLayout | ✅ Modern | Refactored |
 | **Emergencies** | `/app/emergencies/page.tsx` | DashboardLayout | ✅ Modern | Map integration |
-| **Locations** | `/app/locations/page.tsx` | DashboardLayout | ✅ Modern | Real-time tracking |
+| **Locations** | `/app/locations/page.tsx` | DashboardLayout | ✅ Modern | Floating sidebar overlay (#115) |
+| **Stats** | `/app/stats/page.tsx` | DashboardLayout | ✅ Modern | Charts & Filters (#94) |
+| **Staff** | `/app/staff/page.tsx` | DashboardLayout | ✅ Modern | Employee management (#102) |
+| **Settings** | `/app/settings/page.tsx` | DashboardLayout | ✅ Modern | App settings (#98) |
 | **Video Monitoring** | `/app/page.tsx` | SidebarLayout | ❌ Legacy | Needs refactoring |
 
 ---
@@ -1198,23 +1201,42 @@ ops-web/
 │   │       └── page.tsx                 # OAuth callback
 │   ├── select-organization/
 │   │   └── page.tsx                     # Organization selection
-│   └── invite/
-│       └── page.tsx                     # Invitation handling
+│   ├── invite/
+│   │   └── page.tsx                     # Invitation handling
+│   ├── settings/
+│   │   └── page.tsx                     # ✅ Settings page (#98)
+│   ├── staff/
+│   │   └── page.tsx                     # ✅ Staff management (#102)
+│   └── stats/
+│       └── page.tsx                     # ✅ Statistics page (#94)
 │
 ├── components/
 │   ├── ui/                              # Reusable UI components
 │   │   ├── Button.tsx                   # Button component
 │   │   ├── Input.tsx                    # Input component
-│   │   ├── Card.tsx                     # Card component
+│   │   ├── Card.tsx                   # Card component
 │   │   ├── Badge.tsx                    # Badge component
 │   │   ├── Table.tsx                    # Table components
 │   │   ├── Modal.tsx                    # Modal component
+│   │   ├── Select.tsx                   # Select dropdown (#107)
+│   │   ├── IconButton.tsx               # Icon button (#107)
+│   │   ├── SectionTitle.tsx             # Section title (#107)
 │   │   ├── LoadingSpinner.tsx           # Loading spinner
 │   │   └── EmptyState.tsx               # Empty state component
 │   ├── layouts/                         # Layout components
 │   │   ├── DashboardLayout.tsx          # Main app layout
 │   │   ├── Sidebar.tsx                  # Navigation sidebar
 │   │   └── PageHeader.tsx               # Page header
+│   ├── dashboard/                       # Dashboard sub-components (#112)
+│   │   ├── BulletinBoard.tsx
+│   │   ├── EmergencyLog.tsx
+│   │   └── DailyOperationsSummary.tsx
+│   ├── monitoring/                      # Map monitoring (#115)
+│   │   ├── MonitoringSidebar.tsx
+│   │   ├── MonitoringStats.tsx
+│   │   └── WardList.tsx
+│   ├── staff/                           # Staff management (#106)
+│   │   └── StaffCard.tsx
 │   ├── video/                           # Video-specific components
 │   │   ├── ControlBar.tsx
 │   │   ├── VideoTiles.tsx
@@ -1231,7 +1253,11 @@ ops-web/
 │   ├── components.css                   # UI component styles
 │   ├── dashboard.css                    # Dashboard page styles
 │   ├── beneficiaries.css                # Beneficiaries page styles
-│   └── my-wards.css                     # My-wards page styles
+│   ├── my-wards.css                     # My-wards page styles
+│   ├── stats.css                        # Stats page styles (#94)
+│   ├── staff.css                        # Staff page styles (#102)
+│   ├── settings.css                     # Settings page styles (#98)
+│   └── monitoring.css                   # Map monitoring styles (#115)
 │
 ├── types/
 │   ├── models.ts                        # Core data models
@@ -1309,17 +1335,22 @@ If you have questions or need clarification:
 - **Phase 4**: Type Definitions
 - **Phase 5.1**: Dashboard Page (template)
 - **Phase 5.2**: Beneficiaries Page
+- **Phase 5.3**: My-Wards Page
+- **Phase 5.4**: Stats Page (#94)
+- **Phase 5.5**: Staff Page (#102)
+- **Phase 5.6**: Settings Page (#98)
+- **Phase 5.7**: Locations/Map Monitoring (#115)
 
 ### 🔄 In Progress
 
-- **Phase 5.3**: My-Wards Page (partially refactored, needs StatCard cleanup)
+- **DetailModal Tabs**: Refactoring DetailModal to use tabbed navigation
 
 ### ❌ Remaining Work
 
-- **Phase 5.4**: Video Monitoring Page (`app/page.tsx`) - Complex LiveKit integration
+- **Video Monitoring Page**: (`app/page.tsx`) - Complex LiveKit integration
 - **Cleanup**: Remove or archive `app/theme.ts` after video page refactoring
 
 ---
 
-**Last Updated**: 2026-01-09
-**Version**: 2.0
+**Last Updated**: 2026-01-11
+**Version**: 2.1
