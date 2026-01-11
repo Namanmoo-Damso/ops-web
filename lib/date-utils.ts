@@ -156,3 +156,37 @@ export function formatDateWithHour(dateInput: Date | string): string {
   const hour = date.getHours();
   return `${day}/${month}(${dayOfWeek}) ${hour}시`;
 }
+/**
+ * Constant for inactivity threshold (24 hours in milliseconds)
+ */
+export const INACTIVITY_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Checks if the last update was older than the inactivity threshold (24 hours)
+ * @param lastUpdated - Date string
+ * @returns true if inactive
+ */
+export function isInactive(lastUpdated: string): boolean {
+  if (!lastUpdated) return true;
+  const diff = Date.now() - new Date(lastUpdated).getTime();
+  return diff > INACTIVITY_THRESHOLD_MS;
+}
+
+/**
+ * Formats time ago string for monitoring
+ * @param dateStr - Date string
+ * @returns formatted string (e.g., "방금 전", "3분 전")
+ */
+export function getTimeAgo(dateStr: string): string {
+  if (!dateStr) return '-';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (minutes < 1) return '방금 전';
+  if (minutes < 60) return `${minutes}분 전`;
+  if (hours < 24) return `${hours}시간 전`;
+  if (days < 7) return `${days}일 전`;
+  return new Date(dateStr).toLocaleDateString('ko-KR');
+}
