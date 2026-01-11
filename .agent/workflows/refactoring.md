@@ -3,7 +3,7 @@ description: How to execute a complex refactoring task (Phase-based)
 ---
 
 1. **Planning**
-   - [ ] Create/Update `REFACTORING_PLAN.md` (Local only).
+   - [ ] Create/Update `REFACTORING_PRGORESS.md` (Local only).
    - [ ] Break down task into Phases (e.g., Phase 1-1, Phase 1-2).
    - [ ] **Dependency Check**: Verify shared types and component specs (exports/props) *before* starting.
    - [ ] Define shared types or interfaces if missing.

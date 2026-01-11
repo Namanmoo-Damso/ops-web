@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MessageSquare, Plus, Edit2, Trash2, X, Search, ChevronLeft, ChevronRight, Paperclip, Download } from 'lucide-react';
 import { Card, Button } from '../ui';
 import '../../styles/dashboard.css';
@@ -74,6 +74,14 @@ export default function BulletinBoard({
 
     // Pagination
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+
+    // Adjust page if items are deleted and current page becomes invalid
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        }
+    }, [totalPages, currentPage]);
+
     const paginatedItems = useMemo(() => {
         const start = (currentPage - 1) * itemsPerPage;
         return filteredItems.slice(start, start + itemsPerPage);

@@ -31,15 +31,7 @@ const MOCK_DATA: DailyOperationsData = {
     completedCheckIns: 45,
 };
 
-// Format date as "M/D(요일)"
-const formatDateKorean = (): string => {
-    const now = new Date();
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const dayOfWeek = days[now.getDay()];
-    return `${month}/${day}(${dayOfWeek})`;
-};
+import { formatDateKorean } from '../../lib/date-utils';
 
 /**
  * DailyOperationsSummary

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock, XCircle, Eye, X, Copy, Check } from 'lucide-react';
 import { Card } from '../ui';
+import { formatDateWithHour } from '../../lib/date-utils';
 import '../../styles/dashboard.css';
 
 // --- Types ---
@@ -23,15 +24,7 @@ type EmergencyLogProps = {
 };
 
 // Format date as "d/m(요) hh시"
-const formatDatetime = (dt: Date | string): string => {
-    const date = typeof dt === 'string' ? new Date(dt) : dt;
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const dayOfWeek = days[date.getDay()];
-    const hour = date.getHours();
-    return `${day}/${month}(${dayOfWeek}) ${hour}시`;
-};
+
 
 // Mock data with Date objects
 const MOCK_LOGS: EmergencyLogItem[] = [
@@ -85,7 +78,7 @@ export default function EmergencyLog({
         if (!detailLog) return '';
         const statusInfo = STATUS_MAP[detailLog.status];
         return `[위급 감지 보고서]
-일시: ${formatDatetime(detailLog.datetime)}
+일시: ${formatDateWithHour(detailLog.datetime)}
 대상자: ${detailLog.beneficiaryName}
 유형: ${detailLog.type}
 상태: ${statusInfo.label}
@@ -96,11 +89,16 @@ export default function EmergencyLog({
     const handleCopy = async () => {
         const text = generateCopyText();
         try {
-            await navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+            } else {
+                throw new Error('Clipboard API not supported');
+            }
         } catch (err) {
             console.error('Copy failed', err);
+            alert('클립보드 복사에 실패했습니다. (브라우저가 지원하지 않거나 보안 컨텍스트가 아님)');
         }
     };
 
@@ -141,7 +139,7 @@ export default function EmergencyLog({
                                         const StatusIcon = statusInfo.icon;
                                         return (
                                             <tr key={log.id}>
-                                                <td className="emergency-log-datetime">{formatDatetime(log.datetime)}</td>
+                                                <td className="emergency-log-datetime">{formatDateWithHour(log.datetime)}</td>
                                                 <td>{log.beneficiaryName}</td>
                                                 <td>{log.type}</td>
                                                 <td>
@@ -181,7 +179,7 @@ export default function EmergencyLog({
                             <div className="emergency-detail-grid">
                                 <div className="emergency-detail-field">
                                     <span className="emergency-detail-label">일시</span>
-                                    <span className="emergency-detail-value">{formatDatetime(detailLog.datetime)}</span>
+                                    <span className="emergency-detail-value">{formatDateWithHour(detailLog.datetime)}</span>
                                 </div>
                                 <div className="emergency-detail-field">
                                     <span className="emergency-detail-label">대상자</span>

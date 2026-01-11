@@ -123,3 +123,36 @@ export function getKoreanConsonant(name: string): string {
 export const KOREAN_CONSONANTS = [
   'ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
 ] as const;
+
+/**
+ * Formats a date as "M/D(Day)" (e.g., "1/11(토)")
+ *
+ * @param dateInput - Date object or string
+ * @returns Formatted date string
+ */
+export function formatDateKorean(dateInput: Date | string = new Date()): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = days[date.getDay()];
+  return `${month}/${day}(${dayOfWeek})`;
+}
+
+/**
+ * Formats a date as "D/M(Day) HH시" (e.g., "10/1(금) 14시")
+ * Note: The requested format was D/M but standard is usually M/D.
+ * Keeping consistent with internal request "d/m(요) hh시".
+ *
+ * @param dateInput - Date object or string
+ * @returns Formatted date-time string
+ */
+export function formatDateWithHour(dateInput: Date | string): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const dayOfWeek = days[date.getDay()];
+  const hour = date.getHours();
+  return `${day}/${month}(${dayOfWeek}) ${hour}시`;
+}

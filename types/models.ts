@@ -57,7 +57,7 @@ export interface BeneficiarySummary {
     phoneNumber?: string | null;
     address?: string | null;
     manager?: string | null;
-    emergencyContactPhone?: string | null;
+    emergencyContact?: string | null;
     isRegistered?: boolean;
     // API returns numeric status 0, 1, 2 but mapped to strings in frontend for now
     // TODO: Align API to return consistent Status enum
