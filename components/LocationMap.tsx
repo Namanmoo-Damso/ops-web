@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { INACTIVITY_THRESHOLD_MS } from '../lib/date-utils';
 
 declare global {
   interface Window {
@@ -206,9 +207,13 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
       );
       const existingMarker = markersRef.current.get(loc.wardId);
 
+
+
+      // ...
+
       const lastUpdated = new Date(loc.lastUpdated).getTime();
       const now = Date.now();
-      const isInactive = (now - lastUpdated) > (24 * 60 * 60 * 1000);
+      const isInactive = (now - lastUpdated) > INACTIVITY_THRESHOLD_MS;
 
       const statusClass = isInactive ? 'bg-caution' : `bg-${loc.status}`;
 

@@ -21,13 +21,14 @@ type BeneficiaryDetailResponse = {
   data: BeneficiaryDetail & { id: string };
 };
 
-// Type from my-wards API to build the mapping
 type MyWardsResponse = {
   wards: Array<{
-    id: string;      // Beneficiary ID (used for details)
-    wardId: string | null; // Device ID (used for location)
+    id: string;
+    wardId: string | null;
     name: string;
-    // ... other fields
+    phoneNumber?: string;
+    address?: string;
+    birthDate?: string;
   }>;
 };
 
@@ -46,17 +47,9 @@ const EMPTY_DETAIL: BeneficiaryDetail = {
   recentLogs: [],
 };
 
-export default function LocationsPage() {
-  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
-
-  // 1. Fetch Locations (Auto-refresh every 30s)
-  const { data: locationsDataRaw, loading: locationsLoading, refetch: refetchLocations } = useApi<unknown>({
-    deps: [],
-    fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
-  });
-
-  // 1-1. Fetch MyWards to map wardId (device) -> id (beneficiary)
-  // This is needed because the location API relies on wardId, but details API uses beneficiary ID
+// --- Hook for Beneficiary Logic ---
+function useBeneficiaryDetail(selectedWardId: string | null, locations: WardLocation[]) {
+  // 1-1. Fetch MyWards for ID Mapping
   const { data: myWardsData } = useApi<MyWardsResponse>({
     deps: [],
     fetcher: (client, signal) => client.get('/v1/admin/my-wards', { signal }),
@@ -72,42 +65,20 @@ export default function LocationsPage() {
         }
       });
     }
-    return map;
+    return map; // Stable reference unless data changes
   }, [myWardsData]);
 
-  // Robustly parse locations
-  const locations: WardLocation[] = useMemo(() => {
-    if (!locationsDataRaw) return [];
-    if (Array.isArray(locationsDataRaw)) {
-      return locationsDataRaw as WardLocation[];
-    }
-    const response = locationsDataRaw as LocationsResponse;
-    if (Array.isArray(response.locations)) {
-      return response.locations;
-    }
-    return [];
-  }, [locationsDataRaw]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      refetchLocations();
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [refetchLocations]);
-
-  // Determine the correct ID to fetch details for
+  // Resolve Target ID
   const targetBeneficiaryId = useMemo(() => {
     if (!selectedWardId) return null;
-    // Start with the selected ID (from map/list, which is wardId)
-    // Check if we have a mapping to a beneficiary ID
     return wardIdToBeneficiaryId.get(selectedWardId) || selectedWardId;
   }, [selectedWardId, wardIdToBeneficiaryId]);
 
-  // 2. Fetch Detail when Ward Selected (using the resolved ID)
+  // 1-2. Fetch Detail
   const {
     data: detailResponse,
     refetch: refetchDetail,
-    error: detailError, // Allow checking for error
+    error: detailError,
   } = useApi<BeneficiaryDetailResponse>({
     deps: [targetBeneficiaryId],
     skip: !targetBeneficiaryId,
@@ -117,20 +88,20 @@ export default function LocationsPage() {
     },
   });
 
-  // 3. Construct Data for Modal
+  // Construct Final Data Object
   const selectedData = useMemo(() => {
     if (!selectedWardId) return null;
 
     const location = locations.find(loc => loc.wardId === selectedWardId);
     if (!location) return null;
 
-    // Minimal Summary from Location Data
+    // Summary from Location
     const summary: BeneficiarySummary = {
-      id: targetBeneficiaryId || location.wardId, // Use the resolved ID if available
+      id: targetBeneficiaryId || location.wardId,
       name: location.wardName,
       status: location.status === 'emergency' ? 'WARNING' : location.status === 'warning' ? 'CAUTION' : 'NORMAL',
       isRegistered: true,
-      phoneNumber: null, // Location data doesn't have this
+      phoneNumber: null,
       address: null,
       age: null,
       gender: null,
@@ -140,42 +111,74 @@ export default function LocationsPage() {
       type: null
     };
 
-    // If detail fetch succeeded, use it. If not (or 404), fallback to partial data + empty fields.
     const detailApiData = detailResponse?.data;
-
-    // Check if the loaded data matches our target ID
     const isMatchingData = detailApiData && detailApiData.id === targetBeneficiaryId;
 
     const detail: BeneficiaryDetail = isMatchingData
       ? detailApiData
       : {
         ...EMPTY_DETAIL,
-        name: location.wardName, // Fallback name at minimum
-        // We could try to enrich more here if myWardsData has it
+        name: location.wardName,
       };
 
-    // Try to enrich from myWardsData if detail API failed but we have ward info
+    // Enrich from MyWards if needed
     if (!isMatchingData && myWardsData?.wards) {
       const wardInfo = myWardsData.wards.find(w => w.wardId === selectedWardId);
       if (wardInfo) {
         if (!detail.name) detail.name = wardInfo.name;
-        if (!detail.phoneNumber) detail.phoneNumber = wardInfo.phoneNumber;
-        if (!detail.address) detail.address = wardInfo.address;
+        if (wardInfo.phoneNumber) detail.phoneNumber = wardInfo.phoneNumber;
+        if (wardInfo.address) detail.address = wardInfo.address;
         if (wardInfo.birthDate) detail.birthDate = wardInfo.birthDate;
       }
     }
 
-    return { summary, detail };
-  }, [selectedWardId, locations, detailResponse, targetBeneficiaryId, myWardsData]);
+    return { summary, detail, refetchDetail };
+  }, [selectedWardId, locations, detailResponse, targetBeneficiaryId, myWardsData, refetchDetail]);
+
+  return { selectedData, detailError };
+}
+
+export default function LocationsPage() {
+  const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
+
+  // 1. Fetch Locations
+  const { data: locationsDataRaw, loading: locationsLoading, refetch: refetchLocations } = useApi<unknown>({
+    deps: [],
+    fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
+  });
+
+  const locations: WardLocation[] = useMemo(() => {
+    if (!locationsDataRaw) return [];
+    if (Array.isArray(locationsDataRaw)) return locationsDataRaw as WardLocation[];
+    const response = locationsDataRaw as LocationsResponse;
+    if (Array.isArray(response.locations)) return response.locations;
+    return [];
+  }, [locationsDataRaw]);
+
+  useEffect(() => {
+    const interval = setInterval(() => refetchLocations(), 30000);
+    return () => clearInterval(interval);
+  }, [refetchLocations]);
+
+  // 2. Use Custom Hook for Details
+  const { selectedData, detailError } = useBeneficiaryDetail(selectedWardId, locations);
+
+  // Error Handling (Toast or alert could be better, for now console/alert)
+  useEffect(() => {
+    if (detailError && selectedWardId) {
+      console.error("Failed to load details:", detailError);
+      // Optional: Trigger a toast here if we had a toast system
+    }
+  }, [detailError, selectedWardId]);
 
   const handleUpdate = async (payload: BeneficiaryUpdatePayload) => {
-    if (!targetBeneficiaryId) return null;
+    if (!selectedData) return null;
     try {
       const result = await apiClient.put<BeneficiaryDetailResponse>(
-        `/v1/admin/beneficiaries/${targetBeneficiaryId}`,
+        `/v1/admin/beneficiaries/${selectedData.summary.id}`,
         payload
       );
-      refetchDetail();
+      selectedData.refetchDetail();
       return result.data;
     } catch (err) {
       console.error(err);
@@ -186,12 +189,9 @@ export default function LocationsPage() {
   return (
     <DashboardLayout noPadding>
       <div className="monitoring-container">
-        {/* Map takes up the main area, Sidebar on the right */}
         <main className="monitoring-map-section">
           {locationsLoading && locations.length === 0 && (
-            <div className="map-loading-overlay">
-              데이터 불러오는 중...
-            </div>
+            <div className="map-loading-overlay">데이터 불러오는 중...</div>
           )}
           <LocationMap
             locations={locations}
