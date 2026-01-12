@@ -370,8 +370,8 @@ export default function Home() {
           setShowParticipantList(false);
           setSelectedRoomName(null);
         }}
-        onMuteAll={() => { }}
-        onInvite={() => { }}
+        onMuteAll={() => {}}
+        onInvite={() => {}}
         inviteBusy={false}
         inviteStatus={null}
         connected={connected}
@@ -401,25 +401,35 @@ export default function Home() {
             className={styles.room}
             options={liveKitOptions}
           >
-            <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+            <div
+              className={styles.content}
+              style={{ gridTemplateColumns: '1fr' }}
+            >
               <div className={styles.stage} style={{ position: 'relative' }}>
                 {renderGrid()}
                 <ControlBarWrapper
                   gridSize={gridSize}
                   onGridSizeChange={setGridSize}
                   showParticipantList={showParticipantList}
-                  onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                  onToggleParticipantList={() =>
+                    setShowParticipantList(!showParticipantList)
+                  }
                   isFullscreen={isMonitoringFullscreen}
                   onToggleFullscreen={toggleMonitoringFullscreen}
                 />
               </div>
               {renderFullScreenVideo()}
               {renderDetailSidebar()}
-              {showParticipantList && !showFullScreenVideo && renderParticipantSidebar(true)}
+              {showParticipantList &&
+                !showFullScreenVideo &&
+                renderParticipantSidebar(true)}
             </div>
           </LiveKitRoom>
         ) : (
-          <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+          <div
+            className={styles.content}
+            style={{ gridTemplateColumns: '1fr' }}
+          >
             <div className={styles.stage} style={{ position: 'relative' }}>
               <div
                 className={styles.grid}
@@ -434,7 +444,9 @@ export default function Home() {
               </div>
               <ControlBar
                 showParticipantList={showParticipantList}
-                onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                onToggleParticipantList={() =>
+                  setShowParticipantList(!showParticipantList)
+                }
                 gridSize={gridSize}
                 onGridSizeChange={setGridSize}
                 connected={false}
@@ -468,8 +480,9 @@ export default function Home() {
               options={liveKitOptions}
             >
               <div
-                className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
-                  }`}
+                className={`${styles.content} ${
+                  !showParticipantList ? styles.contentFullWidth : ''
+                }`}
               >
                 {renderErrorBanner()}
 
@@ -497,8 +510,9 @@ export default function Home() {
             </LiveKitRoom>
           ) : (
             <div
-              className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
-                }`}
+              className={`${styles.content} ${
+                !showParticipantList ? styles.contentFullWidth : ''
+              }`}
             >
               {renderErrorBanner()}
 

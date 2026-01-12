@@ -3,7 +3,7 @@ import type { Room, RoomConnection } from '../types/room';
 import type { Admin } from '../types/models';
 
 type UseMultiRoomSessionOptions = {
-  apiBase: string;
+  apiBase: string | undefined;
   rooms: Room[];
   enabled?: boolean;
 };

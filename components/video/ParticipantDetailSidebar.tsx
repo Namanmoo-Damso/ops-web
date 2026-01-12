@@ -14,6 +14,7 @@ import { IconButton } from '../ui';
 import DetailModal from '../../app/beneficiaries/DetailModal';
 import type { BeneficiarySummary } from '../../types/models';
 import type { BeneficiaryDetail } from '../../app/beneficiaries/DetailModal';
+import { API_BASE } from '../../lib/api-client';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
@@ -543,7 +544,7 @@ export const ParticipantDetailSidebar = ({
                     setLoadingDetail(true);
                     try {
                       // Fetch beneficiary detail
-                      const url = `${apiBase}/api/beneficiaries/${idToUse}`;
+                      const url = `${API_BASE}/api/beneficiaries/${idToUse}`;
                       console.log('[DetailButton] Fetching from:', url);
                       const response = await fetch(url);
 
@@ -928,7 +929,7 @@ export const ParticipantDetailSidebar = ({
           onUpdate={async payload => {
             try {
               const response = await fetch(
-                `${apiBase}/api/beneficiaries/${participant.beneficiaryId}`,
+                `${API_BASE}/api/beneficiaries/${participant.beneficiaryId}`,
                 {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
