@@ -38,6 +38,12 @@ export default function Home() {
   const [selectedVideoTrackRef, setSelectedVideoTrackRef] = useState<any>(null);
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isTakeoverActive, setIsTakeoverActive] = useState(false);
+  const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
+
+  // Toggle fullscreen mode (hides sidebar and navbar)
+  const toggleMonitoringFullscreen = () => {
+    setIsMonitoringFullscreen(prev => !prev);
+  };
 
   // Collect participants from all rooms or selected room
   const participantList = useMemo(() => {
@@ -364,14 +370,88 @@ export default function Home() {
           setShowParticipantList(false);
           setSelectedRoomName(null);
         }}
-        onMuteAll={() => {}}
-        onInvite={() => {}}
+        onMuteAll={() => { }}
+        onInvite={() => { }}
         inviteBusy={false}
         inviteStatus={null}
         connected={connected}
         canControl={connected}
       />
     );
+
+  // Fullscreen container (no sidebar/navbar)
+  const fullscreenContent = (
+    <div
+      className={styles.page}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        background: '#F7F9F2',
+      }}
+    >
+      <div className={styles.roomWrap} style={{ height: '100%' }}>
+        {firstConnection ? (
+          <LiveKitRoom
+            serverUrl={firstConnection.serverUrl}
+            token={firstConnection.token}
+            connect={firstConnection.connected}
+            audio={false}
+            video={false}
+            className={styles.room}
+            options={liveKitOptions}
+          >
+            <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+              <div className={styles.stage} style={{ position: 'relative' }}>
+                {renderGrid()}
+                <ControlBarWrapper
+                  gridSize={gridSize}
+                  onGridSizeChange={setGridSize}
+                  showParticipantList={showParticipantList}
+                  onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                  isFullscreen={isMonitoringFullscreen}
+                  onToggleFullscreen={toggleMonitoringFullscreen}
+                />
+              </div>
+              {renderFullScreenVideo()}
+              {renderDetailSidebar()}
+              {showParticipantList && !showFullScreenVideo && renderParticipantSidebar(true)}
+            </div>
+          </LiveKitRoom>
+        ) : (
+          <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+            <div className={styles.stage} style={{ position: 'relative' }}>
+              <div
+                className={styles.grid}
+                style={{
+                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
+                  gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
+                }}
+              >
+                {gridSlots.map(slot => (
+                  <EmptyTile key={slot.key} />
+                ))}
+              </div>
+              <ControlBar
+                showParticipantList={showParticipantList}
+                onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                gridSize={gridSize}
+                onGridSizeChange={setGridSize}
+                connected={false}
+                isFullscreen={isMonitoringFullscreen}
+                onToggleFullscreen={toggleMonitoringFullscreen}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // If fullscreen mode, render without SidebarLayout
+  if (isMonitoringFullscreen) {
+    return fullscreenContent;
+  }
 
   return (
     <SidebarLayout noPadding>
@@ -388,9 +468,8 @@ export default function Home() {
               options={liveKitOptions}
             >
               <div
-                className={`${styles.content} ${
-                  !showParticipantList ? styles.contentFullWidth : ''
-                }`}
+                className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
+                  }`}
               >
                 {renderErrorBanner()}
 
@@ -406,7 +485,8 @@ export default function Home() {
                     onToggleParticipantList={() =>
                       setShowParticipantList(!showParticipantList)
                     }
-                    isTakeoverActive={isTakeoverActive}
+                    isFullscreen={isMonitoringFullscreen}
+                    onToggleFullscreen={toggleMonitoringFullscreen}
                   />
                 </div>
 
@@ -417,9 +497,8 @@ export default function Home() {
             </LiveKitRoom>
           ) : (
             <div
-              className={`${styles.content} ${
-                !showParticipantList ? styles.contentFullWidth : ''
-              }`}
+              className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
+                }`}
             >
               {renderErrorBanner()}
 
@@ -440,23 +519,15 @@ export default function Home() {
 
                 {/* Control Bar - Static version without LiveKit */}
                 <ControlBar
-                  isMicrophoneEnabled={false}
-                  isCameraEnabled={false}
-                  onToggleMicrophone={() => {}}
-                  onToggleCamera={() => {}}
-                  allAudioOff={false}
-                  allVideoOff={false}
-                  onToggleAllAudio={() => {}}
-                  onToggleAllVideo={() => {}}
                   showParticipantList={showParticipantList}
                   onToggleParticipantList={() =>
                     setShowParticipantList(!showParticipantList)
                   }
                   gridSize={gridSize}
                   onGridSizeChange={setGridSize}
-                  onLeaveRoom={() => {}}
                   connected={false}
-                  canControl={false}
+                  isFullscreen={isMonitoringFullscreen}
+                  onToggleFullscreen={toggleMonitoringFullscreen}
                 />
               </div>
 

@@ -123,6 +123,25 @@ export const RoomTracks = ({
     if (onParticipantsUpdate) {
       const participants: MockParticipant[] = tracks.map(trackRef => {
         const participant = trackRef.participant;
+
+        // Try to extract beneficiaryId from metadata
+        let beneficiaryId: string | undefined;
+        try {
+          if (participant.metadata) {
+            const metadata = JSON.parse(participant.metadata);
+            beneficiaryId =
+              metadata.beneficiaryId || metadata.wardId || metadata.userId;
+          }
+        } catch (e) {
+          // If metadata parsing fails, try to extract from identity
+          // Format: beneficiary-{id} or ward-{id}
+          const identity = getParticipantId(participant);
+          const match = identity.match(/^(?:beneficiary-|ward-)(.+)$/);
+          if (match) {
+            beneficiaryId = match[1];
+          }
+        }
+
         return {
           id: getParticipantId(participant),
           name: getBaseName(participant),
@@ -133,6 +152,7 @@ export const RoomTracks = ({
           you: participant.isLocal,
           online: true,
           lastSeen: new Date().toISOString(),
+          beneficiaryId,
         };
       });
       onParticipantsUpdate(participants);

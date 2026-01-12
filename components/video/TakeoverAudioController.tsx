@@ -15,7 +15,9 @@ export interface TakeoverAudioControllerProps {
  * Any browser permission errors (e.g. user denied mic access) are caught
  * and ignored so they don't surface as unhandled errors.
  */
-export const TakeoverAudioController = ({ active }: TakeoverAudioControllerProps) => {
+export const TakeoverAudioController = ({
+  active,
+}: TakeoverAudioControllerProps) => {
   const room = useRoomContext();
   const audioTrackRef = useRef<any>(null);
   const isPublishingRef = useRef(false);

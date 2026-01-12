@@ -14,6 +14,7 @@ export type MockParticipant = {
   you?: boolean;
   online?: boolean;
   lastSeen?: string;
+  beneficiaryId?: string; // Link to beneficiary for DetailModal
 };
 
 type ParticipantSidebarProps = {
@@ -81,9 +82,11 @@ export const ParticipantSidebar = ({
         {filteredParticipants.map(participant => (
           <div
             key={participant.id}
-            className={`${styles.participantRow} ${participant.speaking ? styles.active : ''
-              } ${participant.online === false ? styles.offline : ''} ${!participant.you ? styles.participantClickable : ''
-              } ${participant.id === selectedParticipantId ? styles.participantSelected : ''}`}
+            className={`${styles.participantRow} ${
+              participant.speaking ? styles.active : ''
+            } ${participant.online === false ? styles.offline : ''} ${
+              !participant.you ? styles.participantClickable : ''
+            } ${participant.id === selectedParticipantId ? styles.participantSelected : ''}`}
             onClick={() => {
               if (participant.you) return;
               onSelectParticipant(participant.id);
