@@ -430,10 +430,6 @@
   color: #94a3b8;
 }
 
-.participantRow.offline {
-  opacity: 0.5;
-}
-
 .participantRow.offline .participantAvatar {
   background: #F0F5E8;
   color: #94a3b8;
