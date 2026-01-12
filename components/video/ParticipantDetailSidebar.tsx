@@ -6,7 +6,14 @@ import {
   PhoneCall,
   AlertOctagon,
 } from 'lucide-react';
-import { ReactNode, useEffect, useRef, useState, JSX } from 'react';
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  JSX,
+} from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
 import { useRoomContext } from '@livekit/components-react';
 import { RoomEvent, DataPacket_Kind } from 'livekit-client';
@@ -20,6 +27,7 @@ type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
   onClose: () => void;
   roomName?: string;
+  apiBase?: string;
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
   isDanger?: boolean;
@@ -208,6 +216,7 @@ export const ParticipantDetailSidebar = ({
   participant,
   onClose,
   roomName,
+  apiBase,
   isTakeoverActive = false,
   onToggleTakeover,
   isDanger = false,
@@ -217,6 +226,7 @@ export const ParticipantDetailSidebar = ({
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const room = useRoomContext();
 
   // DetailModal state
@@ -224,6 +234,69 @@ export const ParticipantDetailSidebar = ({
   const [beneficiaryDetail, setBeneficiaryDetail] =
     useState<BeneficiaryDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Fetch initial transcripts from API
+  useEffect(() => {
+    if (!roomName || !apiBase || initialLoaded) return;
+
+    const fetchTranscripts = async () => {
+      try {
+        const res = await fetch(
+          `${apiBase}/v1/calls/room/${encodeURIComponent(
+            roomName,
+          )}/transcripts`,
+        );
+        if (!res.ok) {
+          console.warn('[Sidebar] Failed to fetch transcripts:', res.status);
+          return;
+        }
+        const data = await res.json();
+        if (data.transcripts && Array.isArray(data.transcripts)) {
+          const mapped = data.transcripts.map(
+            (t: { speaker: string; text: string; timestamp?: string }) => ({
+              role: t.speaker === 'user' ? 'user' : 'agent',
+              text: t.text,
+              timestamp: t.timestamp
+                ? new Date(t.timestamp).getTime()
+                : Date.now(),
+            }),
+          );
+          setTranscripts(mapped);
+          setInitialLoaded(true);
+        }
+      } catch (e) {
+        console.error('[Sidebar] Error fetching transcripts:', e);
+      }
+    };
+
+    fetchTranscripts();
+  }, [roomName, apiBase, initialLoaded]);
+
+  // Deduplicated transcript adder - prevents duplicates from API + real-time overlap
+  const addTranscript = useCallback((newTranscript: Transcript) => {
+    setTranscripts(prev => {
+      // Only check the last 50 items for performance on long conversations
+      const recentTranscripts = prev.slice(-50);
+
+      // Check for duplicate: same role, same text, within 5 seconds
+      const isDuplicate = recentTranscripts.some(
+        t =>
+          t.role === newTranscript.role &&
+          t.text === newTranscript.text &&
+          Math.abs(t.timestamp - newTranscript.timestamp) < 5000,
+      );
+
+      if (isDuplicate) return prev;
+
+      const newList = [...prev, newTranscript];
+      const lastTimestamp = prev[prev.length - 1]?.timestamp ?? 0;
+
+      // Only sort if new item is out of order
+      return newTranscript.timestamp < lastTimestamp
+        ? newList.sort((a, b) => a.timestamp - b.timestamp)
+        : newList;
+    });
+  }, []);
 
   // Listen for real-time transcripts via data packets
   useEffect(() => {
@@ -260,14 +333,11 @@ export const ParticipantDetailSidebar = ({
 
         if (data.type === 'transcript') {
           console.log('[Sidebar] Processing transcript:', data);
-          setTranscripts(prev => [
-            ...prev,
-            {
-              role: data.role,
-              text: data.text,
-              timestamp: data.timestamp || Date.now(),
-            },
-          ]);
+          addTranscript({
+            role: data.role,
+            text: data.text,
+            timestamp: data.timestamp || Date.now(),
+          });
         }
       } catch (e) {
         console.error('[Sidebar] Failed to parse data packet:', e);
@@ -278,7 +348,7 @@ export const ParticipantDetailSidebar = ({
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room]);
+  }, [room, addTranscript]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -308,17 +378,17 @@ export const ParticipantDetailSidebar = ({
           position: 'fixed',
           right: 0,
           top: 0,
-          bottom: 0,
           width: 'min(420px, 90vw)',
+          height: '100vh',
           background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
           borderLeft: '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
           color: '#4A5D23',
           boxShadow: '-40px 0 80px rgba(15, 23, 42, 0.15)',
-          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
           overflow: 'hidden',
         }}
-        className="flex flex-col"
       >
         {/* Header */}
         <div
@@ -371,13 +441,15 @@ export const ParticipantDetailSidebar = ({
 
         {/* Content */}
         <div
-          className="flex-1 overflow-y-auto"
           style={{
+            flex: 1,
+            overflowY: 'auto',
             padding: '24px 32px 32px 32px',
             display: 'flex',
             flexDirection: 'column',
             gap: '18px',
             overscrollBehavior: 'contain',
+            minHeight: 0,
           }}
         >
           {/* Emergency Status Alert - only shown when danger is detected */}
@@ -570,7 +642,13 @@ export const ParticipantDetailSidebar = ({
                         error,
                       );
                       alert(
-                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant ID: ${participant.id}\nBeneficiary ID: ${participant.beneficiaryId || 'N/A'}\n\n${error instanceof Error ? error.message : String(error)}`,
+                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant ID: ${
+                          participant.id
+                        }\nBeneficiary ID: ${
+                          participant.beneficiaryId || 'N/A'
+                        }\n\n${
+                          error instanceof Error ? error.message : String(error)
+                        }`,
                       );
                     } finally {
                       setLoadingDetail(false);
@@ -634,19 +712,31 @@ export const ParticipantDetailSidebar = ({
                   boxShadow: 'inset 0 1px 6px rgba(15,23,42,0.05)',
                 }}
               >
-                <div className="flex flex-col gap-4">
-                  {transcripts.length === 0 ? (
-                    <div className="text-center text-xs text-gray-400 py-4">
-                      대화 내역이 없습니다.
-                    </div>
-                  ) : (
-                    transcripts.map((t, i) => {
-                      const isAgent = t.role === 'agent';
-                      return (
+                {transcripts.length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      padding: '16px 0',
+                    }}
+                  >
+                    대화 내역이 없습니다.
+                  </div>
+                ) : (
+                  transcripts.map((t, i) => {
+                    const isAgent = t.role === 'agent';
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          justifyContent: isAgent ? 'flex-start' : 'flex-end',
+                          marginBottom: '12px',
+                        }}
+                      >
                         <div
-                          key={i}
                           style={{
-                            alignSelf: isAgent ? 'flex-start' : 'flex-end',
                             maxWidth: '85%',
                             padding: '10px 14px',
                             borderRadius: '16px',
@@ -672,18 +762,30 @@ export const ParticipantDetailSidebar = ({
                                 ? 'rgba(100,116,139,0.8)'
                                 : 'rgba(255,255,255,0.8)',
                               fontWeight: 600,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: '8px',
                             }}
                           >
-                            {isAgent ? 'AI Caregiver' : 'Patient'}
+                            <span>{isAgent ? '소담이' : '어르신'}</span>
+                            <span style={{ fontWeight: 400 }}>
+                              {new Date(t.timestamp).toLocaleString('ko-KR', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
                           </div>
                           {/* Highlight danger keywords in text */}
                           {highlightDangerKeywords(t.text)}
                         </div>
-                      );
-                    })
-                  )}
-                  <div ref={transcriptEndRef} />
-                </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={transcriptEndRef} />
               </div>
             </div>
           </InfoCard>
@@ -709,8 +811,8 @@ export const ParticipantDetailSidebar = ({
               background: isTakeoverActive
                 ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                 : isDanger
-                  ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
-                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               color: '#ffffff',
               fontWeight: 800,
               padding: '18px',
@@ -760,97 +862,6 @@ export const ParticipantDetailSidebar = ({
             <Phone size={22} strokeWidth={2.5} />
             {isTakeoverActive ? '통화 종료' : '긴급 통화 개입'}
           </button>
-
-          {/* Emergency Services Buttons - Grid layout */}
-          {isDanger && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-              }}
-            >
-              <button
-                style={{
-                  background:
-                    'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  padding: '14px 12px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '15px',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
-                }}
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.navigator.vibrate?.(100);
-                  }
-                  // TODO: Call 119
-                  window.open('tel:119');
-                }}
-                onMouseOver={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 6px 16px rgba(245, 158, 11, 0.4)';
-                }}
-                onMouseOut={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 12px rgba(245, 158, 11, 0.3)';
-                }}
-              >
-                <AlertOctagon size={20} strokeWidth={2.5} />
-                <span>119 신고</span>
-              </button>
-
-              <button
-                style={{
-                  background:
-                    'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  padding: '14px 12px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '15px',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(8, 145, 178, 0.3)',
-                }}
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.navigator.vibrate?.(100);
-                  }
-                  // TODO: Call 112
-                  window.open('tel:112');
-                }}
-                onMouseOver={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 6px 16px rgba(8, 145, 178, 0.4)';
-                }}
-                onMouseOut={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 12px rgba(8, 145, 178, 0.3)';
-                }}
-              >
-                <AlertOctagon size={20} strokeWidth={2.5} />
-                <span>112 신고</span>
-              </button>
-            </div>
-          )}
 
           {/* Clear Danger Button */}
           {isDanger && (

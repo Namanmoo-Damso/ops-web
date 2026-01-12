@@ -6,7 +6,6 @@ import SidebarLayout from '../components/SidebarLayout';
 import {
   EmptyTile,
   ControlBar,
-  ControlBarWrapper,
   ParticipantSidebar,
   ParticipantDetailSidebar,
   FullScreenVideo,
@@ -39,25 +38,115 @@ export default function Home() {
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isTakeoverActive, setIsTakeoverActive] = useState(false);
   const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+
+  // Handle invite call to participant
+  const handleInvite = async (participantId: string) => {
+    if (!participantId || !API_BASE) return;
+
+    setInviteBusy(true);
+    setInviteStatus(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/v1/calls/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          callerIdentity: '담소',
+          calleeIdentity: participantId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || '초대 요청 실패');
+      }
+
+      setInviteStatus('초대가 전송되었습니다');
+      setTimeout(() => setInviteStatus(null), 3000);
+    } catch (error) {
+      console.error('[Home] Invite failed:', error);
+      setInviteStatus(`오류: ${(error as Error).message}`);
+      setTimeout(() => setInviteStatus(null), 5000);
+    } finally {
+      setInviteBusy(false);
+    }
+  };
 
   // Toggle fullscreen mode (hides sidebar and navbar)
   const toggleMonitoringFullscreen = () => {
     setIsMonitoringFullscreen(prev => !prev);
   };
 
-  // Collect participants from all rooms or selected room
+  // Fetch participants from database on mount (for persistence across refreshes)
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      if (!API_BASE) return;
+      try {
+        const response = await fetch(`${API_BASE}/v1/livekit/participants`);
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.participants && Array.isArray(data.participants)) {
+          // Group participants by a default room key since they're from DB
+          const dbParticipants: MockParticipant[] = data.participants.map(
+            (p: any) => ({
+              id: p.id,
+              name: p.name,
+              status: '',
+              speaking: false,
+              muted: true,
+              cameraOff: true,
+              you: false,
+              online: false,
+              lastSeen: p.lastSeen,
+              beneficiaryId: p.id,
+            }),
+          );
+          // Store under a special '_db' key to be merged with live data
+          setAllParticipants(prev => ({
+            ...prev,
+            _db: dbParticipants,
+          }));
+        }
+      } catch (error) {
+        console.warn('[Home] Failed to fetch participants from API:', error);
+      }
+    };
+    fetchParticipants();
+  }, []);
+
+  // Collect participants from all rooms or selected room, merging DB and live data
   const participantList = useMemo(() => {
-    const participants: MockParticipant[] = [];
-    if (selectedRoomName && allParticipants[selectedRoomName]) {
-      // Show only participants from the selected room
-      participants.push(...allParticipants[selectedRoomName]);
-    } else {
-      // Show all participants from all rooms
-      Object.values(allParticipants).forEach(roomParticipants => {
-        participants.push(...roomParticipants);
+    const participantMap = new Map<string, MockParticipant>();
+
+    // First, add all database participants (offline by default)
+    const dbParticipants = allParticipants['_db'] || [];
+    dbParticipants.forEach(p => {
+      participantMap.set(p.id, { ...p, online: false });
+    });
+
+    // Then, update with live room participants (using their actual online status)
+    Object.entries(allParticipants).forEach(([roomName, roomParticipants]) => {
+      if (roomName === '_db') return; // Skip the DB key
+
+      // If a specific room is selected, only include that room's participants
+      if (selectedRoomName && roomName !== selectedRoomName) return;
+
+      roomParticipants.forEach(p => {
+        // Merge with existing data from DB, using the room's online status
+        const existing = participantMap.get(p.id);
+        participantMap.set(p.id, {
+          ...(existing || {}),
+          ...p,
+          // Use the participant's actual online status from the room data
+        });
       });
-    }
-    return participants;
+    });
+
+    return Array.from(participantMap.values());
   }, [allParticipants, selectedRoomName]);
 
   // Close detail sidebar if the selected participant leaves
@@ -99,6 +188,41 @@ export default function Home() {
     enabled: !!API_BASE && rooms.length > 0,
   });
 
+  // Stable dependency key for connection room names
+  const activeRoomNamesKey = useMemo(
+    () =>
+      connections
+        .map(c => c.roomName)
+        .sort()
+        .join(','),
+    [connections],
+  );
+
+  // Mark participants as offline when their room is removed from connections
+  useEffect(() => {
+    const activeRoomNames = new Set(connections.map(c => c.roomName));
+
+    setAllParticipants(prev => {
+      const roomsToUpdate = Object.keys(prev).filter(
+        roomName => roomName !== '_db' && !activeRoomNames.has(roomName),
+      );
+
+      if (roomsToUpdate.length === 0) return prev;
+
+      const updated = { ...prev };
+      roomsToUpdate.forEach(roomName => {
+        updated[roomName] = prev[roomName].map(p => ({
+          ...p,
+          online: false,
+          speaking: false,
+          lastSeen: p.online ? new Date().toISOString() : p.lastSeen,
+        }));
+      });
+
+      return updated;
+    });
+  }, [activeRoomNamesKey, connections]);
+
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;
     const result: Array<{
@@ -118,24 +242,60 @@ export default function Home() {
         const roomName = connection.roomName;
         const onParticipantsUpdate = (participants: MockParticipant[]) => {
           setAllParticipants(prev => {
-            // Check if participants have actually changed
-            const existingParticipants = prev[roomName];
+            const existingParticipants = prev[roomName] || [];
+
+            // Create a map of currently online participants by ID
+            const onlineParticipantIds = new Set(participants.map(p => p.id));
+
+            // Merge: keep existing participants (mark as offline if not in new list)
+            // and add/update participants from the new list
+            const mergedParticipants: MockParticipant[] = [];
+            const processedIds = new Set<string>();
+
+            // First, add all current online participants
+            for (const p of participants) {
+              mergedParticipants.push({
+                ...p,
+                online: true,
+              });
+              processedIds.add(p.id);
+            }
+
+            // Then, keep any previously seen participants who are now offline
+            for (const existingP of existingParticipants) {
+              if (!processedIds.has(existingP.id)) {
+                mergedParticipants.push({
+                  ...existingP,
+                  online: false,
+                  speaking: false,
+                  lastSeen: existingP.online
+                    ? new Date().toISOString()
+                    : existingP.lastSeen,
+                });
+                processedIds.add(existingP.id);
+              }
+            }
+
+            // Check if anything actually changed
             if (
-              existingParticipants &&
-              existingParticipants.length === participants.length &&
-              existingParticipants.every(
-                (p, idx) =>
-                  p.id === participants[idx]?.id &&
-                  p.muted === participants[idx]?.muted &&
-                  p.cameraOff === participants[idx]?.cameraOff &&
-                  p.speaking === participants[idx]?.speaking,
-              )
+              existingParticipants.length === mergedParticipants.length &&
+              existingParticipants.every((p, idx) => {
+                const merged = mergedParticipants[idx];
+                return (
+                  p.id === merged?.id &&
+                  p.muted === merged?.muted &&
+                  p.cameraOff === merged?.cameraOff &&
+                  p.speaking === merged?.speaking &&
+                  p.online === merged?.online
+                );
+              })
             ) {
               return prev;
             }
+
             return {
               ...prev,
-              [roomName]: participants,
+              [roomName]: mergedParticipants,
             };
           });
         };
@@ -207,9 +367,6 @@ export default function Home() {
     showFullScreenVideo,
     dangerRooms,
   ]);
-
-  // We need at least one connection to show the control bar
-  const firstConnection = connections[0];
 
   const handleCloseSidebar = () => {
     setIsTakeoverActive(false);
@@ -321,6 +478,32 @@ export default function Home() {
               isFullscreenActive={showFullScreenVideo}
               isDanger={slot.isDanger}
             />
+            {/* Render detail sidebar inside the selected room's LiveKitRoom context */}
+            {selectedRoomName === slot.connection.roomName &&
+              showFullScreenVideo &&
+              showDetailSidebar &&
+              detailParticipant && (
+                <>
+                  <FullScreenVideo
+                    participant={detailParticipant}
+                    videoTrackRef={selectedVideoTrackRef}
+                    isDanger={dangerRooms[slot.connection.roomName] ?? false}
+                  />
+                  <ParticipantDetailSidebar
+                    participant={detailParticipant}
+                    roomName={selectedRoomName}
+                    apiBase={
+                      process.env.NEXT_PUBLIC_API_BASE_URL ||
+                      process.env.NEXT_PUBLIC_API_URL
+                    }
+                    isTakeoverActive={isTakeoverActive}
+                    onToggleTakeover={handleToggleTakeover}
+                    onClose={handleCloseSidebar}
+                    isDanger={dangerRooms[slot.connection.roomName] ?? false}
+                    onClearDanger={handleClearDanger}
+                  />
+                </>
+              )}
           </LiveKitRoom>
         ) : (
           <EmptyTile key={slot.key} />
@@ -328,36 +511,6 @@ export default function Home() {
       )}
     </div>
   );
-
-  const renderFullScreenVideo = () =>
-    showFullScreenVideo &&
-    detailParticipant &&
-    selectedVideoTrackRef && (
-      <FullScreenVideo
-        participant={detailParticipant}
-        videoTrackRef={selectedVideoTrackRef}
-        isDanger={
-          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
-        }
-      />
-    );
-
-  const renderDetailSidebar = () =>
-    showFullScreenVideo &&
-    showDetailSidebar &&
-    detailParticipant && (
-      <ParticipantDetailSidebar
-        participant={detailParticipant}
-        roomName={selectedRoomName || undefined}
-        isTakeoverActive={isTakeoverActive}
-        onToggleTakeover={handleToggleTakeover}
-        onClose={handleCloseSidebar}
-        isDanger={
-          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
-        }
-        onClearDanger={handleClearDanger}
-      />
-    );
 
   const renderParticipantSidebar = (connected: boolean) =>
     showParticipantList &&
@@ -371,13 +524,15 @@ export default function Home() {
           setSelectedRoomName(null);
         }}
         onMuteAll={() => {}}
-        onInvite={() => {}}
-        inviteBusy={false}
-        inviteStatus={null}
+        onInvite={handleInvite}
+        inviteBusy={inviteBusy}
+        inviteStatus={inviteStatus}
         connected={connected}
         canControl={connected}
       />
     );
+
+  const hasConnections = connections.length > 0;
 
   // Fullscreen container (no sidebar/navbar)
   const fullscreenContent = (
@@ -391,71 +546,25 @@ export default function Home() {
       }}
     >
       <div className={styles.roomWrap} style={{ height: '100%' }}>
-        {firstConnection ? (
-          <LiveKitRoom
-            serverUrl={firstConnection.serverUrl}
-            token={firstConnection.token}
-            connect={firstConnection.connected}
-            audio={false}
-            video={false}
-            className={styles.room}
-            options={liveKitOptions}
-          >
-            <div
-              className={styles.content}
-              style={{ gridTemplateColumns: '1fr' }}
-            >
-              <div className={styles.stage} style={{ position: 'relative' }}>
-                {renderGrid()}
-                <ControlBarWrapper
-                  gridSize={gridSize}
-                  onGridSizeChange={setGridSize}
-                  showParticipantList={showParticipantList}
-                  onToggleParticipantList={() =>
-                    setShowParticipantList(!showParticipantList)
-                  }
-                  isFullscreen={isMonitoringFullscreen}
-                  onToggleFullscreen={toggleMonitoringFullscreen}
-                />
-              </div>
-              {renderFullScreenVideo()}
-              {renderDetailSidebar()}
-              {showParticipantList &&
-                !showFullScreenVideo &&
-                renderParticipantSidebar(true)}
-            </div>
-          </LiveKitRoom>
-        ) : (
-          <div
-            className={styles.content}
-            style={{ gridTemplateColumns: '1fr' }}
-          >
-            <div className={styles.stage} style={{ position: 'relative' }}>
-              <div
-                className={styles.grid}
-                style={{
-                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                  gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
-                }}
-              >
-                {gridSlots.map(slot => (
-                  <EmptyTile key={slot.key} />
-                ))}
-              </div>
-              <ControlBar
-                showParticipantList={showParticipantList}
-                onToggleParticipantList={() =>
-                  setShowParticipantList(!showParticipantList)
-                }
-                gridSize={gridSize}
-                onGridSizeChange={setGridSize}
-                connected={false}
-                isFullscreen={isMonitoringFullscreen}
-                onToggleFullscreen={toggleMonitoringFullscreen}
-              />
-            </div>
+        <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+          <div className={styles.stage} style={{ position: 'relative' }}>
+            {renderGrid()}
+            <ControlBar
+              showParticipantList={showParticipantList}
+              onToggleParticipantList={() =>
+                setShowParticipantList(!showParticipantList)
+              }
+              gridSize={gridSize}
+              onGridSizeChange={setGridSize}
+              connected={hasConnections}
+              isFullscreen={isMonitoringFullscreen}
+              onToggleFullscreen={toggleMonitoringFullscreen}
+            />
           </div>
-        )}
+          {showParticipantList &&
+            !showFullScreenVideo &&
+            renderParticipantSidebar(hasConnections)}
+        </div>
       </div>
     </div>
   );
@@ -469,87 +578,33 @@ export default function Home() {
     <SidebarLayout noPadding>
       <div className={styles.page}>
         <div className={styles.roomWrap}>
-          {firstConnection ? (
-            <LiveKitRoom
-              serverUrl={firstConnection.serverUrl}
-              token={firstConnection.token}
-              connect={firstConnection.connected}
-              audio={false}
-              video={false}
-              className={styles.room}
-              options={liveKitOptions}
-            >
-              <div
-                className={`${styles.content} ${
-                  !showParticipantList ? styles.contentFullWidth : ''
-                }`}
-              >
-                {renderErrorBanner()}
+          <div
+            className={`${styles.content} ${
+              !showParticipantList ? styles.contentFullWidth : ''
+            }`}
+          >
+            {renderErrorBanner()}
 
-                {/* Main Stage */}
-                <div className={styles.stage} style={{ position: 'relative' }}>
-                  {renderGrid()}
+            {/* Main Stage */}
+            <div className={styles.stage} style={{ position: 'relative' }}>
+              {renderGrid()}
 
-                  {/* Control Bar */}
-                  <ControlBarWrapper
-                    gridSize={gridSize}
-                    onGridSizeChange={setGridSize}
-                    showParticipantList={showParticipantList}
-                    onToggleParticipantList={() =>
-                      setShowParticipantList(!showParticipantList)
-                    }
-                    isFullscreen={isMonitoringFullscreen}
-                    onToggleFullscreen={toggleMonitoringFullscreen}
-                  />
-                </div>
-
-                {renderFullScreenVideo()}
-                {renderDetailSidebar()}
-                {renderParticipantSidebar(true)}
-              </div>
-            </LiveKitRoom>
-          ) : (
-            <div
-              className={`${styles.content} ${
-                !showParticipantList ? styles.contentFullWidth : ''
-              }`}
-            >
-              {renderErrorBanner()}
-
-              {/* Main Stage */}
-              <div className={styles.stage} style={{ position: 'relative' }}>
-                {/* Grid with Empty Tiles */}
-                <div
-                  className={styles.grid}
-                  style={{
-                    gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                    gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
-                  }}
-                >
-                  {gridSlots.map(slot => (
-                    <EmptyTile key={slot.key} />
-                  ))}
-                </div>
-
-                {/* Control Bar - Static version without LiveKit */}
-                <ControlBar
-                  showParticipantList={showParticipantList}
-                  onToggleParticipantList={() =>
-                    setShowParticipantList(!showParticipantList)
-                  }
-                  gridSize={gridSize}
-                  onGridSizeChange={setGridSize}
-                  connected={false}
-                  isFullscreen={isMonitoringFullscreen}
-                  onToggleFullscreen={toggleMonitoringFullscreen}
-                />
-              </div>
-
-              {renderFullScreenVideo()}
-              {renderDetailSidebar()}
-              {renderParticipantSidebar(false)}
+              {/* Control Bar */}
+              <ControlBar
+                showParticipantList={showParticipantList}
+                onToggleParticipantList={() =>
+                  setShowParticipantList(!showParticipantList)
+                }
+                gridSize={gridSize}
+                onGridSizeChange={setGridSize}
+                connected={hasConnections}
+                isFullscreen={isMonitoringFullscreen}
+                onToggleFullscreen={toggleMonitoringFullscreen}
+              />
             </div>
-          )}
+
+            {renderParticipantSidebar(hasConnections)}
+          </div>
         </div>
       </div>
     </SidebarLayout>
