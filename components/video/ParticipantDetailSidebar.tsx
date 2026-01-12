@@ -19,7 +19,6 @@ type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
   onClose: () => void;
   roomName?: string;
-  apiBase?: string;
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
   isDanger?: boolean;
@@ -141,7 +140,6 @@ export const ParticipantDetailSidebar = ({
   participant,
   onClose,
   roomName,
-  apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
   isTakeoverActive = false,
   onToggleTakeover,
   isDanger = false,
