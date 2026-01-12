@@ -16,11 +16,12 @@ import {
 } from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import { requestHighQuality, setRoomDanger } from '../utils/roomApi';
-import { API_BASE } from '../lib/api-client';
 import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
 
 export default function Home() {
+  const apiBaseEnv = process.env.NEXT_PUBLIC_API_BASE ?? '';
+  const [apiBase] = useState(apiBaseEnv);
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState<
@@ -89,14 +90,14 @@ export default function Home() {
   }, [showDetailSidebar, isTakeoverActive]);
 
   const { rooms, error, dangerRooms } = useRoomSSE({
-    apiBase: API_BASE,
-    enabled: !!API_BASE,
+    apiBase,
+    enabled: !!apiBase,
   });
 
   const { connections } = useMultiRoomSession({
-    apiBase: API_BASE,
+    apiBase,
     rooms,
-    enabled: !!API_BASE && rooms.length > 0,
+    enabled: !!apiBase && rooms.length > 0,
   });
 
   const gridSlots = useMemo(() => {
@@ -370,8 +371,8 @@ export default function Home() {
           setShowParticipantList(false);
           setSelectedRoomName(null);
         }}
-        onMuteAll={() => { }}
-        onInvite={() => { }}
+        onMuteAll={() => {}}
+        onInvite={() => {}}
         inviteBusy={false}
         inviteStatus={null}
         connected={connected}
@@ -401,25 +402,35 @@ export default function Home() {
             className={styles.room}
             options={liveKitOptions}
           >
-            <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+            <div
+              className={styles.content}
+              style={{ gridTemplateColumns: '1fr' }}
+            >
               <div className={styles.stage} style={{ position: 'relative' }}>
                 {renderGrid()}
                 <ControlBarWrapper
                   gridSize={gridSize}
                   onGridSizeChange={setGridSize}
                   showParticipantList={showParticipantList}
-                  onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                  onToggleParticipantList={() =>
+                    setShowParticipantList(!showParticipantList)
+                  }
                   isFullscreen={isMonitoringFullscreen}
                   onToggleFullscreen={toggleMonitoringFullscreen}
                 />
               </div>
               {renderFullScreenVideo()}
               {renderDetailSidebar()}
-              {showParticipantList && !showFullScreenVideo && renderParticipantSidebar(true)}
+              {showParticipantList &&
+                !showFullScreenVideo &&
+                renderParticipantSidebar(true)}
             </div>
           </LiveKitRoom>
         ) : (
-          <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
+          <div
+            className={styles.content}
+            style={{ gridTemplateColumns: '1fr' }}
+          >
             <div className={styles.stage} style={{ position: 'relative' }}>
               <div
                 className={styles.grid}
@@ -434,7 +445,9 @@ export default function Home() {
               </div>
               <ControlBar
                 showParticipantList={showParticipantList}
-                onToggleParticipantList={() => setShowParticipantList(!showParticipantList)}
+                onToggleParticipantList={() =>
+                  setShowParticipantList(!showParticipantList)
+                }
                 gridSize={gridSize}
                 onGridSizeChange={setGridSize}
                 connected={false}
@@ -468,8 +481,9 @@ export default function Home() {
               options={liveKitOptions}
             >
               <div
-                className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
-                  }`}
+                className={`${styles.content} ${
+                  !showParticipantList ? styles.contentFullWidth : ''
+                }`}
               >
                 {renderErrorBanner()}
 
@@ -497,8 +511,9 @@ export default function Home() {
             </LiveKitRoom>
           ) : (
             <div
-              className={`${styles.content} ${!showParticipantList ? styles.contentFullWidth : ''
-                }`}
+              className={`${styles.content} ${
+                !showParticipantList ? styles.contentFullWidth : ''
+              }`}
             >
               {renderErrorBanner()}
 
