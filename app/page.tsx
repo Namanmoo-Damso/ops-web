@@ -188,38 +188,40 @@ export default function Home() {
     enabled: !!API_BASE && rooms.length > 0,
   });
 
+  // Stable dependency key for connection room names
+  const activeRoomNamesKey = useMemo(
+    () =>
+      connections
+        .map(c => c.roomName)
+        .sort()
+        .join(','),
+    [connections],
+  );
+
   // Mark participants as offline when their room is removed from connections
   useEffect(() => {
     const activeRoomNames = new Set(connections.map(c => c.roomName));
 
     setAllParticipants(prev => {
-      let hasChanges = false;
+      const roomsToUpdate = Object.keys(prev).filter(
+        roomName => roomName !== '_db' && !activeRoomNames.has(roomName),
+      );
+
+      if (roomsToUpdate.length === 0) return prev;
+
       const updated = { ...prev };
-
-      // Check each room in allParticipants (except _db)
-      Object.keys(updated).forEach(roomName => {
-        if (roomName === '_db') return;
-
-        // If this room is no longer in connections, mark all its participants as offline
-        if (!activeRoomNames.has(roomName)) {
-          const roomParticipants = updated[roomName];
-          const hasOnlineParticipants = roomParticipants.some(p => p.online);
-
-          if (hasOnlineParticipants) {
-            hasChanges = true;
-            updated[roomName] = roomParticipants.map(p => ({
-              ...p,
-              online: false,
-              speaking: false,
-              lastSeen: p.online ? new Date().toISOString() : p.lastSeen,
-            }));
-          }
-        }
+      roomsToUpdate.forEach(roomName => {
+        updated[roomName] = prev[roomName].map(p => ({
+          ...p,
+          online: false,
+          speaking: false,
+          lastSeen: p.online ? new Date().toISOString() : p.lastSeen,
+        }));
       });
 
-      return hasChanges ? updated : prev;
+      return updated;
     });
-  }, [connections]);
+  }, [activeRoomNamesKey, connections]);
 
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;

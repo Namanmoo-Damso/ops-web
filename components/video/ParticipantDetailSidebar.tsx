@@ -6,7 +6,14 @@ import {
   PhoneCall,
   AlertOctagon,
 } from 'lucide-react';
-import { ReactNode, useEffect, useRef, useState, JSX } from 'react';
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  JSX,
+} from 'react';
 import type { MockParticipant } from './ParticipantSidebar';
 import { useRoomContext } from '@livekit/components-react';
 import { RoomEvent, DataPacket_Kind } from 'livekit-client';
@@ -265,6 +272,32 @@ export const ParticipantDetailSidebar = ({
     fetchTranscripts();
   }, [roomName, apiBase, initialLoaded]);
 
+  // Deduplicated transcript adder - prevents duplicates from API + real-time overlap
+  const addTranscript = useCallback((newTranscript: Transcript) => {
+    setTranscripts(prev => {
+      // Only check the last 50 items for performance on long conversations
+      const recentTranscripts = prev.slice(-50);
+
+      // Check for duplicate: same role, same text, within 5 seconds
+      const isDuplicate = recentTranscripts.some(
+        t =>
+          t.role === newTranscript.role &&
+          t.text === newTranscript.text &&
+          Math.abs(t.timestamp - newTranscript.timestamp) < 5000,
+      );
+
+      if (isDuplicate) return prev;
+
+      const newList = [...prev, newTranscript];
+      const lastTimestamp = prev[prev.length - 1]?.timestamp ?? 0;
+
+      // Only sort if new item is out of order
+      return newTranscript.timestamp < lastTimestamp
+        ? newList.sort((a, b) => a.timestamp - b.timestamp)
+        : newList;
+    });
+  }, []);
+
   // Listen for real-time transcripts via data packets
   useEffect(() => {
     console.log('[Sidebar] Room context:', room);
@@ -300,14 +333,11 @@ export const ParticipantDetailSidebar = ({
 
         if (data.type === 'transcript') {
           console.log('[Sidebar] Processing transcript:', data);
-          setTranscripts(prev => [
-            ...prev,
-            {
-              role: data.role,
-              text: data.text,
-              timestamp: data.timestamp || Date.now(),
-            },
-          ]);
+          addTranscript({
+            role: data.role,
+            text: data.text,
+            timestamp: data.timestamp || Date.now(),
+          });
         }
       } catch (e) {
         console.error('[Sidebar] Failed to parse data packet:', e);
@@ -318,7 +348,7 @@ export const ParticipantDetailSidebar = ({
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room]);
+  }, [room, addTranscript]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -832,7 +862,6 @@ export const ParticipantDetailSidebar = ({
             <Phone size={22} strokeWidth={2.5} />
             {isTakeoverActive ? '통화 종료' : '긴급 통화 개입'}
           </button>
-
 
           {/* Clear Danger Button */}
           {isDanger && (
