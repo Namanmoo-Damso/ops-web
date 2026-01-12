@@ -155,9 +155,6 @@ export default function BasicInfoTab({
             {/* Basic Info Section */}
             <section className={styles.section}>
                 <div className={styles.basicCard}>
-                    <div className={styles.cardHeader}>
-                        <SectionTitle>기본 정보</SectionTitle>
-                    </div>
                     <div className={styles.basicGrid}>
                         <div className={styles.editField}>
                             <span className={styles.editLabel}>전화번호 *</span>
@@ -188,7 +185,7 @@ export default function BasicInfoTab({
                             />
                         </div>
                         <div className={styles.editField}>
-                            <span className={styles.editLabel}>카카오톡 ID</span>
+                            <span className={styles.editLabel}>카카오 ID</span>
                             <input
                                 className={styles.editInput}
                                 value={detail.email ?? ''}

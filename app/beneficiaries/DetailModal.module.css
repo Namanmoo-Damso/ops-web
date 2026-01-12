@@ -267,7 +267,6 @@
   border-radius: 28px;
   padding: 14px;
   box-shadow: var(--beneficiary-card-shadow);
-  margin-bottom: 10px;
 }
 
 .basicGrid {
@@ -332,7 +331,7 @@
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 16px;
   padding: 10px 14px;
-  background-color: #F7F9F2;
+  background-color: #f8fafc;
 }
 
 .editField:focus-within {
@@ -453,7 +452,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .footer {
@@ -713,7 +712,7 @@
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 16px;
   padding: 14px 16px;
-  background-color: #F7F9F2;
+  background-color: #f8fafc;
   flex: 1;
   /* Match the height of healthGrid modules */
   display: flex;
@@ -833,56 +832,59 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  background: #ffffff;
+  padding: 8px 16px;
+  background: linear-gradient(to bottom, #ffffff, #fafcf8);
   border-bottom: 1px solid var(--beneficiary-border-color);
-  height: 56px;
   flex-shrink: 0;
 }
 
 .tabGroup {
   display: flex;
-  gap: 4px;
-  padding-left: 4px;
+  gap: 6px;
+  padding: 4px;
+  background: #f1f5eb;
+  border-radius: 12px;
 }
 
 .tabButton {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 18px 20px;
-  background: #f8fafc;
-  border: 1px solid var(--beneficiary-border-color);
-  border-bottom: none;
-  border-radius: 10px 10px 0 0;
-  color: var(--primary-color-dark);
+  gap: 6px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: #64748b;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: -1px;
 }
 
 .tabButton:hover {
-  background: #f0f5e8;
+  background: rgba(255, 255, 255, 0.6);
   color: var(--beneficiary-heading);
 }
 
 .tabButton.tabActive {
-  background: var(--color-primary, #8fa963);
-  border-color: var(--color-primary, #8fa963);
-  color: #ffffff;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: var(--color-primary, #8fa963);
+}
+
+.tabButton.tabActive svg {
+  color: var(--color-primary, #8fa963);
 }
 
 .tabCloseButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px;
   color: var(--beneficiary-muted);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -891,6 +893,39 @@
 .tabCloseButton:hover {
   background: #fef2f2;
   color: #dc2626;
+}
+
+/* Tab Navigation - Responsive */
+@media (max-width: 700px) {
+  .tabHeader {
+    padding: 0 12px;
+  }
+
+  .tabButton {
+    padding: 10px 12px;
+    font-size: 14px;
+    gap: 5px;
+  }
+
+  .tabButton svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tabButton {
+    padding: 8px 10px;
+  }
+
+  .tabButton span {
+    display: none;
+  }
+
+  .tabButton svg {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 /* ===== Tab Content ===== */
@@ -904,12 +939,11 @@
 .profileSection {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 24px;
   padding: 0;
   background: transparent;
   border: none;
-  margin-bottom: 24px;
   box-shadow: none;
 }
 
@@ -921,14 +955,14 @@
 }
 
 .profileAvatar {
-  width: 128px;
-  height: 128px;
-  border-radius: 28px;
+  width: 100px;
+  height: 100px;
+  border-radius: 24px;
   color: #FBFDF9;
   display: grid;
   place-items: center;
   font-weight: 900;
-  font-size: 52px;
+  font-size: 44px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
 }
 
@@ -1132,7 +1166,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -1258,8 +1292,8 @@
 .usageStatsRow {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  padding: 20px 24px;
+  justify-content: space-evenly;
+  padding: 10px 16px;
   background: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 16px;
@@ -1282,21 +1316,24 @@
 }
 
 .usageStatLabel {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--beneficiary-muted);
 }
 
-/* Vertical stat item layout */
+/* Horizontal stat item layout with icon on left */
 .usageStatItemV {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.usageStatTextGroup {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-}
-
-.usageStatItemV .usageStatIcon {
-  margin-bottom: 4px;
+  gap: 2px;
 }
 
 .usageStatDivider {
@@ -1327,16 +1364,14 @@
   background: #ffffff;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 16px;
-  padding: 16px;
+  padding: 12px 16px;
 }
 
 .usageScheduleHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--beneficiary-border-color);
 }
 
 .usageScheduleTitle {
@@ -1352,7 +1387,7 @@
 }
 
 .usageTimeInput {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--beneficiary-border-color);
   border-radius: 8px;
   font-size: 14px;
@@ -1383,7 +1418,7 @@
 .usageScheduleList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   flex: 1;
 }
 
@@ -1393,7 +1428,11 @@
   justify-content: space-between;
   padding: 6px 12px;
   background: #f8fafc;
-  border-radius: 8px;
+  border-bottom: 1px solid var(--beneficiary-border-color);
+}
+
+.usageScheduleRow:last-child {
+  border-bottom: none;
 }
 
 .usageDayLabel {
@@ -1468,7 +1507,7 @@
 
 .usageCalendarDay {
   width: 100%;
-  height: 75%;
+  height: 92%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1494,6 +1533,45 @@
   flex-direction: column;
   gap: 12px;
   flex: 1;
+}
+
+/* Top row with search, period filter, and write button */
+.logsTopRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.logsSearchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.logsSearchIcon {
+  color: var(--beneficiary-muted);
+  flex-shrink: 0;
+}
+
+.logsSearchInput {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  width: 100%;
+}
+
+.logsSearchInput::placeholder {
+  color: var(--beneficiary-muted);
 }
 
 .logsHeader {
