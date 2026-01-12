@@ -183,24 +183,30 @@ export default function UsageInfoTab({
                         </div>
                     </div>
                 </div>
-                {/* Stats Row - Horizontal with vertical alignment */}
+                {/* Stats Row - Horizontal with icon on left */}
                 <div className={styles.usageStatsRow}>
                     <div className={styles.usageStatItemV}>
                         <Phone size={20} className={styles.usageStatIcon} />
-                        <span className={styles.usageStatValue}>{MOCK_STATS.callCount}회</span>
-                        <span className={styles.usageStatLabel}>통화 횟수</span>
+                        <div className={styles.usageStatTextGroup}>
+                            <span className={styles.usageStatValue}>{MOCK_STATS.callCount}회</span>
+                            <span className={styles.usageStatLabel}>통화 횟수</span>
+                        </div>
                     </div>
                     <div className={styles.usageStatDivider} />
                     <div className={styles.usageStatItemV}>
                         <Timer size={20} className={styles.usageStatIcon} />
-                        <span className={styles.usageStatValue}>{Math.floor(MOCK_STATS.totalMinutes / 60)}시간 {MOCK_STATS.totalMinutes % 60}분</span>
-                        <span className={styles.usageStatLabel}>총 통화 시간</span>
+                        <div className={styles.usageStatTextGroup}>
+                            <span className={styles.usageStatValue}>{Math.floor(MOCK_STATS.totalMinutes / 60)}시간 {MOCK_STATS.totalMinutes % 60}분</span>
+                            <span className={styles.usageStatLabel}>총 통화 시간</span>
+                        </div>
                     </div>
                     <div className={styles.usageStatDivider} />
                     <div className={styles.usageStatItemV}>
                         <TrendingUp size={20} className={styles.usageStatIcon} />
-                        <span className={styles.usageStatValue}>{Math.floor(MOCK_STATS.avgMinutes)}분 {Math.round((MOCK_STATS.avgMinutes % 1) * 60)}초</span>
-                        <span className={styles.usageStatLabel}>평균 통화 시간</span>
+                        <div className={styles.usageStatTextGroup}>
+                            <span className={styles.usageStatValue}>{Math.floor(MOCK_STATS.avgMinutes)}분 {Math.round((MOCK_STATS.avgMinutes % 1) * 60)}초</span>
+                            <span className={styles.usageStatLabel}>평균 통화 시간</span>
+                        </div>
                     </div>
                 </div>
             </section>

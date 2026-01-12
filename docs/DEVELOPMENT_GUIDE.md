@@ -87,7 +87,7 @@ export default function MyPage() {
 | **Beneficiaries** | `/app/beneficiaries/page.tsx` | DashboardLayout | ✅ Modern | Full CRUD with table |
 | **My Wards** | `/app/my-wards/page.tsx` | DashboardLayout | ✅ Modern | Refactored |
 | **Emergencies** | `/app/emergencies/page.tsx` | DashboardLayout | ✅ Modern | Map integration |
-| **Locations** | `/app/locations/page.tsx` | DashboardLayout | ✅ Modern | Floating sidebar overlay (#115) |
+| **Locations** | `/app/locations/page.tsx` | DashboardLayout | ✅ Modern | Full-screen map with floating sidebar overlay (#115) |
 | **Stats** | `/app/stats/page.tsx` | DashboardLayout | ✅ Modern | Charts & Filters (#94) |
 | **Staff** | `/app/staff/page.tsx` | DashboardLayout | ✅ Modern | Employee management (#102) |
 | **Settings** | `/app/settings/page.tsx` | DashboardLayout | ✅ Modern | App settings (#98) |
@@ -1188,7 +1188,14 @@ ops-web/
 │   ├── dashboard/
 │   │   └── page.tsx                     # ✅ Dashboard page (template)
 │   ├── beneficiaries/
-│   │   └── page.tsx                     # ✅ Beneficiaries management
+│   │   ├── page.tsx                     # ✅ Beneficiaries management
+│   │   ├── DetailModal.tsx              # ✅ Detail modal (Tab-based, #116)
+│   │   ├── DetailModal.module.css       # Detail modal styles
+│   │   └── tabs/                        # Tab components (#116)
+│   │       ├── TabNavigation.tsx        # Tab header with 3 tabs
+│   │       ├── BasicInfoTab.tsx         # 기본정보 tab
+│   │       ├── UsageInfoTab.tsx         # 사용정보 tab
+│   │       └── DamsoLogTab.tsx          # 담소일지 tab
 │   ├── my-wards/
 │   │   └── page.tsx                     # 🔄 My wards page
 │   ├── emergencies/
@@ -1276,6 +1283,7 @@ ops-web/
 │
 ├── lib/
 │   ├── api-client.ts                    # ✅ Centralized API client
+│   ├── date-utils.ts                    # ✅ Date utilities (24h inactive check, #115)
 │   └── utils.ts                         # Utility functions
 │
 └── utils/
@@ -1340,10 +1348,15 @@ If you have questions or need clarification:
 - **Phase 5.5**: Staff Page (#102)
 - **Phase 5.6**: Settings Page (#98)
 - **Phase 5.7**: Locations/Map Monitoring (#115)
+- **Phase 5.8**: DetailModal Tabs (#116)
+  - TabNavigation component with 3 tabs (기본정보, 사용정보, 담소일지)
+  - BasicInfoTab (profile, basic info, health info)
+  - UsageInfoTab (schedule, stats, calendar)
+  - DamsoLogTab (log cards with sentiment filtering)
 
 ### 🔄 In Progress
 
-- **DetailModal Tabs**: Refactoring DetailModal to use tabbed navigation
+- **UsageInfoTab API Integration**: Connect to real backend API (see `docs/USAGE_TAB_DATA_SCHEMA.md`)
 
 ### ❌ Remaining Work
 
@@ -1352,5 +1365,5 @@ If you have questions or need clarification:
 
 ---
 
-**Last Updated**: 2026-01-11
-**Version**: 2.1
+**Last Updated**: 2026-01-12
+**Version**: 2.2
