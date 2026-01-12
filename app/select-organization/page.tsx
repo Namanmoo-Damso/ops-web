@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation';
 import { PROVINCES, getSigunguList, getDongList } from './korea-regions';
 import type { Admin } from '../../types/models';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+
+if (!API_BASE) {
+  throw new Error('NEXT_PUBLIC_API_BASE 환경 변수가 설정되지 않았습니다.');
+}
 
 export default function SelectOrganizationPage() {
   const router = useRouter();
