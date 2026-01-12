@@ -207,7 +207,13 @@ export default function Home() {
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connections, gridSize, selectedParticipantForAudio, showFullScreenVideo, dangerRooms]);
+  }, [
+    connections,
+    gridSize,
+    selectedParticipantForAudio,
+    showFullScreenVideo,
+    dangerRooms,
+  ]);
 
   // We need at least one connection to show the control bar
   const firstConnection = connections[0];
@@ -331,16 +337,22 @@ export default function Home() {
   );
 
   const renderFullScreenVideo = () =>
-    showFullScreenVideo && detailParticipant && selectedVideoTrackRef && (
+    showFullScreenVideo &&
+    detailParticipant &&
+    selectedVideoTrackRef && (
       <FullScreenVideo
         participant={detailParticipant}
         videoTrackRef={selectedVideoTrackRef}
-        isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
+        isDanger={
+          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
+        }
       />
     );
 
   const renderDetailSidebar = () =>
-    showFullScreenVideo && showDetailSidebar && detailParticipant && (
+    showFullScreenVideo &&
+    showDetailSidebar &&
+    detailParticipant && (
       <ParticipantDetailSidebar
         participant={detailParticipant}
         roomName={selectedRoomName || undefined}
@@ -351,13 +363,16 @@ export default function Home() {
         isTakeoverActive={isTakeoverActive}
         onToggleTakeover={handleToggleTakeover}
         onClose={handleCloseSidebar}
-        isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
+        isDanger={
+          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
+        }
         onClearDanger={handleClearDanger}
       />
     );
 
   const renderParticipantSidebar = (connected: boolean) =>
-    showParticipantList && !showFullScreenVideo && (
+    showParticipantList &&
+    !showFullScreenVideo && (
       <ParticipantSidebar
         participants={participantList}
         selectedParticipantId={selectedParticipantId}
