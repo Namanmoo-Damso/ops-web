@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { LiveKitRoom } from '@livekit/components-react';
 import SidebarLayout from '../components/SidebarLayout';
 import {
@@ -40,6 +40,10 @@ export default function Home() {
   const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
+
+  // Ref to access latest allParticipants without causing re-renders in useMemo
+  const allParticipantsRef = useRef(allParticipants);
+  allParticipantsRef.current = allParticipants;
 
   // Handle invite call to participant
   const handleInvite = async (participantId: string) => {
@@ -200,7 +204,10 @@ export default function Home() {
 
   // Mark participants as offline when their room is removed from connections
   useEffect(() => {
-    const activeRoomNames = new Set(connections.map(c => c.roomName));
+    // Parse room names from the stable key to avoid depending on connections array reference
+    const activeRoomNames = new Set(
+      activeRoomNamesKey ? activeRoomNamesKey.split(',') : [],
+    );
 
     setAllParticipants(prev => {
       const roomsToUpdate = Object.keys(prev).filter(
@@ -221,7 +228,7 @@ export default function Home() {
 
       return updated;
     });
-  }, [activeRoomNamesKey, connections]);
+  }, [activeRoomNamesKey]);
 
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;
@@ -327,8 +334,8 @@ export default function Home() {
             setSelectedParticipantForAudio(participantId);
             setSelectedRoomName(roomName);
             setSelectedVideoTrackRef(videoTrackRef);
-            // Get the participant details from this room
-            const roomParticipants = allParticipants[roomName];
+            // Get the participant details from this room (use ref to avoid stale closure)
+            const roomParticipants = allParticipantsRef.current[roomName];
             if (roomParticipants && roomParticipants.length > 0) {
               // Find the specific participant that was clicked
               const clickedParticipant =
