@@ -16,13 +16,11 @@ import {
 } from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import { requestHighQuality, setRoomDanger } from '../utils/roomApi';
+import { API_BASE } from '../lib/api-client';
 import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
 
 export default function Home() {
-  const apiBase =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState<
@@ -85,14 +83,14 @@ export default function Home() {
   }, [showDetailSidebar, isTakeoverActive]);
 
   const { rooms, error, dangerRooms } = useRoomSSE({
-    apiBase,
-    enabled: !!apiBase,
+    apiBase: API_BASE,
+    enabled: !!API_BASE,
   });
 
   const { connections } = useMultiRoomSession({
-    apiBase,
+    apiBase: API_BASE,
     rooms,
-    enabled: !!apiBase && rooms.length > 0,
+    enabled: !!API_BASE && rooms.length > 0,
   });
 
   const gridSlots = useMemo(() => {
