@@ -56,32 +56,78 @@ function mapHeaderToField(header: string): keyof CleanRow | null {
   const normalized = header.toLowerCase().replace(/[\s-_]+/g, '');
 
   // Name variations
-  if (['이름', '성명', 'name', '이룸', '대상자명'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+  if (
+    ['이름', '성명', 'name', '이룸', '대상자명'].some(v =>
+      normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
     return 'name';
   }
 
   // Email variations
-  if (['이메일', 'email', '메일', 'e-mail', 'mail'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+  if (
+    ['이메일', 'email', '메일', 'e-mail', 'mail'].some(v =>
+      normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
     return 'email';
   }
 
   // Phone variations
-  if (['전화번호', '전화', '휴대폰', '연락처', 'phone', 'phonenumber', 'mobile', 'contact', '핸드폰', '휴대전화'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+  if (
+    [
+      '전화번호',
+      '전화',
+      '휴대폰',
+      '연락처',
+      'phone',
+      'phonenumber',
+      'mobile',
+      'contact',
+      '핸드폰',
+      '휴대전화',
+    ].some(v => normalized.includes(v.replace(/\s/g, '')))
+  ) {
     return 'phone_number';
   }
 
   // Birth date variations
-  if (['생년월일', '생일', 'birthdate', 'birth', 'dateofbirth', 'dob', '태어난날'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+  if (
+    [
+      '생년월일',
+      '생일',
+      'birthdate',
+      'birth',
+      'dateofbirth',
+      'dob',
+      '태어난날',
+    ].some(v => normalized.includes(v.replace(/\s/g, '')))
+  ) {
     return 'birth_date';
   }
 
   // Address variations
-  if (['주소', 'address', '거주지', '주거지', 'location'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+  if (
+    ['주소', 'address', '거주지', '주거지', 'location'].some(v =>
+      normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
     return 'address';
   }
 
   // Notes variations
-  if (['비고', '메모', 'notes', 'note', 'memo', 'remark', '참고', '특이사항'].some(v => normalized.includes(v.replace(/\s/g, '')))) {
+  if (
+    [
+      '비고',
+      '메모',
+      'notes',
+      'note',
+      'memo',
+      'remark',
+      '참고',
+      '특이사항',
+    ].some(v => normalized.includes(v.replace(/\s/g, '')))
+  ) {
     return 'notes';
   }
 
@@ -114,7 +160,9 @@ function splitCsvLine(line: string) {
   return values;
 }
 
-async function matchHeadersWithLLM(headers: string[]): Promise<Record<string, string | null>> {
+async function matchHeadersWithLLM(
+  headers: string[],
+): Promise<Record<string, string | null>> {
   const TIMEOUT_MS = 10000; // 10초 타임아웃
 
   try {
@@ -187,7 +235,10 @@ async function parseCsvText(text: string): Promise<{ rows: CleanRow[] }> {
   // Step 2: If there are unmatched headers, try LLM matching
   let llmMapping: Record<string, string | null> = {};
   if (unmatchedHeaders.length > 0) {
-    console.log('[CSV] Trying LLM matching for unmatched headers:', unmatchedHeaders);
+    console.log(
+      '[CSV] Trying LLM matching for unmatched headers:',
+      unmatchedHeaders,
+    );
     llmMapping = await matchHeadersWithLLM(unmatchedHeaders);
   }
 
@@ -374,7 +425,11 @@ export default function CsvUploadPanel({
               <IconUpload />
             </div>
             <div
-              style={{ fontSize: '15px', fontWeight: 600, color: palette.primaryDark }}
+              style={{
+                fontSize: '15px',
+                fontWeight: 600,
+                color: palette.primaryDark,
+              }}
             >
               {csvFile
                 ? csvFile.name
@@ -502,7 +557,9 @@ export default function CsvUploadPanel({
                     idx === parsedRows.length - 1
                       ? 'none'
                       : '1px solid #F0F5E8',
-                  backgroundColor: row.errors.length ? palette.warningSoft : palette.panel,
+                  backgroundColor: row.errors.length
+                    ? palette.warningSoft
+                    : palette.panel,
                 }}
               >
                 {(
@@ -550,8 +607,8 @@ export default function CsvUploadPanel({
                       field === 'birth_date'
                         ? 'YYYY-MM-DD'
                         : field === 'notes'
-                        ? '비고'
-                        : ''
+                          ? '비고'
+                          : ''
                     }
                   />
                 ))}
@@ -708,8 +765,8 @@ export default function CsvUploadPanel({
           {uploading
             ? '업로드 중...'
             : uploadStage === 'select'
-            ? '미리보기'
-            : '확인 후 업로드'}
+              ? '미리보기'
+              : '확인 후 업로드'}
         </button>
       </div>
     </div>
