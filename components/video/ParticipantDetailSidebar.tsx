@@ -20,6 +20,7 @@ type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
   onClose: () => void;
   roomName?: string;
+  apiBase?: string;
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
   isDanger?: boolean;
@@ -208,6 +209,7 @@ export const ParticipantDetailSidebar = ({
   participant,
   onClose,
   roomName,
+  apiBase,
   isTakeoverActive = false,
   onToggleTakeover,
   isDanger = false,
@@ -217,6 +219,7 @@ export const ParticipantDetailSidebar = ({
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const room = useRoomContext();
 
   // DetailModal state
@@ -224,6 +227,43 @@ export const ParticipantDetailSidebar = ({
   const [beneficiaryDetail, setBeneficiaryDetail] =
     useState<BeneficiaryDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Fetch initial transcripts from API
+  useEffect(() => {
+    if (!roomName || !apiBase || initialLoaded) return;
+
+    const fetchTranscripts = async () => {
+      try {
+        const res = await fetch(
+          `${apiBase}/v1/calls/room/${encodeURIComponent(
+            roomName,
+          )}/transcripts`,
+        );
+        if (!res.ok) {
+          console.warn('[Sidebar] Failed to fetch transcripts:', res.status);
+          return;
+        }
+        const data = await res.json();
+        if (data.transcripts && Array.isArray(data.transcripts)) {
+          const mapped = data.transcripts.map(
+            (t: { speaker: string; text: string; timestamp?: string }) => ({
+              role: t.speaker === 'user' ? 'user' : 'agent',
+              text: t.text,
+              timestamp: t.timestamp
+                ? new Date(t.timestamp).getTime()
+                : Date.now(),
+            }),
+          );
+          setTranscripts(mapped);
+          setInitialLoaded(true);
+        }
+      } catch (e) {
+        console.error('[Sidebar] Error fetching transcripts:', e);
+      }
+    };
+
+    fetchTranscripts();
+  }, [roomName, apiBase, initialLoaded]);
 
   // Listen for real-time transcripts via data packets
   useEffect(() => {
@@ -634,19 +674,24 @@ export const ParticipantDetailSidebar = ({
                   boxShadow: 'inset 0 1px 6px rgba(15,23,42,0.05)',
                 }}
               >
-                <div className="flex flex-col gap-4">
-                  {transcripts.length === 0 ? (
-                    <div className="text-center text-xs text-gray-400 py-4">
-                      대화 내역이 없습니다.
-                    </div>
-                  ) : (
-                    transcripts.map((t, i) => {
-                      const isAgent = t.role === 'agent';
-                      return (
+                {transcripts.length === 0 ? (
+                  <div style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', padding: '16px 0' }}>
+                    대화 내역이 없습니다.
+                  </div>
+                ) : (
+                  transcripts.map((t, i) => {
+                    const isAgent = t.role === 'agent';
+                    return (
+                      <div
+                        key={i}
+                        style={{
+                          display: 'flex',
+                          justifyContent: isAgent ? 'flex-start' : 'flex-end',
+                          marginBottom: '12px',
+                        }}
+                      >
                         <div
-                          key={i}
                           style={{
-                            alignSelf: isAgent ? 'flex-start' : 'flex-end',
                             maxWidth: '85%',
                             padding: '10px 14px',
                             borderRadius: '16px',
@@ -672,18 +717,30 @@ export const ParticipantDetailSidebar = ({
                                 ? 'rgba(100,116,139,0.8)'
                                 : 'rgba(255,255,255,0.8)',
                               fontWeight: 600,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: '8px',
                             }}
                           >
-                            {isAgent ? 'AI Caregiver' : 'Patient'}
+                            <span>{isAgent ? '소담이' : '어르신'}</span>
+                            <span style={{ fontWeight: 400 }}>
+                              {new Date(t.timestamp).toLocaleString('ko-KR', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
                           </div>
                           {/* Highlight danger keywords in text */}
                           {highlightDangerKeywords(t.text)}
                         </div>
-                      );
-                    })
-                  )}
-                  <div ref={transcriptEndRef} />
-                </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={transcriptEndRef} />
               </div>
             </div>
           </InfoCard>

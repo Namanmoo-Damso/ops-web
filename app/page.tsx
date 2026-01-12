@@ -6,7 +6,6 @@ import SidebarLayout from '../components/SidebarLayout';
 import {
   EmptyTile,
   ControlBar,
-  ControlBarWrapper,
   ParticipantSidebar,
   ParticipantDetailSidebar,
   FullScreenVideo,
@@ -208,9 +207,6 @@ export default function Home() {
     dangerRooms,
   ]);
 
-  // We need at least one connection to show the control bar
-  const firstConnection = connections[0];
-
   const handleCloseSidebar = () => {
     setIsTakeoverActive(false);
     setShowFullScreenVideo(false);
@@ -321,6 +317,32 @@ export default function Home() {
               isFullscreenActive={showFullScreenVideo}
               isDanger={slot.isDanger}
             />
+            {/* Render detail sidebar inside the selected room's LiveKitRoom context */}
+            {selectedRoomName === slot.connection.roomName &&
+              showFullScreenVideo &&
+              showDetailSidebar &&
+              detailParticipant && (
+                <>
+                  <FullScreenVideo
+                    participant={detailParticipant}
+                    videoTrackRef={selectedVideoTrackRef}
+                    isDanger={dangerRooms[slot.connection.roomName] ?? false}
+                  />
+                  <ParticipantDetailSidebar
+                    participant={detailParticipant}
+                    roomName={selectedRoomName}
+                    apiBase={
+                      process.env.NEXT_PUBLIC_API_BASE_URL ||
+                      process.env.NEXT_PUBLIC_API_URL
+                    }
+                    isTakeoverActive={isTakeoverActive}
+                    onToggleTakeover={handleToggleTakeover}
+                    onClose={handleCloseSidebar}
+                    isDanger={dangerRooms[slot.connection.roomName] ?? false}
+                    onClearDanger={handleClearDanger}
+                  />
+                </>
+              )}
           </LiveKitRoom>
         ) : (
           <EmptyTile key={slot.key} />
@@ -328,36 +350,6 @@ export default function Home() {
       )}
     </div>
   );
-
-  const renderFullScreenVideo = () =>
-    showFullScreenVideo &&
-    detailParticipant &&
-    selectedVideoTrackRef && (
-      <FullScreenVideo
-        participant={detailParticipant}
-        videoTrackRef={selectedVideoTrackRef}
-        isDanger={
-          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
-        }
-      />
-    );
-
-  const renderDetailSidebar = () =>
-    showFullScreenVideo &&
-    showDetailSidebar &&
-    detailParticipant && (
-      <ParticipantDetailSidebar
-        participant={detailParticipant}
-        roomName={selectedRoomName || undefined}
-        isTakeoverActive={isTakeoverActive}
-        onToggleTakeover={handleToggleTakeover}
-        onClose={handleCloseSidebar}
-        isDanger={
-          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
-        }
-        onClearDanger={handleClearDanger}
-      />
-    );
 
   const renderParticipantSidebar = (connected: boolean) =>
     showParticipantList &&
@@ -379,6 +371,8 @@ export default function Home() {
       />
     );
 
+  const hasConnections = connections.length > 0;
+
   // Fullscreen container (no sidebar/navbar)
   const fullscreenContent = (
     <div
@@ -391,71 +385,28 @@ export default function Home() {
       }}
     >
       <div className={styles.roomWrap} style={{ height: '100%' }}>
-        {firstConnection ? (
-          <LiveKitRoom
-            serverUrl={firstConnection.serverUrl}
-            token={firstConnection.token}
-            connect={firstConnection.connected}
-            audio={false}
-            video={false}
-            className={styles.room}
-            options={liveKitOptions}
-          >
-            <div
-              className={styles.content}
-              style={{ gridTemplateColumns: '1fr' }}
-            >
-              <div className={styles.stage} style={{ position: 'relative' }}>
-                {renderGrid()}
-                <ControlBarWrapper
-                  gridSize={gridSize}
-                  onGridSizeChange={setGridSize}
-                  showParticipantList={showParticipantList}
-                  onToggleParticipantList={() =>
-                    setShowParticipantList(!showParticipantList)
-                  }
-                  isFullscreen={isMonitoringFullscreen}
-                  onToggleFullscreen={toggleMonitoringFullscreen}
-                />
-              </div>
-              {renderFullScreenVideo()}
-              {renderDetailSidebar()}
-              {showParticipantList &&
-                !showFullScreenVideo &&
-                renderParticipantSidebar(true)}
-            </div>
-          </LiveKitRoom>
-        ) : (
-          <div
-            className={styles.content}
-            style={{ gridTemplateColumns: '1fr' }}
-          >
-            <div className={styles.stage} style={{ position: 'relative' }}>
-              <div
-                className={styles.grid}
-                style={{
-                  gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                  gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
-                }}
-              >
-                {gridSlots.map(slot => (
-                  <EmptyTile key={slot.key} />
-                ))}
-              </div>
-              <ControlBar
-                showParticipantList={showParticipantList}
-                onToggleParticipantList={() =>
-                  setShowParticipantList(!showParticipantList)
-                }
-                gridSize={gridSize}
-                onGridSizeChange={setGridSize}
-                connected={false}
-                isFullscreen={isMonitoringFullscreen}
-                onToggleFullscreen={toggleMonitoringFullscreen}
-              />
-            </div>
+        <div
+          className={styles.content}
+          style={{ gridTemplateColumns: '1fr' }}
+        >
+          <div className={styles.stage} style={{ position: 'relative' }}>
+            {renderGrid()}
+            <ControlBar
+              showParticipantList={showParticipantList}
+              onToggleParticipantList={() =>
+                setShowParticipantList(!showParticipantList)
+              }
+              gridSize={gridSize}
+              onGridSizeChange={setGridSize}
+              connected={hasConnections}
+              isFullscreen={isMonitoringFullscreen}
+              onToggleFullscreen={toggleMonitoringFullscreen}
+            />
           </div>
-        )}
+          {showParticipantList &&
+            !showFullScreenVideo &&
+            renderParticipantSidebar(hasConnections)}
+        </div>
       </div>
     </div>
   );
@@ -469,87 +420,33 @@ export default function Home() {
     <SidebarLayout noPadding>
       <div className={styles.page}>
         <div className={styles.roomWrap}>
-          {firstConnection ? (
-            <LiveKitRoom
-              serverUrl={firstConnection.serverUrl}
-              token={firstConnection.token}
-              connect={firstConnection.connected}
-              audio={false}
-              video={false}
-              className={styles.room}
-              options={liveKitOptions}
-            >
-              <div
-                className={`${styles.content} ${
-                  !showParticipantList ? styles.contentFullWidth : ''
-                }`}
-              >
-                {renderErrorBanner()}
+          <div
+            className={`${styles.content} ${
+              !showParticipantList ? styles.contentFullWidth : ''
+            }`}
+          >
+            {renderErrorBanner()}
 
-                {/* Main Stage */}
-                <div className={styles.stage} style={{ position: 'relative' }}>
-                  {renderGrid()}
+            {/* Main Stage */}
+            <div className={styles.stage} style={{ position: 'relative' }}>
+              {renderGrid()}
 
-                  {/* Control Bar */}
-                  <ControlBarWrapper
-                    gridSize={gridSize}
-                    onGridSizeChange={setGridSize}
-                    showParticipantList={showParticipantList}
-                    onToggleParticipantList={() =>
-                      setShowParticipantList(!showParticipantList)
-                    }
-                    isFullscreen={isMonitoringFullscreen}
-                    onToggleFullscreen={toggleMonitoringFullscreen}
-                  />
-                </div>
-
-                {renderFullScreenVideo()}
-                {renderDetailSidebar()}
-                {renderParticipantSidebar(true)}
-              </div>
-            </LiveKitRoom>
-          ) : (
-            <div
-              className={`${styles.content} ${
-                !showParticipantList ? styles.contentFullWidth : ''
-              }`}
-            >
-              {renderErrorBanner()}
-
-              {/* Main Stage */}
-              <div className={styles.stage} style={{ position: 'relative' }}>
-                {/* Grid with Empty Tiles */}
-                <div
-                  className={styles.grid}
-                  style={{
-                    gridTemplateColumns: `repeat(${gridSize}, minmax(0, 1fr))`,
-                    gridTemplateRows: `repeat(${gridSize}, minmax(0, 1fr))`,
-                  }}
-                >
-                  {gridSlots.map(slot => (
-                    <EmptyTile key={slot.key} />
-                  ))}
-                </div>
-
-                {/* Control Bar - Static version without LiveKit */}
-                <ControlBar
-                  showParticipantList={showParticipantList}
-                  onToggleParticipantList={() =>
-                    setShowParticipantList(!showParticipantList)
-                  }
-                  gridSize={gridSize}
-                  onGridSizeChange={setGridSize}
-                  connected={false}
-                  isFullscreen={isMonitoringFullscreen}
-                  onToggleFullscreen={toggleMonitoringFullscreen}
-                />
-              </div>
-
-              {renderFullScreenVideo()}
-              {renderDetailSidebar()}
-              {renderParticipantSidebar(false)}
+              {/* Control Bar */}
+              <ControlBar
+                showParticipantList={showParticipantList}
+                onToggleParticipantList={() =>
+                  setShowParticipantList(!showParticipantList)
+                }
+                gridSize={gridSize}
+                onGridSizeChange={setGridSize}
+                connected={hasConnections}
+                isFullscreen={isMonitoringFullscreen}
+                onToggleFullscreen={toggleMonitoringFullscreen}
+              />
             </div>
-          )}
+
+            {renderParticipantSidebar(hasConnections)}
+          </div>
         </div>
       </div>
     </SidebarLayout>
