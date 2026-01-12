@@ -65,8 +65,9 @@ const InfoCard = ({
       style={{
         position: 'relative',
         background: '#ffffff',
-        border: `1px solid ${highlight ? hexToRgba(color, 0.45) : 'rgba(226,232,240,1)'
-          }`,
+        border: `1px solid ${
+          highlight ? hexToRgba(color, 0.45) : 'rgba(226,232,240,1)'
+        }`,
         borderRadius: '18px',
         padding: '14px 20px',
         boxShadow: highlight
@@ -341,8 +342,9 @@ export const ParticipantDetailSidebar = ({
               {/* Status */}
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2 h-2 rounded-full ${isWarning ? 'bg-red-500 animate-ping' : 'bg-emerald-500'
-                    }`}
+                  className={`w-2 h-2 rounded-full ${
+                    isWarning ? 'bg-red-500 animate-ping' : 'bg-emerald-500'
+                  }`}
                 />
                 <span
                   style={{
