@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import type { Room, RoomsSummary, AppEvent } from '../types/room';
 
 type UseRoomSSEOptions = {
-  apiBase: string;
+  apiBase: string | undefined;
   enabled?: boolean;
 };
 
@@ -54,7 +54,7 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
       console.log('[useRoomSSE] SSE connection opened');
     };
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = event => {
       console.log('[useRoomSSE] SSE message received:', event.data);
       try {
         const data: AppEvent = JSON.parse(event.data);
@@ -68,15 +68,26 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
         }
 
         // Handle participant events (you can expand this later)
-        if (data.type === 'participant-joined' || data.type === 'participant-left') {
-          console.log('[useRoomSSE] Participant event:', data.type, data.roomName);
+        if (
+          data.type === 'participant-joined' ||
+          data.type === 'participant-left'
+        ) {
+          console.log(
+            '[useRoomSSE] Participant event:',
+            data.type,
+            data.roomName,
+          );
           // Refetch to get updated participant counts
           fetchRooms();
         }
 
         // Handle room-danger event
         if (data.type === 'room-danger') {
-          console.log('[useRoomSSE] Room danger event:', data.roomName, data.isDanger);
+          console.log(
+            '[useRoomSSE] Room danger event:',
+            data.roomName,
+            data.isDanger,
+          );
           setDangerRooms(prev => ({
             ...prev,
             [data.roomName]: data.isDanger,
@@ -87,7 +98,7 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
       }
     };
 
-    eventSource.onerror = (err) => {
+    eventSource.onerror = err => {
       console.error('[useRoomSSE] SSE error:', err);
       // Don't set error state here to avoid UI disruption
       // The connection will auto-retry
