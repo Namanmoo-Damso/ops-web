@@ -4,14 +4,12 @@ import type { Admin } from '../types/models';
 
 type UseMultiRoomSessionOptions = {
   apiBase: string;
-  livekitUrl: string;
   rooms: Room[];
   enabled?: boolean;
 };
 
 export function useMultiRoomSession({
   apiBase,
-  livekitUrl,
   rooms,
   enabled = true,
 }: UseMultiRoomSessionOptions) {
@@ -107,7 +105,7 @@ export function useMultiRoomSession({
           [roomName]: {
             roomName,
             token: rtcData.token,
-            serverUrl: rtcData.livekitUrl || livekitUrl,
+            serverUrl: rtcData.livekitUrl,
             connected: true,
           },
         }));
@@ -122,7 +120,7 @@ export function useMultiRoomSession({
         );
       }
     },
-    [apiBase, livekitUrl],
+    [apiBase],
   );
 
   // Leave a specific room

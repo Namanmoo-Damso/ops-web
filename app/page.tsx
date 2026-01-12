@@ -21,7 +21,6 @@ import styles from './page.module.css';
 
 export default function Home() {
   const apiBaseEnv = process.env.NEXT_PUBLIC_API_BASE ?? '';
-  const livekitEnv = process.env.NEXT_PUBLIC_LIVEKIT_URL ?? '';
   const [apiBase, setApiBase] = useState(apiBaseEnv);
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
@@ -101,7 +100,6 @@ export default function Home() {
 
   const { connections } = useMultiRoomSession({
     apiBase,
-    livekitUrl: livekitEnv,
     rooms,
     enabled: !!apiBase && rooms.length > 0,
   });
