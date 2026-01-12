@@ -16,13 +16,11 @@ import {
 } from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import { requestHighQuality, setRoomDanger } from '../utils/roomApi';
+import { API_BASE } from '../lib/api-client';
 import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
 
 export default function Home() {
-  const apiBaseEnv = process.env.NEXT_PUBLIC_API_BASE ?? '';
-  const livekitEnv = process.env.NEXT_PUBLIC_LIVEKIT_URL ?? '';
-  const [apiBase, setApiBase] = useState(apiBaseEnv);
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState<
@@ -90,26 +88,15 @@ export default function Home() {
     }
   }, [showDetailSidebar, isTakeoverActive]);
 
-  useEffect(() => {
-    if (apiBaseEnv) {
-      setApiBase(apiBaseEnv);
-      return;
-    }
-    if (typeof window !== 'undefined') {
-      setApiBase(window.location.origin);
-    }
-  }, [apiBaseEnv]);
-
   const { rooms, error, dangerRooms } = useRoomSSE({
-    apiBase,
-    enabled: !!apiBase,
+    apiBase: API_BASE,
+    enabled: !!API_BASE,
   });
 
   const { connections } = useMultiRoomSession({
-    apiBase,
-    livekitUrl: livekitEnv,
+    apiBase: API_BASE,
     rooms,
-    enabled: !!apiBase && rooms.length > 0,
+    enabled: !!API_BASE && rooms.length > 0,
   });
 
   const gridSlots = useMemo(() => {
@@ -213,7 +200,13 @@ export default function Home() {
 
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connections, gridSize, selectedParticipantForAudio, showFullScreenVideo, dangerRooms]);
+  }, [
+    connections,
+    gridSize,
+    selectedParticipantForAudio,
+    showFullScreenVideo,
+    dangerRooms,
+  ]);
 
   // We need at least one connection to show the control bar
   const firstConnection = connections[0];
@@ -337,33 +330,38 @@ export default function Home() {
   );
 
   const renderFullScreenVideo = () =>
-    showFullScreenVideo && detailParticipant && selectedVideoTrackRef && (
+    showFullScreenVideo &&
+    detailParticipant &&
+    selectedVideoTrackRef && (
       <FullScreenVideo
         participant={detailParticipant}
         videoTrackRef={selectedVideoTrackRef}
-        isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
+        isDanger={
+          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
+        }
       />
     );
 
   const renderDetailSidebar = () =>
-    showFullScreenVideo && showDetailSidebar && detailParticipant && (
+    showFullScreenVideo &&
+    showDetailSidebar &&
+    detailParticipant && (
       <ParticipantDetailSidebar
         participant={detailParticipant}
         roomName={selectedRoomName || undefined}
-        apiBase={
-          process.env.NEXT_PUBLIC_API_BASE_URL ||
-          process.env.NEXT_PUBLIC_API_URL
-        }
         isTakeoverActive={isTakeoverActive}
         onToggleTakeover={handleToggleTakeover}
         onClose={handleCloseSidebar}
-        isDanger={selectedRoomName ? dangerRooms[selectedRoomName] ?? false : false}
+        isDanger={
+          selectedRoomName ? (dangerRooms[selectedRoomName] ?? false) : false
+        }
         onClearDanger={handleClearDanger}
       />
     );
 
   const renderParticipantSidebar = (connected: boolean) =>
-    showParticipantList && !showFullScreenVideo && (
+    showParticipantList &&
+    !showFullScreenVideo && (
       <ParticipantSidebar
         participants={participantList}
         selectedParticipantId={selectedParticipantId}

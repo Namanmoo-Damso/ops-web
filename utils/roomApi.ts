@@ -1,4 +1,5 @@
 import { Track, VideoQuality } from 'livekit-client';
+import { API_BASE } from '../lib/api-client';
 
 /**
  * Request high quality video for a track
@@ -48,13 +49,7 @@ export const requestHighQuality = (
 /**
  * Get API base URL
  */
-export const getApiBase = (): string => {
-  return (
-    process.env.NEXT_PUBLIC_API_BASE_URL ||
-    process.env.NEXT_PUBLIC_API_BASE ||
-    (typeof window !== 'undefined' ? window.location.origin : '')
-  );
-};
+export const getApiBase = () => API_BASE;
 
 /**
  * Get admin token from localStorage
