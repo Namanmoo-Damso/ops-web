@@ -450,17 +450,8 @@ export const ParticipantDetailSidebar = ({
                     ? '0 0 12px rgba(245, 158, 11, 0.6)'
                     : '0 0 12px rgba(16, 185, 129, 0.6)',
                 }}
-              >
-                82세 · 정기 케어
-              </span>
-
-              {/* Status */}
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    isWarning ? 'bg-red-500 animate-ping' : 'bg-emerald-500'
-                  }`}
-                />
+              />
+              <div style={{ flex: 1 }}>
                 <span
                   style={{
                     fontSize: '16px',
