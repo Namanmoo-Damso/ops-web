@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, MessageSquare, Smile, Meh, Frown, Calendar, Search } from 'lucide-react';
 import styles from '../DetailModal.module.css';
 import type { BeneficiaryLog } from '../DetailModal';
@@ -59,6 +59,7 @@ function formatDateToInput(date: Date): string {
     return date.toISOString().split('T')[0];
 }
 
+// Simplified date calculation - returns last day of the period
 function getEndDateForPeriod(startDateStr: string, periodKey: PeriodFilter): string {
     const start = new Date(startDateStr);
     let end: Date;
@@ -72,32 +73,17 @@ function getEndDateForPeriod(startDateStr: string, periodKey: PeriodFilter): str
             end.setDate(start.getDate() + 6);
             break;
         case 'month':
-            end = new Date(start.getFullYear(), start.getMonth() + 1, start.getDate());
-            if (end.getDate() !== start.getDate()) {
-                end = new Date(start.getFullYear(), start.getMonth() + 2, 0);
-            }
-            end.setDate(end.getDate() - 1);
+            // Last day of current month from start
+            end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
             break;
         case '3month':
-            end = new Date(start.getFullYear(), start.getMonth() + 3, start.getDate());
-            if (end.getDate() !== start.getDate()) {
-                end = new Date(start.getFullYear(), start.getMonth() + 4, 0);
-            }
-            end.setDate(end.getDate() - 1);
+            end = new Date(start.getFullYear(), start.getMonth() + 3, 0);
             break;
         case '6month':
-            end = new Date(start.getFullYear(), start.getMonth() + 6, start.getDate());
-            if (end.getDate() !== start.getDate()) {
-                end = new Date(start.getFullYear(), start.getMonth() + 7, 0);
-            }
-            end.setDate(end.getDate() - 1);
+            end = new Date(start.getFullYear(), start.getMonth() + 6, 0);
             break;
         case 'year':
-            end = new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
-            if (end.getDate() !== start.getDate()) {
-                end = new Date(start.getFullYear() + 1, start.getMonth() + 1, 0);
-            }
-            end.setDate(end.getDate() - 1);
+            end = new Date(start.getFullYear() + 1, start.getMonth(), 0);
             break;
         default:
             end = new Date(start);
@@ -146,29 +132,34 @@ export default function DamsoLogTab({
     const [startDate, setStartDate] = useState(() => formatDateToInput(new Date()));
     const [endDate, setEndDate] = useState(() => getEndDateForPeriod(formatDateToInput(new Date()), 'month'));
 
+    // Today's date for max attribute
+    const today = formatDateToInput(new Date());
+
     // Update end date when period or start date changes
     useEffect(() => {
         const newEndDate = getEndDateForPeriod(startDate, period);
         setEndDate(newEndDate);
     }, [period, startDate]);
 
-    // Filter logs by sentiment, search query, and date range
-    const filteredLogs = displayLogs.filter(log => {
-        // Sentiment filter
-        if (sentimentFilter !== 'all' && log.sentiment !== sentimentFilter) {
-            return false;
-        }
-        // Search filter
-        if (searchQuery && !log.content.toLowerCase().includes(searchQuery.toLowerCase())) {
-            return false;
-        }
-        // Date range filter
-        const logDate = log.date;
-        if (logDate < startDate || logDate > endDate) {
-            return false;
-        }
-        return true;
-    });
+    // Memoized filtering for performance
+    const filteredLogs = useMemo(() => {
+        return displayLogs.filter(log => {
+            // Sentiment filter
+            if (sentimentFilter !== 'all' && log.sentiment !== sentimentFilter) {
+                return false;
+            }
+            // Search filter
+            if (searchQuery && !log.content.toLowerCase().includes(searchQuery.toLowerCase())) {
+                return false;
+            }
+            // Date range filter
+            const logDate = log.date;
+            if (logDate < startDate || logDate > endDate) {
+                return false;
+            }
+            return true;
+        });
+    }, [displayLogs, sentimentFilter, searchQuery, startDate, endDate]);
 
     const handleWriteLog = () => {
         if (onWriteLog) {
@@ -193,11 +184,18 @@ export default function DamsoLogTab({
                 <div className={styles.logsSearchBox}>
                     <Search size={16} className={styles.logsSearchIcon} />
                     <input
-                        type="text"
+                        type="search"
                         placeholder="일지 내용 검색..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Escape') {
+                                setSearchQuery('');
+                            }
+                        }}
                         className={styles.logsSearchInput}
+                        aria-label="담소일지 검색"
+                        autoComplete="off"
                     />
                 </div>
                 {/* Period Filter */}
@@ -206,15 +204,23 @@ export default function DamsoLogTab({
                         value={period}
                         onChange={e => setPeriod(e.target.value as PeriodFilter)}
                         className={styles.periodSelect}
+                        aria-label="기간 선택"
                     >
                         {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map(p => (
                             <option key={p} value={p}>{PERIOD_LABELS[p]}</option>
                         ))}
                     </select>
                     <div className={styles.usageDateInputs}>
-                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={styles.usageDateInput} />
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            max={today}
+                            className={styles.usageDateInput}
+                            aria-label="시작 날짜"
+                        />
                         <span className={styles.usageDateSep}>~</span>
-                        <input type="date" value={endDate} readOnly className={styles.usageDateInput} />
+                        <input type="date" value={endDate} readOnly className={styles.usageDateInput} aria-label="종료 날짜" />
                     </div>
                 </div>
                 {/* Write Button */}
