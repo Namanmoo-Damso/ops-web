@@ -1,14 +1,29 @@
-import { Track, VideoQuality } from 'livekit-client';
+import { Track, VideoQuality, TrackPublication } from 'livekit-client';
+import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { API_BASE } from '../lib/api-client';
+
+/** Extended publication interface for version compatibility */
+interface ExtendedPublication extends TrackPublication {
+  setSubscribed?: (subscribed: boolean) => void;
+  setPreferredLayer?: (quality: VideoQuality) => void;
+  setPriority?: (priority: number) => void;
+  setVideoQuality?: (quality: VideoQuality) => void;
+  setVideoDimensions?: (dimensions: { width: number; height: number }) => void;
+}
+
+/** Track module with optional Priority enum (version-dependent) */
+interface TrackWithPriority {
+  Priority?: { HIGH?: number };
+}
 
 /**
  * Request high quality video for a track
  */
 export const requestHighQuality = (
-  trackRef: any,
+  trackRef: TrackReferenceOrPlaceholder | undefined,
   context?: { participantId?: string; roomName?: string; source?: string },
 ) => {
-  const pub = trackRef?.publication;
+  const pub = trackRef?.publication as ExtendedPublication | undefined;
   if (!pub) return;
 
   console.debug('[video] request high quality', {
@@ -19,25 +34,22 @@ export const requestHighQuality = (
   });
 
   try {
-    (pub as any)?.setSubscribed?.(true);
+    pub.setSubscribed?.(true);
   } catch {
     // ignore
   }
 
   if (typeof pub.setVideoQuality === 'function') {
-    pub.setVideoQuality(VideoQuality.HIGH);
-  } else if (typeof (pub as any).setPreferredLayer === 'function') {
-    (pub as any).setPreferredLayer(VideoQuality.HIGH);
+    pub.setVideoQuality?.(VideoQuality.HIGH);
+  } else if (typeof pub.setPreferredLayer === 'function') {
+    pub.setPreferredLayer?.(VideoQuality.HIGH);
   }
 
   try {
-    const priorityEnum = (Track as any).Priority;
-    const highPriority = priorityEnum?.HIGH ?? undefined;
-    if (
-      highPriority !== undefined &&
-      typeof (pub as any).setPriority === 'function'
-    ) {
-      (pub as any).setPriority(highPriority);
+    const trackModule = Track as unknown as TrackWithPriority;
+    const highPriority = trackModule.Priority?.HIGH;
+    if (highPriority !== undefined && typeof pub.setPriority === 'function') {
+      pub.setPriority(highPriority);
     }
   } catch {
     // ignore
