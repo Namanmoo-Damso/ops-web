@@ -20,8 +20,9 @@ import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
 
 export default function Home() {
-  const apiBaseEnv = process.env.NEXT_PUBLIC_API_BASE ?? '';
-  const [apiBase, setApiBase] = useState(apiBaseEnv);
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    (typeof window !== 'undefined' ? window.location.origin : '');
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
   const [selectedParticipantId, setSelectedParticipantId] = useState<
@@ -82,16 +83,6 @@ export default function Home() {
       setIsTakeoverActive(false);
     }
   }, [showDetailSidebar, isTakeoverActive]);
-
-  useEffect(() => {
-    if (apiBaseEnv) {
-      setApiBase(apiBaseEnv);
-      return;
-    }
-    if (typeof window !== 'undefined') {
-      setApiBase(window.location.origin);
-    }
-  }, [apiBaseEnv]);
 
   const { rooms, error, dangerRooms } = useRoomSSE({
     apiBase,
