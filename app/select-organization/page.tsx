@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PROVINCES, getSigunguList, getDongList } from './korea-regions';
 import type { Admin } from '../../types/models';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { API_BASE } from '../../lib/api-client';
 
 export default function SelectOrganizationPage() {
   const router = useRouter();
