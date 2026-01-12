@@ -44,7 +44,9 @@ export const LiveTileOps = ({
         boxShadow: isDanger
           ? '0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5)'
           : undefined,
-        animation: isDanger ? 'dangerPulse 1.5s ease-in-out infinite' : undefined,
+        animation: isDanger
+          ? 'dangerPulse 1.5s ease-in-out infinite'
+          : undefined,
       }}
       onClick={handleClick}
     >
@@ -85,7 +87,9 @@ export const LiveTileOps = ({
                 height: '8px',
                 borderRadius: '50%',
                 backgroundColor: isDanger ? '#ef4444' : '#10b981',
-                animation: isDanger ? 'pulse 1s ease-in-out infinite' : undefined,
+                animation: isDanger
+                  ? 'pulse 1s ease-in-out infinite'
+                  : undefined,
               }}
             />
             <span

@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { IconPeople, IconGrid, IconMinus, IconPlus } from '../Icons';
-import { Maximize, Minimize, Volume2, VolumeX } from 'lucide-react';
+import { Maximize, Minimize } from 'lucide-react';
 import styles from '../../app/page.module.css';
 
 type ControlBarProps = {
@@ -24,26 +23,8 @@ export const ControlBar = ({
   isFullscreen = false,
   onToggleFullscreen,
 }: ControlBarProps) => {
-  const [isMuted, setIsMuted] = useState(false);
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    // TODO: Actually mute/unmute audio when implemented
-  };
-
   return (
     <div className={styles.controlBar}>
-      {/* Volume Toggle */}
-      <div className={styles.controlGroup}>
-        <button
-          className={`${styles.controlButton} ${isMuted ? styles.active : ''}`}
-          onClick={toggleMute}
-          title={isMuted ? '음소거 해제' : '음소거'}
-        >
-          {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-        </button>
-      </div>
-
       {/* Participants Toggle */}
       <div className={styles.controlGroup}>
         <button
@@ -68,7 +49,9 @@ export const ControlBar = ({
         </button>
         <div className={styles.gridSpinnerValue}>
           <IconGrid />
-          <span>{gridSize}×{gridSize}</span>
+          <span>
+            {gridSize}×{gridSize}
+          </span>
         </div>
         <button
           className={styles.gridSpinnerBtn}

@@ -108,7 +108,7 @@ export const FullScreenVideo = ({
 
       // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
       retryTimeouts = [500, 1000, 2000].map((delay, i) =>
-        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay)
+        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay),
       );
     }
 
@@ -190,7 +190,8 @@ export const FullScreenVideo = ({
           position: 'fixed',
           inset: 0,
           left: '280px',
-          right: '520px',
+          right: '420px',
+          top: '80px', // navbar 아래로 조정 (작은 화면 대응)
           zIndex: 50,
           display: 'flex',
           alignItems: 'center',
@@ -222,7 +223,9 @@ export const FullScreenVideo = ({
               background: '#000000',
               height: '90vh',
               aspectRatio: '9 / 16', // Maintains portrait aspect ratio
-              animation: isDanger ? 'dangerPulse 1.5s ease-in-out infinite' : undefined,
+              animation: isDanger
+                ? 'dangerPulse 1.5s ease-in-out infinite'
+                : undefined,
             }}
           >
             {isDanger && (
@@ -272,40 +275,12 @@ export const FullScreenVideo = ({
                 height: '10px',
                 borderRadius: '50%',
                 background: isDanger ? '#ef4444' : '#10b981',
-                animation: isDanger ? 'pulse 1s ease-in-out infinite' : undefined,
+                animation: isDanger
+                  ? 'pulse 1s ease-in-out infinite'
+                  : undefined,
               }}
             />
             {participant.name}
-          </div>
-
-          {/* Live Indicator */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '24px',
-              left: '24px',
-              padding: '10px 16px',
-              background: 'rgba(0, 0, 0, 0.8)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#ef4444',
-              }}
-              className="animate-pulse"
-            />
-            실시간
           </div>
         </div>
       </div>
