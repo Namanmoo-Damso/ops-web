@@ -1,6 +1,5 @@
 'use client';
 
-import { useLocalParticipant } from '@livekit/components-react';
 import { ControlBar } from './ControlBar';
 
 export interface ControlBarWrapperProps {
@@ -8,51 +7,31 @@ export interface ControlBarWrapperProps {
   onGridSizeChange: (size: number) => void;
   showParticipantList: boolean;
   onToggleParticipantList: () => void;
-  isTakeoverActive: boolean;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 /**
- * Wrapper component to access LiveKit hooks within a room context.
- * Mic is controlled exclusively via the takeover button in the
- * ParticipantDetailSidebar, so the mic toggle in the main control bar
- * is effectively disabled and only reflects current takeover state.
+ * Wrapper component for ControlBar within a LiveKit room context.
+ * Simplified to only pass through grid, participant list, and fullscreen controls.
  */
 export const ControlBarWrapper = ({
   gridSize,
   onGridSizeChange,
   showParticipantList,
   onToggleParticipantList,
-  isTakeoverActive,
+  isFullscreen,
+  onToggleFullscreen,
 }: ControlBarWrapperProps) => {
-  const { isCameraEnabled, localParticipant } = useLocalParticipant();
-
-  const toggleCamera = async () => {
-    if (!localParticipant) return;
-    try {
-      await localParticipant.setCameraEnabled(!isCameraEnabled);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   return (
     <ControlBar
-      // Mic state comes from takeover, and the toggle is disabled
-      isMicrophoneEnabled={isTakeoverActive}
-      isCameraEnabled={isCameraEnabled}
-      onToggleMicrophone={() => {}}
-      onToggleCamera={toggleCamera}
-      allAudioOff={false}
-      allVideoOff={false}
-      onToggleAllAudio={() => {}}
-      onToggleAllVideo={() => {}}
       showParticipantList={showParticipantList}
       onToggleParticipantList={onToggleParticipantList}
       gridSize={gridSize}
       onGridSizeChange={onGridSizeChange}
-      onLeaveRoom={() => {}}
       connected={true}
-      canControl={true}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={onToggleFullscreen}
     />
   );
 };
