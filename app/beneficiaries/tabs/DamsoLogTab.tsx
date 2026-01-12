@@ -12,7 +12,7 @@ interface DamsoLogTabProps {
 }
 
 // Period type (reused from UsageInfoTab)
-type PeriodFilter = 'today' | 'week' | 'month' | '3month' | '6month' | 'year';
+type PeriodFilter = 'today' | 'week' | 'month' | '3month' | '6month' | 'year' | 'custom';
 
 const PERIOD_LABELS: Record<PeriodFilter, string> = {
     today: '오늘',
@@ -21,6 +21,7 @@ const PERIOD_LABELS: Record<PeriodFilter, string> = {
     '3month': '3개월',
     '6month': '6개월',
     year: '1년',
+    custom: '직접선택',
 };
 
 // Mock logs for demo
@@ -135,10 +136,12 @@ export default function DamsoLogTab({
     // Today's date for max attribute
     const today = formatDateToInput(new Date());
 
-    // Update end date when period or start date changes
+    // Update end date when period or start date changes (except for custom)
     useEffect(() => {
-        const newEndDate = getEndDateForPeriod(startDate, period);
-        setEndDate(newEndDate);
+        if (period !== 'custom') {
+            const newEndDate = getEndDateForPeriod(startDate, period);
+            setEndDate(newEndDate);
+        }
     }, [period, startDate]);
 
     // Memoized filtering for performance
@@ -220,7 +223,15 @@ export default function DamsoLogTab({
                             aria-label="시작 날짜"
                         />
                         <span className={styles.usageDateSep}>~</span>
-                        <input type="date" value={endDate} readOnly className={styles.usageDateInput} aria-label="종료 날짜" />
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            readOnly={period !== 'custom'}
+                            max={today}
+                            className={styles.usageDateInput}
+                            aria-label="종료 날짜"
+                        />
                     </div>
                 </div>
                 {/* Write Button */}
