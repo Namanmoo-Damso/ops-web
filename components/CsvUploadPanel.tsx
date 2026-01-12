@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { palette } from '../app/theme';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
-
-if (!API_BASE) {
-  throw new Error('NEXT_PUBLIC_API_BASE 환경 변수가 설정되지 않았습니다.');
-}
+import { API_BASE } from '../lib/api-client';
 
 const IconUpload = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

@@ -2,8 +2,7 @@
 
 import { useMemo } from 'react';
 import { AuthError } from './useAuthedFetch';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
+import { API_BASE } from '../lib/api-client';
 
 /**
  * @deprecated This hook is deprecated. Use `useAuth` from '@/hooks/useAuth' instead.
@@ -14,20 +13,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
  */
 export const useAdminApi = () => {
   return useMemo(() => {
-    const getApiBase = () => {
-      if (!API_BASE) {
-        throw new Error(
-          'API URL이 설정되지 않았습니다. NEXT_PUBLIC_API_BASE를 확인하세요.',
-        );
-      }
-      return API_BASE;
-    };
+    const getApiBase = () => API_BASE;
 
     const requireAdminToken = () => {
       const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        throw new AuthError('로그인이 필요합니다.');
-      }
+      if (!token) throw new AuthError('로그인이 필요합니다.');
       return token;
     };
 

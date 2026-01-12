@@ -18,12 +18,7 @@ import { ManualWardPayload } from '../ManualWardForm';
 import { Admin } from '../../types/models';
 import Sidebar, { SIDEBAR_WIDTH_VALUE } from './Sidebar';
 import Header, { HEADER_HEIGHT } from './Header';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
-
-if (!API_BASE) {
-  throw new Error('NEXT_PUBLIC_API_BASE 환경 변수가 설정되지 않았습니다.');
-}
+import { API_BASE } from '../../lib/api-client';
 
 export interface DashboardLayoutProps {
   /** Page content */
