@@ -348,17 +348,17 @@ export const ParticipantDetailSidebar = ({
           position: 'fixed',
           right: 0,
           top: 0,
-          bottom: 0,
           width: 'min(420px, 90vw)',
+          height: '100vh',
           background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
           borderLeft: '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
           color: '#4A5D23',
           boxShadow: '-40px 0 80px rgba(15, 23, 42, 0.15)',
-          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
           overflow: 'hidden',
         }}
-        className="flex flex-col"
       >
         {/* Header */}
         <div
@@ -411,13 +411,15 @@ export const ParticipantDetailSidebar = ({
 
         {/* Content */}
         <div
-          className="flex-1 overflow-y-auto"
           style={{
+            flex: 1,
+            overflowY: 'auto',
             padding: '24px 32px 32px 32px',
             display: 'flex',
             flexDirection: 'column',
             gap: '18px',
             overscrollBehavior: 'contain',
+            minHeight: 0,
           }}
         >
           {/* Emergency Status Alert - only shown when danger is detected */}
@@ -610,7 +612,13 @@ export const ParticipantDetailSidebar = ({
                         error,
                       );
                       alert(
-                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant ID: ${participant.id}\nBeneficiary ID: ${participant.beneficiaryId || 'N/A'}\n\n${error instanceof Error ? error.message : String(error)}`,
+                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant ID: ${
+                          participant.id
+                        }\nBeneficiary ID: ${
+                          participant.beneficiaryId || 'N/A'
+                        }\n\n${
+                          error instanceof Error ? error.message : String(error)
+                        }`,
                       );
                     } finally {
                       setLoadingDetail(false);
@@ -675,7 +683,14 @@ export const ParticipantDetailSidebar = ({
                 }}
               >
                 {transcripts.length === 0 ? (
-                  <div style={{ textAlign: 'center', fontSize: '12px', color: '#9ca3af', padding: '16px 0' }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      padding: '16px 0',
+                    }}
+                  >
                     대화 내역이 없습니다.
                   </div>
                 ) : (
@@ -766,8 +781,8 @@ export const ParticipantDetailSidebar = ({
               background: isTakeoverActive
                 ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                 : isDanger
-                  ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
-                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
+                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               color: '#ffffff',
               fontWeight: 800,
               padding: '18px',
@@ -818,96 +833,6 @@ export const ParticipantDetailSidebar = ({
             {isTakeoverActive ? '통화 종료' : '긴급 통화 개입'}
           </button>
 
-          {/* Emergency Services Buttons - Grid layout */}
-          {isDanger && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-              }}
-            >
-              <button
-                style={{
-                  background:
-                    'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  padding: '14px 12px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '15px',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)',
-                }}
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.navigator.vibrate?.(100);
-                  }
-                  // TODO: Call 119
-                  window.open('tel:119');
-                }}
-                onMouseOver={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 6px 16px rgba(245, 158, 11, 0.4)';
-                }}
-                onMouseOut={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 12px rgba(245, 158, 11, 0.3)';
-                }}
-              >
-                <AlertOctagon size={20} strokeWidth={2.5} />
-                <span>119 신고</span>
-              </button>
-
-              <button
-                style={{
-                  background:
-                    'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  padding: '14px 12px',
-                  borderRadius: '12px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '15px',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 4px 12px rgba(8, 145, 178, 0.3)',
-                }}
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.navigator.vibrate?.(100);
-                  }
-                  // TODO: Call 112
-                  window.open('tel:112');
-                }}
-                onMouseOver={e => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow =
-                    '0 6px 16px rgba(8, 145, 178, 0.4)';
-                }}
-                onMouseOut={e => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow =
-                    '0 4px 12px rgba(8, 145, 178, 0.3)';
-                }}
-              >
-                <AlertOctagon size={20} strokeWidth={2.5} />
-                <span>112 신고</span>
-              </button>
-            </div>
-          )}
 
           {/* Clear Danger Button */}
           {isDanger && (
