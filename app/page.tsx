@@ -367,10 +367,7 @@ export default function Home() {
                   <ParticipantDetailSidebar
                     participant={detailParticipant}
                     roomName={selectedRoomName}
-                    apiBase={
-                      process.env.NEXT_PUBLIC_API_BASE_URL ||
-                      process.env.NEXT_PUBLIC_API_URL
-                    }
+                    apiBase={API_BASE}
                     isTakeoverActive={isTakeoverActive}
                     onToggleTakeover={handleToggleTakeover}
                     onClose={handleCloseSidebar}
