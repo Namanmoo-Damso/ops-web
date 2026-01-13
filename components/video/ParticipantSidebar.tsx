@@ -22,11 +22,6 @@ type ParticipantSidebarProps = {
   onSelectParticipant: (id: string) => void;
   onClose: () => void;
   onMuteAll: () => void;
-  onInvite: (id: string) => void;
-  inviteBusy: boolean;
-  inviteStatus: string | null;
-  connected: boolean;
-  canControl: boolean;
 };
 
 export const ParticipantSidebar = ({
@@ -35,11 +30,6 @@ export const ParticipantSidebar = ({
   onSelectParticipant,
   onClose,
   onMuteAll,
-  onInvite,
-  inviteBusy,
-  inviteStatus,
-  connected,
-  canControl,
 }: ParticipantSidebarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -55,11 +45,6 @@ export const ParticipantSidebar = ({
         p.id.toLowerCase().includes(query),
     );
   }, [participants, searchQuery]);
-
-  const selectedParticipant = selectedParticipantId
-    ? filteredParticipants.find(p => p.id === selectedParticipantId)
-    : null;
-  const isSelectedOnline = selectedParticipant?.online === true;
 
   return (
     <aside className={styles.sidebar}>
@@ -110,21 +95,6 @@ export const ParticipantSidebar = ({
           </div>
         ))}
       </div>
-      <div className={styles.sidebarFooter}>
-        <button
-          className={`${styles.footerButton} ${styles.primary}`}
-          onClick={() => {
-            if (isSelectedOnline) return;
-            onInvite(selectedParticipantId ?? '');
-          }}
-          disabled={inviteBusy || !selectedParticipantId || isSelectedOnline}
-        >
-          {isSelectedOnline ? '이미 참여 중' : '초대하기'}
-        </button>
-      </div>
-      {inviteStatus ? (
-        <div className={styles.sidebarStatus}>{inviteStatus}</div>
-      ) : null}
     </aside>
   );
 };

@@ -38,115 +38,28 @@ export default function Home() {
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isTakeoverActive, setIsTakeoverActive] = useState(false);
   const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
-  const [inviteBusy, setInviteBusy] = useState(false);
-  const [inviteStatus, setInviteStatus] = useState<string | null>(null);
-
-  // Handle invite call to participant
-  const handleInvite = async (participantId: string) => {
-    if (!participantId || !API_BASE) return;
-
-    setInviteBusy(true);
-    setInviteStatus(null);
-
-    try {
-      const response = await fetch(`${API_BASE}/v1/calls/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          callerIdentity: '담소',
-          calleeIdentity: participantId,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || '초대 요청 실패');
-      }
-
-      setInviteStatus('초대가 전송되었습니다');
-      setTimeout(() => setInviteStatus(null), 3000);
-    } catch (error) {
-      console.error('[Home] Invite failed:', error);
-      setInviteStatus(`오류: ${(error as Error).message}`);
-      setTimeout(() => setInviteStatus(null), 5000);
-    } finally {
-      setInviteBusy(false);
-    }
-  };
-
   // Toggle fullscreen mode (hides sidebar and navbar)
   const toggleMonitoringFullscreen = () => {
     setIsMonitoringFullscreen(prev => !prev);
   };
 
-  // Fetch participants from database on mount (for persistence across refreshes)
-  useEffect(() => {
-    const fetchParticipants = async () => {
-      if (!API_BASE) return;
-      try {
-        const response = await fetch(`${API_BASE}/v1/livekit/participants`);
-        if (!response.ok) return;
-        const data = await response.json();
-        if (data.participants && Array.isArray(data.participants)) {
-          // Group participants by a default room key since they're from DB
-          const dbParticipants: MockParticipant[] = data.participants.map(
-            (p: any) => ({
-              id: p.id,
-              name: p.name,
-              status: '',
-              speaking: false,
-              muted: true,
-              cameraOff: true,
-              you: false,
-              online: false,
-              lastSeen: p.lastSeen,
-              beneficiaryId: p.id,
-            }),
-          );
-          // Store under a special '_db' key to be merged with live data
-          setAllParticipants(prev => ({
-            ...prev,
-            _db: dbParticipants,
-          }));
-        }
-      } catch (error) {
-        console.warn('[Home] Failed to fetch participants from API:', error);
-      }
-    };
-    fetchParticipants();
-  }, []);
-
-  // Collect participants from all rooms or selected room, merging DB and live data
+  // Collect participants from all rooms or selected room (from LiveKit tiles only)
   const participantList = useMemo(() => {
-    const participantMap = new Map<string, MockParticipant>();
+    const participants: MockParticipant[] = [];
 
-    // First, add all database participants (offline by default)
-    const dbParticipants = allParticipants['_db'] || [];
-    dbParticipants.forEach(p => {
-      participantMap.set(p.id, { ...p, online: false });
-    });
-
-    // Then, update with live room participants (using their actual online status)
     Object.entries(allParticipants).forEach(([roomName, roomParticipants]) => {
-      if (roomName === '_db') return; // Skip the DB key
-
       // If a specific room is selected, only include that room's participants
       if (selectedRoomName && roomName !== selectedRoomName) return;
 
       roomParticipants.forEach(p => {
-        // Merge with existing data from DB, using the room's online status
-        const existing = participantMap.get(p.id);
-        participantMap.set(p.id, {
-          ...(existing || {}),
-          ...p,
-          // Use the participant's actual online status from the room data
-        });
+        // Avoid duplicates
+        if (!participants.some(existing => existing.id === p.id)) {
+          participants.push(p);
+        }
       });
     });
 
-    return Array.from(participantMap.values());
+    return participants;
   }, [allParticipants, selectedRoomName]);
 
   // Close detail sidebar if the selected participant leaves
@@ -198,30 +111,25 @@ export default function Home() {
     [connections],
   );
 
-  // Mark participants as offline when their room is removed from connections
+  // Remove participants when their room is removed from connections
   useEffect(() => {
     const activeRoomNames = new Set(connections.map(c => c.roomName));
 
     setAllParticipants(prev => {
-      const roomsToUpdate = Object.keys(prev).filter(
-        roomName => roomName !== '_db' && !activeRoomNames.has(roomName),
+      const roomsToRemove = Object.keys(prev).filter(
+        roomName => !activeRoomNames.has(roomName),
       );
 
-      if (roomsToUpdate.length === 0) return prev;
+      if (roomsToRemove.length === 0) return prev;
 
       const updated = { ...prev };
-      roomsToUpdate.forEach(roomName => {
-        updated[roomName] = prev[roomName].map(p => ({
-          ...p,
-          online: false,
-          speaking: false,
-          lastSeen: p.online ? new Date().toISOString() : p.lastSeen,
-        }));
+      roomsToRemove.forEach(roomName => {
+        delete updated[roomName];
       });
 
       return updated;
     });
-  }, [activeRoomNamesKey, connections]);
+  }, [activeRoomNamesKey]);
 
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;
@@ -244,49 +152,16 @@ export default function Home() {
           setAllParticipants(prev => {
             const existingParticipants = prev[roomName] || [];
 
-            // Create a map of currently online participants by ID
-            const onlineParticipantIds = new Set(participants.map(p => p.id));
-
-            // Merge: keep existing participants (mark as offline if not in new list)
-            // and add/update participants from the new list
-            const mergedParticipants: MockParticipant[] = [];
-            const processedIds = new Set<string>();
-
-            // First, add all current online participants
-            for (const p of participants) {
-              mergedParticipants.push({
-                ...p,
-                online: true,
-              });
-              processedIds.add(p.id);
-            }
-
-            // Then, keep any previously seen participants who are now offline
-            for (const existingP of existingParticipants) {
-              if (!processedIds.has(existingP.id)) {
-                mergedParticipants.push({
-                  ...existingP,
-                  online: false,
-                  speaking: false,
-                  lastSeen: existingP.online
-                    ? new Date().toISOString()
-                    : existingP.lastSeen,
-                });
-                processedIds.add(existingP.id);
-              }
-            }
-
             // Check if anything actually changed
             if (
-              existingParticipants.length === mergedParticipants.length &&
+              existingParticipants.length === participants.length &&
               existingParticipants.every((p, idx) => {
-                const merged = mergedParticipants[idx];
+                const updated = participants[idx];
                 return (
-                  p.id === merged?.id &&
-                  p.muted === merged?.muted &&
-                  p.cameraOff === merged?.cameraOff &&
-                  p.speaking === merged?.speaking &&
-                  p.online === merged?.online
+                  p.id === updated?.id &&
+                  p.muted === updated?.muted &&
+                  p.cameraOff === updated?.cameraOff &&
+                  p.speaking === updated?.speaking
                 );
               })
             ) {
@@ -295,7 +170,7 @@ export default function Home() {
 
             return {
               ...prev,
-              [roomName]: mergedParticipants,
+              [roomName]: participants,
             };
           });
         };
@@ -512,7 +387,7 @@ export default function Home() {
     </div>
   );
 
-  const renderParticipantSidebar = (connected: boolean) =>
+  const renderParticipantSidebar = () =>
     showParticipantList &&
     !showFullScreenVideo && (
       <ParticipantSidebar
@@ -524,11 +399,6 @@ export default function Home() {
           setSelectedRoomName(null);
         }}
         onMuteAll={() => {}}
-        onInvite={handleInvite}
-        inviteBusy={inviteBusy}
-        inviteStatus={inviteStatus}
-        connected={connected}
-        canControl={connected}
       />
     );
 
@@ -561,9 +431,7 @@ export default function Home() {
               onToggleFullscreen={toggleMonitoringFullscreen}
             />
           </div>
-          {showParticipantList &&
-            !showFullScreenVideo &&
-            renderParticipantSidebar(hasConnections)}
+          {renderParticipantSidebar()}
         </div>
       </div>
     </div>
@@ -603,7 +471,7 @@ export default function Home() {
               />
             </div>
 
-            {renderParticipantSidebar(hasConnections)}
+            {renderParticipantSidebar()}
           </div>
         </div>
       </div>
