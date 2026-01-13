@@ -41,3 +41,5 @@ export type {
   KeywordStat,
   StatsResponse,
 } from './useDashboardApi';
+export { useBeneficiaryStatsApi } from './useBeneficiaryStatsApi';
+export type { BeneficiaryUsageStats } from './useBeneficiaryStatsApi';
