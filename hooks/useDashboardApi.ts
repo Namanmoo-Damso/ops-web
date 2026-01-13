@@ -21,6 +21,17 @@ export interface TimelineResponse {
   fetchedAt: string;
 }
 
+export interface TodaySummary {
+  totalCalls: number;
+  incomingCalls: number;
+  outgoingCalls: number;
+  totalDurationMinutes: number;
+  avgDurationMinutes: number;
+  scheduledCheckIns: number;
+  completedCheckIns: number;
+  fetchedAt: string;
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -52,6 +63,27 @@ export function useDashboardApi() {
     },
     [],
   );
+
+  /**
+   * Get today's daily operations summary
+   */
+  const getTodaySummary =
+    useCallback(async (): Promise<TodaySummary | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        return await apiClient.get<TodaySummary>(
+          '/v1/admin/dashboard/today-summary',
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch today summary',
+        );
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    }, []);
 
   /**
    * Get dashboard stats
@@ -91,6 +123,7 @@ export function useDashboardApi() {
     loading,
     error,
     getTimeline,
+    getTodaySummary,
     getStats,
     getRealtime,
   };

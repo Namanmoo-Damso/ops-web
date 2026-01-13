@@ -29,4 +29,8 @@ export type {
   UpdateBulletinData,
 } from './useBulletinsApi';
 export { useDashboardApi } from './useDashboardApi';
-export type { TimelineHour, TimelineResponse } from './useDashboardApi';
+export type {
+  TimelineHour,
+  TimelineResponse,
+  TodaySummary,
+} from './useDashboardApi';

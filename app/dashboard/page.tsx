@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 import {
   DailyOperationsSummary,
+  DailyOperationsData,
   OperationsTimeline,
   EmergencyLog,
   BulletinBoard,
@@ -31,10 +32,32 @@ export default function DashboardPage() {
   const [bulletinsLoading, setBulletinsLoading] = useState(true);
   const [timelineData, setTimelineData] = useState<HourlyCallData[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(true);
+  const [todaySummary, setTodaySummary] = useState<
+    DailyOperationsData | undefined
+  >(undefined);
+  const [summaryLoading, setSummaryLoading] = useState(true);
 
   const { listBulletins, createBulletin, updateBulletin, deleteBulletin } =
     useBulletinsApi();
-  const { getTimeline } = useDashboardApi();
+  const { getTimeline, getTodaySummary } = useDashboardApi();
+
+  // Load today's summary on mount
+  const loadTodaySummary = useCallback(async () => {
+    setSummaryLoading(true);
+    const result = await getTodaySummary();
+    if (result) {
+      setTodaySummary({
+        totalCalls: result.totalCalls,
+        incomingCalls: result.incomingCalls,
+        outgoingCalls: result.outgoingCalls,
+        totalDurationMinutes: result.totalDurationMinutes,
+        avgDurationMinutes: result.avgDurationMinutes,
+        scheduledCheckIns: result.scheduledCheckIns,
+        completedCheckIns: result.completedCheckIns,
+      });
+    }
+    setSummaryLoading(false);
+  }, [getTodaySummary]);
 
   // Load bulletins on mount
   const loadBulletins = useCallback(async () => {
@@ -72,9 +95,10 @@ export default function DashboardPage() {
   }, [getTimeline]);
 
   useEffect(() => {
+    loadTodaySummary();
     loadBulletins();
     loadTimeline();
-  }, [loadBulletins, loadTimeline]);
+  }, [loadTodaySummary, loadBulletins, loadTimeline]);
 
   const handleAddBulletin = async (item: Omit<BulletinItem, 'id'>) => {
     const result = await createBulletin({
@@ -153,7 +177,7 @@ export default function DashboardPage() {
     >
       <div className="dashboard-container">
         {/* Hero Section: Daily Operations Summary */}
-        <DailyOperationsSummary />
+        <DailyOperationsSummary data={todaySummary} loading={summaryLoading} />
 
         {/* Middle Row: Bulletin Board + Timeline Chart */}
         <section className="dashboard-middle-row">
