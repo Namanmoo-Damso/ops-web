@@ -18,10 +18,6 @@ export interface SettingsState {
         sleepCheck: boolean;
         moodCheck: boolean;
     };
-    guardianNotifications: {
-        autoSMS: boolean;
-        emailAlerts: boolean;
-    };
     scheduledCalls: {
         preferredStartTime: string;
         preferredEndTime: string;
@@ -42,10 +38,6 @@ export const DEFAULT_SETTINGS: SettingsState = {
         medicationCheck: true,
         sleepCheck: false,
         moodCheck: true,
-    },
-    guardianNotifications: {
-        autoSMS: true,
-        emailAlerts: false,
     },
     scheduledCalls: {
         preferredStartTime: '09:00',
