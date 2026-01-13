@@ -33,4 +33,11 @@ export type {
   TimelineHour,
   TimelineResponse,
   TodaySummary,
+  StatsOverview,
+  TodayStats,
+  WeeklyTrend,
+  MoodDistribution,
+  HealthAlerts,
+  KeywordStat,
+  StatsResponse,
 } from './useDashboardApi';

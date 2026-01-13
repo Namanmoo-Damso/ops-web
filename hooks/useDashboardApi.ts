@@ -32,6 +32,55 @@ export interface TodaySummary {
   fetchedAt: string;
 }
 
+export interface StatsOverview {
+  totalWards: number;
+  activeWards: number;
+  totalGuardians: number;
+  totalOrganizations: number;
+  totalCalls: number;
+  totalCallMinutes: number;
+}
+
+export interface TodayStats {
+  calls: number;
+  avgDuration: number;
+  emergencies: number;
+  newRegistrations: number;
+}
+
+export interface WeeklyTrend {
+  calls: number[];
+  emergencies: number[];
+  labels: string[];
+}
+
+export interface MoodDistribution {
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface HealthAlerts {
+  warning: number;
+  info: number;
+  unread: number;
+}
+
+export interface KeywordStat {
+  keyword: string;
+  count: number;
+}
+
+export interface StatsResponse {
+  overview: StatsOverview;
+  todayStats: TodayStats;
+  weeklyTrend: WeeklyTrend;
+  moodDistribution: MoodDistribution;
+  healthAlerts: HealthAlerts;
+  topKeywords: KeywordStat[];
+  fetchedAt: string;
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -88,11 +137,11 @@ export function useDashboardApi() {
   /**
    * Get dashboard stats
    */
-  const getStats = useCallback(async (): Promise<any | null> => {
+  const getStats = useCallback(async (): Promise<StatsResponse | null> => {
     setLoading(true);
     setError(null);
     try {
-      return await apiClient.get('/v1/admin/dashboard/stats');
+      return await apiClient.get<StatsResponse>('/v1/admin/dashboard/stats');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');
       return null;
