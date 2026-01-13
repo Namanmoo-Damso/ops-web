@@ -88,7 +88,8 @@ export default function StaffPage() {
       setStats(statsRes);
     }
     setIsLoading(false);
-  }, [staffApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     loadData();

@@ -57,7 +57,8 @@ export default function DashboardPage() {
       });
     }
     setSummaryLoading(false);
-  }, [getTodaySummary]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load bulletins on mount
   const loadBulletins = useCallback(async () => {
@@ -75,7 +76,8 @@ export default function DashboardPage() {
       setBulletinItems(items);
     }
     setBulletinsLoading(false);
-  }, [listBulletins]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Load timeline on mount
   const loadTimeline = useCallback(async () => {
@@ -92,7 +94,8 @@ export default function DashboardPage() {
       setTimelineData(data);
     }
     setTimelineLoading(false);
-  }, [getTimeline]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     loadTodaySummary();

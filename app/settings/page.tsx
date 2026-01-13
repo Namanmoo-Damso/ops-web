@@ -117,7 +117,8 @@ export default function SettingsPage() {
       setIsLoading(false);
     };
     loadSettings();
-  }, [settingsApi]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Warn user about unsaved changes before leaving
   useEffect(() => {
