@@ -4,7 +4,12 @@ import {
   VideoTrack,
   useRoomContext,
 } from '@livekit/components-react';
-import { VideoQuality, RoomEvent, Track } from 'livekit-client';
+import {
+  VideoQuality,
+  RoomEvent,
+  Track,
+  type TrackPublication,
+} from 'livekit-client';
 import type { MockParticipant } from './ParticipantSidebar';
 import Slider from '../ui/Slider';
 
@@ -26,6 +31,8 @@ export const FullScreenVideo = ({
 
   // Close volume slider when clicking outside
   useEffect(() => {
+    if (!showVolumeSlider) return;
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         volumeControlRef.current &&
@@ -35,9 +42,7 @@ export const FullScreenVideo = ({
       }
     };
 
-    if (showVolumeSlider) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -48,13 +53,15 @@ export const FullScreenVideo = ({
   useEffect(() => {
     const audioPublication = videoTrackRef?.participant
       ?.getTrackPublications?.()
-      ?.find((pub: any) => pub.kind === Track.Kind.Audio);
+      ?.find((pub: TrackPublication) => pub.kind === Track.Kind.Audio);
     const audioTrack = audioPublication?.track;
 
-    if (audioTrack) {
-      // Set volume on all attached audio elements
-      audioTrack.attachedElements?.forEach((element: HTMLMediaElement) => {
-        element.volume = volume / 100;
+    if (audioTrack?.attachedElements) {
+      const volumeValue = volume / 100;
+      audioTrack.attachedElements.forEach((element: HTMLMediaElement) => {
+        if (element.volume !== volumeValue) {
+          element.volume = volumeValue;
+        }
       });
     }
   }, [volume, videoTrackRef]);
