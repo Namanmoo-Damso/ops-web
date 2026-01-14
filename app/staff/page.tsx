@@ -108,6 +108,8 @@ export default function StaffPage() {
       email: data.email,
       name: data.name,
       phoneNumber: data.phone,
+      team: data.team,
+      jobTitle: data.jobTitle,
     });
     if (result) {
       loadData(); // Reload data
