@@ -1,22 +1,70 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   TrackRefContext,
   VideoTrack,
   useRoomContext,
 } from '@livekit/components-react';
-import { VideoQuality, RoomEvent, Track } from 'livekit-client';
+import {
+  VideoQuality,
+  RoomEvent,
+  Track,
+  type TrackPublication,
+} from 'livekit-client';
 import type { MockParticipant } from './ParticipantSidebar';
+import Slider from '../ui/Slider';
 
 type FullScreenVideoProps = {
   participant: MockParticipant;
   videoTrackRef: any;
+  isDanger?: boolean;
 };
 
 export const FullScreenVideo = ({
   participant,
   videoTrackRef,
+  isDanger = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
+  const [volume, setVolume] = useState(100);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeControlRef = useRef<HTMLDivElement>(null);
+
+  // Close volume slider when clicking outside
+  useEffect(() => {
+    if (!showVolumeSlider) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        volumeControlRef.current &&
+        !volumeControlRef.current.contains(event.target as Node)
+      ) {
+        setShowVolumeSlider(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showVolumeSlider]);
+
+  // Apply volume to audio track
+  useEffect(() => {
+    const audioPublication = videoTrackRef?.participant
+      ?.getTrackPublications?.()
+      ?.find((pub: TrackPublication) => pub.kind === Track.Kind.Audio);
+    const audioTrack = audioPublication?.track;
+
+    if (audioTrack?.attachedElements) {
+      const volumeValue = volume / 100;
+      audioTrack.attachedElements.forEach((element: HTMLMediaElement) => {
+        if (element.volume !== volumeValue) {
+          element.volume = volumeValue;
+        }
+      });
+    }
+  }, [volume, videoTrackRef]);
 
   // Request highest quality immediately
   useEffect(() => {
@@ -106,7 +154,7 @@ export const FullScreenVideo = ({
 
       // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
       retryTimeouts = [500, 1000, 2000].map((delay, i) =>
-        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay)
+        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay),
       );
     }
 
@@ -188,7 +236,8 @@ export const FullScreenVideo = ({
           position: 'fixed',
           inset: 0,
           left: '280px',
-          right: '520px',
+          right: '420px',
+          top: '80px', // navbar 아래로 조정 (작은 화면 대응)
           zIndex: 50,
           display: 'flex',
           alignItems: 'center',
@@ -214,12 +263,27 @@ export const FullScreenVideo = ({
               position: 'relative',
               borderRadius: '24px',
               overflow: 'hidden',
-              boxShadow: '0 40px 100px rgba(0, 0, 0, 0.6)',
+              boxShadow: isDanger
+                ? '0 0 0 4px #ef4444, 0 0 40px rgba(239, 68, 68, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6)'
+                : '0 40px 100px rgba(0, 0, 0, 0.6)',
               background: '#000000',
               height: '90vh',
               aspectRatio: '9 / 16', // Maintains portrait aspect ratio
+              animation: isDanger
+                ? 'dangerPulse 1.5s ease-in-out infinite'
+                : undefined,
             }}
           >
+            {isDanger && (
+              <style>
+                {`
+                  @keyframes dangerPulse {
+                    0%, 100% { box-shadow: 0 0 0 4px #ef4444, 0 0 40px rgba(239, 68, 68, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6); }
+                    50% { box-shadow: 0 0 0 6px #ef4444, 0 0 60px rgba(239, 68, 68, 0.8), 0 40px 100px rgba(0, 0, 0, 0.6); }
+                  }
+                `}
+              </style>
+            )}
             <TrackRefContext.Provider value={videoTrackRef}>
               <VideoTrack
                 style={{
@@ -256,42 +320,139 @@ export const FullScreenVideo = ({
                 width: '10px',
                 height: '10px',
                 borderRadius: '50%',
-                background: '#10b981',
+                background: isDanger ? '#ef4444' : '#10b981',
+                animation: isDanger
+                  ? 'pulse 1s ease-in-out infinite'
+                  : undefined,
               }}
             />
             {participant.name}
           </div>
+        </div>
+      </div>
 
-          {/* Live Indicator */}
+      {/* Volume Control - Separate from video container to have higher z-index than backdrop */}
+      <div
+        ref={volumeControlRef}
+        style={{
+          position: 'fixed',
+          bottom: 'calc(4vh)',
+          left: '53%',
+          transform: 'translateX(calc(-50% + 70px))',
+          zIndex: 65,
+        }}
+      >
+        {/* Volume Slider Popup - Vertical */}
+        {showVolumeSlider && (
           <div
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
             style={{
               position: 'absolute',
-              top: '24px',
-              left: '24px',
-              padding: '10px 16px',
-              background: 'rgba(0, 0, 0, 0.8)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: '12px',
-              fontSize: '13px',
-              fontWeight: 700,
-              color: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
+              bottom: '100px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '120px',
+              height: '32px',
             }}
           >
-            <span
+            <div
               style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#ef4444',
+                transform: 'rotate(-90deg)',
+                transformOrigin: 'center center',
+                width: '120px',
               }}
-              className="animate-pulse"
-            />
-            실시간
+            >
+              <Slider
+                value={volume}
+                onChange={setVolume}
+                min={0}
+                max={100}
+                step={1}
+                aria-label="Volume"
+              />
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Volume Button */}
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+            setShowVolumeSlider(!showVolumeSlider);
+          }}
+          onMouseDown={e => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          style={{
+            padding: '12px',
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '12px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            transition: 'background 0.2s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+          }}
+          aria-label="Volume control"
+        >
+          {volume === 0 ? (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          ) : volume < 50 ? (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          ) : (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </svg>
+          )}
+        </button>
       </div>
     </>
   );

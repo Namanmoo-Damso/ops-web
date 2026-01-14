@@ -21,6 +21,27 @@ type UseAuthedFetchResult<T> = {
   error: string | null;
 };
 
+/**
+ * @deprecated This hook is deprecated. Use `useApi` from '@/hooks/useApi' instead.
+ * 
+ * Migration example:
+ * ```tsx
+ * // Before
+ * const { data } = useAuthedFetch({
+ *   deps: [id],
+ *   fetcher: async ({ token, signal }) => {
+ *     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal });
+ *     return res.json();
+ *   },
+ * });
+ * 
+ * // After
+ * const { data } = useApi({
+ *   deps: [id],
+ *   fetcher: (client, signal) => client.get('/v1/path', { signal }),
+ * });
+ * ```
+ */
 export function useAuthedFetch<T>({
   deps,
   fetcher,

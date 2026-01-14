@@ -211,7 +211,7 @@ export const components = {
   },
 
   sidebar: {
-    width: '240px',
+    width: '220px',
     widthCollapsed: '64px',
   },
 } as const;

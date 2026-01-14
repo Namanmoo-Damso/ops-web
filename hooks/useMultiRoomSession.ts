@@ -1,27 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Room } from '../types/room';
-
-type RoomConnection = {
-  roomName: string;
-  token: string;
-  serverUrl: string;
-  connected: boolean;
-};
+import type { Room, RoomConnection } from '../types/room';
+import type { Admin } from '../types/models';
 
 type UseMultiRoomSessionOptions = {
-  apiBase: string;
-  livekitUrl: string;
+  apiBase: string | undefined;
   rooms: Room[];
   enabled?: boolean;
 };
 
 export function useMultiRoomSession({
   apiBase,
-  livekitUrl,
   rooms,
   enabled = true,
 }: UseMultiRoomSessionOptions) {
-  const [connections, setConnections] = useState<Record<string, RoomConnection>>({});
+  const [connections, setConnections] = useState<
+    Record<string, RoomConnection>
+  >({});
   const [adminIdentity, setAdminIdentity] = useState<string>('');
 
   // Fetch admin info on mount
@@ -35,7 +29,9 @@ export function useMultiRoomSession({
 
         if (!adminAccessToken) return;
 
-        const apiBaseResolved = apiBase || (typeof window !== 'undefined' ? window.location.origin : '');
+        const apiBaseResolved =
+          apiBase ||
+          (typeof window !== 'undefined' ? window.location.origin : '');
         const res = await fetch(`${apiBaseResolved}/admin/me`, {
           headers: {
             Authorization: `Bearer ${adminAccessToken}`,
@@ -43,7 +39,7 @@ export function useMultiRoomSession({
         });
 
         if (res.ok) {
-          const data = await res.json();
+          const data = (await res.json()) as { admin: Admin };
           const adminId = data.admin?.id || '';
           setAdminIdentity(`admin_${adminId}`);
         }
@@ -59,13 +55,19 @@ export function useMultiRoomSession({
   const joinRoom = useCallback(
     async (roomName: string) => {
       try {
-        const apiBaseResolved = apiBase || (typeof window !== 'undefined' ? window.location.origin : '');
+        const apiBaseResolved =
+          apiBase ||
+          (typeof window !== 'undefined' ? window.location.origin : '');
 
         const adminAccessToken =
-          typeof window !== 'undefined' ? window.localStorage.getItem('admin_access_token') : null;
+          typeof window !== 'undefined'
+            ? window.localStorage.getItem('admin_access_token')
+            : null;
 
         if (!adminAccessToken) {
-          console.error(`[useMultiRoomSession] No admin token for room: ${roomName}`);
+          console.error(
+            `[useMultiRoomSession] No admin token for room: ${roomName}`,
+          );
           return;
         }
 
@@ -84,37 +86,46 @@ export function useMultiRoomSession({
         });
 
         if (!rtcRes.ok) {
-          console.error(`[useMultiRoomSession] Failed to join room ${roomName}: ${rtcRes.status}`);
+          console.error(
+            `[useMultiRoomSession] Failed to join room ${roomName}: ${rtcRes.status}`,
+          );
           return;
         }
 
         const rtcData = await rtcRes.json();
         if (!rtcData?.token) {
-          console.error(`[useMultiRoomSession] No token received for room: ${roomName}`);
+          console.error(
+            `[useMultiRoomSession] No token received for room: ${roomName}`,
+          );
           return;
         }
 
-        setConnections((prev) => ({
+        setConnections(prev => ({
           ...prev,
           [roomName]: {
             roomName,
             token: rtcData.token,
-            serverUrl: rtcData.livekitUrl || livekitUrl,
+            serverUrl: rtcData.livekitUrl,
             connected: true,
           },
         }));
 
-        console.log(`[useMultiRoomSession] Successfully joined room: ${roomName}`);
+        console.log(
+          `[useMultiRoomSession] Successfully joined room: ${roomName}`,
+        );
       } catch (err) {
-        console.error(`[useMultiRoomSession] Error joining room ${roomName}:`, err);
+        console.error(
+          `[useMultiRoomSession] Error joining room ${roomName}:`,
+          err,
+        );
       }
     },
-    [apiBase, livekitUrl],
+    [apiBase],
   );
 
   // Leave a specific room
   const leaveRoom = useCallback((roomName: string) => {
-    setConnections((prev) => {
+    setConnections(prev => {
       const next = { ...prev };
       delete next[roomName];
       return next;
@@ -129,9 +140,9 @@ export function useMultiRoomSession({
       apiBase: !!apiBase,
       adminIdentity,
       roomsCount: rooms.length,
-      rooms: rooms.map((r) => ({
+      rooms: rooms.map(r => ({
         name: r.name,
-        participants: r.participants.map((p) => p.identity),
+        participants: r.participants.map(p => p.identity),
       })),
     });
 
@@ -151,34 +162,51 @@ export function useMultiRoomSession({
     const currentRoomNames = new Set(Object.keys(connections));
 
     // Filter rooms to only join those with at least one non-admin participant
-    const roomsWithNonAdminParticipants = rooms.filter((room) =>
-      room.participants.some((p) => !p.identity.startsWith('admin_'))
+    const roomsWithNonAdminParticipants = rooms.filter(room =>
+      room.participants.some(p => !p.identity.startsWith('admin_')),
     );
-    const newRoomNames = new Set(roomsWithNonAdminParticipants.map((r) => r.name));
+    const newRoomNames = new Set(
+      roomsWithNonAdminParticipants.map(r => r.name),
+    );
 
-    console.log('[useMultiRoomSession] Filtered rooms with non-admin participants:', {
-      total: rooms.length,
-      withNonAdmin: roomsWithNonAdminParticipants.length,
-      newRoomNames: Array.from(newRoomNames),
-      currentRoomNames: Array.from(currentRoomNames),
-    });
+    console.log(
+      '[useMultiRoomSession] Filtered rooms with non-admin participants:',
+      {
+        total: rooms.length,
+        withNonAdmin: roomsWithNonAdminParticipants.length,
+        newRoomNames: Array.from(newRoomNames),
+        currentRoomNames: Array.from(currentRoomNames),
+      },
+    );
 
     // Join new rooms that have non-admin participants
-    newRoomNames.forEach((roomName) => {
+    newRoomNames.forEach(roomName => {
       if (!currentRoomNames.has(roomName)) {
-        console.log(`[useMultiRoomSession] Joining room with participants: ${roomName}`);
+        console.log(
+          `[useMultiRoomSession] Joining room with participants: ${roomName}`,
+        );
         joinRoom(roomName);
       }
     });
 
     // Leave rooms that no longer exist or have no non-admin participants
-    currentRoomNames.forEach((roomName) => {
+    currentRoomNames.forEach(roomName => {
       if (!newRoomNames.has(roomName)) {
-        console.log(`[useMultiRoomSession] Leaving room (no participants or room closed): ${roomName}`);
+        console.log(
+          `[useMultiRoomSession] Leaving room (no participants or room closed): ${roomName}`,
+        );
         leaveRoom(roomName);
       }
     });
-  }, [enabled, apiBase, adminIdentity, rooms, connections, joinRoom, leaveRoom]);
+  }, [
+    enabled,
+    apiBase,
+    adminIdentity,
+    rooms,
+    connections,
+    joinRoom,
+    leaveRoom,
+  ]);
 
   return {
     connections: Object.values(connections),

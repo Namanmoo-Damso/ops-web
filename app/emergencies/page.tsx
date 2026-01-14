@@ -1,12 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import SidebarLayout from '../../components/SidebarLayout';
-import { palette } from '../theme';
-import { LocationMap, type WardLocation } from '../../components/LocationMap';
+import DashboardLayout from '../../components/layouts/DashboardLayout';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const borderStyle = `1px solid ${palette.border}`;
+import { LocationMap, type WardLocation } from '../../components/LocationMap';
+import { useApi } from '../../hooks/useApi';
+import { apiClient, AuthError } from '../../lib/api-client';
+
+
 
 type Emergency = {
   id: string;
@@ -21,6 +22,10 @@ type Emergency = {
   createdAt: string;
   resolvedAt: string | null;
   respondedAgencies: string[];
+};
+
+type EmergenciesResponse = {
+  emergencies: Emergency[];
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -38,66 +43,39 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#ef4444',
-  resolved: palette.success,
-  false_alarm: palette.textMuted,
+  resolved: "var(--color-success-main)",
+  false_alarm: "var(--color-text-muted)",
 };
 
 export default function EmergenciesPage() {
-  const [emergencies, setEmergencies] = useState<Emergency[]>([]);
   const [selectedEmergencyId, setSelectedEmergencyId] = useState<string | null>(
     null,
   );
   const [filterStatus, setFilterStatus] = useState<string>('active');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [isResolving, setIsResolving] = useState(false);
+  const { data, loading, error, refetch } = useApi<EmergenciesResponse>({
+    deps: [filterStatus],
+    fetcher: (client, signal) => {
+      const params = new URLSearchParams();
+      if (filterStatus) params.set('status', filterStatus);
+      return client.get(`/v1/admin/emergencies?${params.toString()}`, { signal });
+    },
+  });
 
-  const fetchEmergencies = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      const url = filterStatus
-        ? `${API_BASE}/v1/admin/emergencies?status=${filterStatus}`
-        : `${API_BASE}/v1/admin/emergencies`;
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      setEmergencies(data.emergencies || []);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filterStatus]);
+  const emergencies = data?.emergencies || [];
 
   useEffect(() => {
-    fetchEmergencies();
-
     let interval: NodeJS.Timeout | null = null;
     if (autoRefresh) {
-      interval = setInterval(fetchEmergencies, 10000);
+      interval = setInterval(() => {
+        refetch();
+      }, 10000);
     }
-
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [fetchEmergencies, autoRefresh]);
+  }, [autoRefresh, refetch]);
 
   const handleResolve = async (
     emergencyId: string,
@@ -107,36 +85,18 @@ export default function EmergenciesPage() {
     setIsResolving(true);
 
     try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
+      await apiClient.put(`/v1/admin/emergencies/${emergencyId}/resolve`, {
+        status,
+      });
+
+      refetch();
+      setSelectedEmergencyId(null);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        alert('세션이 만료되었습니다. 다시 로그인해주세요.');
         window.location.href = '/login';
         return;
       }
-      const response = await fetch(
-        `${API_BASE}/v1/admin/emergencies/${emergencyId}/resolve`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status }),
-        },
-      );
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      await fetchEmergencies();
-      setSelectedEmergencyId(null);
-    } catch (err) {
       alert(`해결 처리 실패: ${(err as Error).message}`);
     } finally {
       setIsResolving(false);
@@ -163,8 +123,15 @@ export default function EmergenciesPage() {
       organizationId: null,
     }));
 
+  const isLoading = loading && !data;
+
+  // Manual refresh handler
+  const handleRefresh = () => {
+    refetch();
+  };
+
   return (
-    <SidebarLayout>
+    <DashboardLayout>
       <div
         style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 80px)' }}
       >
@@ -174,7 +141,7 @@ export default function EmergenciesPage() {
             width: '420px',
             backgroundColor: 'white',
             borderRadius: '12px',
-            border: borderStyle,
+            border: "1px solid var(--color-border)",
             display: 'flex',
             flexDirection: 'column',
             flexShrink: 0,
@@ -185,8 +152,8 @@ export default function EmergenciesPage() {
           <div
             style={{
               padding: '20px',
-              borderBottom: borderStyle,
-              backgroundColor: activeCount > 0 ? palette.dangerSoft : 'white',
+              borderBottom: "1px solid var(--color-border)",
+              backgroundColor: activeCount > 0 ? "var(--color-danger-soft)" : 'white',
             }}
           >
             <h2
@@ -194,7 +161,7 @@ export default function EmergenciesPage() {
                 margin: 0,
                 fontSize: '18px',
                 fontWeight: 700,
-                color: palette.primaryDark,
+                color: "var(--color-primary-dark)",
               }}
             >
               비상 상황 관리
@@ -203,7 +170,7 @@ export default function EmergenciesPage() {
               style={{
                 margin: '6px 0 0',
                 fontSize: '14px',
-                color: activeCount > 0 ? palette.danger : palette.textMuted,
+                color: activeCount > 0 ? "var(--color-danger-main)" : "var(--color-text-muted)",
                 fontWeight: activeCount > 0 ? 600 : 400,
               }}
             >
@@ -219,7 +186,7 @@ export default function EmergenciesPage() {
               display: 'flex',
               gap: '8px',
               padding: '14px 20px',
-              borderBottom: borderStyle,
+              borderBottom: "1px solid var(--color-border)",
             }}
           >
             {['active', 'resolved', 'false_alarm', ''].map(status => (
@@ -231,8 +198,8 @@ export default function EmergenciesPage() {
                   fontSize: '13px',
                   fontWeight: 500,
                   backgroundColor:
-                    filterStatus === status ? palette.primary : palette.soft,
-                  color: filterStatus === status ? 'white' : palette.primaryDark,
+                    filterStatus === status ? "var(--color-primary)" : "var(--color-accent-soft)",
+                  color: filterStatus === status ? 'white' : "var(--color-primary-dark)",
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -251,7 +218,7 @@ export default function EmergenciesPage() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '14px 20px',
-              borderBottom: borderStyle,
+              borderBottom: "1px solid var(--color-border)",
             }}
           >
             <label
@@ -264,29 +231,31 @@ export default function EmergenciesPage() {
                 style={{
                   width: '16px',
                   height: '16px',
-                  accentColor: palette.primary,
+                  accentColor: "var(--color-primary)",
                 }}
               />
               <span
-                style={{ fontSize: '14px', color: palette.primaryDark, fontWeight: 500 }}
+                style={{ fontSize: '14px', color: "var(--color-primary-dark)", fontWeight: 500 }}
               >
                 자동 새로고침 (10초)
               </span>
             </label>
             <button
-              onClick={fetchEmergencies}
+              onClick={handleRefresh}
+              disabled={loading}
               style={{
                 padding: '8px 14px',
                 fontSize: '13px',
-                backgroundColor: palette.primary,
-                color: 'white',
+                backgroundColor: loading ? "var(--color-accent-soft)" : "var(--color-primary)",
+                color: loading ? "var(--color-text-muted)" : 'white',
                 border: 'none',
                 borderRadius: '8px',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontWeight: 600,
+                transition: 'all 0.2s',
               }}
             >
-              새로고침
+              {loading ? '로딩 중...' : '새로고침'}
             </button>
           </div>
 
@@ -297,7 +266,7 @@ export default function EmergenciesPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: palette.textMuted,
+                  color: "var(--color-text-muted)",
                 }}
               >
                 로딩 중...
@@ -307,7 +276,7 @@ export default function EmergenciesPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: palette.danger,
+                  color: "var(--color-danger-main)",
                 }}
               >
                 오류: {error}
@@ -317,7 +286,7 @@ export default function EmergenciesPage() {
                 style={{
                   padding: '32px',
                   textAlign: 'center',
-                  color: palette.textMuted,
+                  color: "var(--color-text-muted)",
                 }}
               >
                 비상 상황이 없습니다.
@@ -339,8 +308,8 @@ export default function EmergenciesPage() {
             <div
               style={{
                 padding: '20px',
-                borderTop: borderStyle,
-                backgroundColor: palette.background,
+                borderTop: "1px solid var(--color-border)",
+                backgroundColor: "var(--color-bg)",
               }}
             >
               <h3
@@ -348,7 +317,7 @@ export default function EmergenciesPage() {
                   margin: '0 0 14px',
                   fontSize: '16px',
                   fontWeight: 600,
-                  color: palette.primaryDark,
+                  color: "var(--color-primary-dark)",
                 }}
               >
                 {selectedEmergency.wardName}
@@ -356,34 +325,34 @@ export default function EmergenciesPage() {
               <div
                 style={{
                   fontSize: '13px',
-                  color: palette.primaryDark,
+                  color: "var(--color-primary-dark)",
                   lineHeight: '1.9',
                 }}
               >
                 <div>
-                  <strong style={{ color: palette.primaryDark }}>유형:</strong>{' '}
+                  <strong style={{ color: "var(--color-primary-dark)" }}>유형:</strong>{' '}
                   {TYPE_LABELS[selectedEmergency.type]}
                 </div>
                 <div>
-                  <strong style={{ color: palette.primaryDark }}>발생시각:</strong>{' '}
+                  <strong style={{ color: "var(--color-primary-dark)" }}>발생시각:</strong>{' '}
                   {new Date(selectedEmergency.createdAt).toLocaleString(
                     'ko-KR',
                   )}
                 </div>
                 {selectedEmergency.message && (
                   <div>
-                    <strong style={{ color: palette.primaryDark }}>메시지:</strong>{' '}
+                    <strong style={{ color: "var(--color-primary-dark)" }}>메시지:</strong>{' '}
                     {selectedEmergency.message}
                   </div>
                 )}
                 {selectedEmergency.respondedAgencies.length > 0 && (
                   <div>
-                    <strong style={{ color: palette.primaryDark }}>연락기관:</strong>{' '}
+                    <strong style={{ color: "var(--color-primary-dark)" }}>연락기관:</strong>{' '}
                     {selectedEmergency.respondedAgencies.join(', ')}
                   </div>
                 )}
                 <div>
-                  <strong style={{ color: palette.primaryDark }}>보호자 알림:</strong>{' '}
+                  <strong style={{ color: "var(--color-primary-dark)" }}>보호자 알림:</strong>{' '}
                   {selectedEmergency.guardianNotified ? '완료' : '미발송'}
                 </div>
               </div>
@@ -402,7 +371,7 @@ export default function EmergenciesPage() {
                       padding: '12px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: palette.success,
+                      backgroundColor: "var(--color-success-main)",
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -422,7 +391,7 @@ export default function EmergenciesPage() {
                       padding: '12px',
                       fontSize: '14px',
                       fontWeight: 600,
-                      backgroundColor: palette.textMuted,
+                      backgroundColor: "var(--color-text-muted)",
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -444,7 +413,7 @@ export default function EmergenciesPage() {
             flex: 1,
             borderRadius: '12px',
             overflow: 'hidden',
-            border: borderStyle,
+            border: "1px solid var(--color-border)",
           }}
         >
           <LocationMap
@@ -461,7 +430,7 @@ export default function EmergenciesPage() {
           />
         </main>
       </div>
-    </SidebarLayout>
+    </DashboardLayout>
   );
 }
 
@@ -489,9 +458,9 @@ function EmergencyCard({
         border: 'none',
         borderBottom: '1px solid #F0F5E8',
         backgroundColor: isSelected
-          ? palette.soft
+          ? "var(--color-accent-soft)"
           : isActive
-            ? palette.dangerSoft
+            ? "var(--color-danger-soft)"
             : 'transparent',
         cursor: 'pointer',
         textAlign: 'left',
@@ -522,21 +491,21 @@ function EmergencyCard({
             style={{
               fontWeight: isActive ? 600 : 500,
               fontSize: '14px',
-              color: isActive ? palette.danger : palette.primaryDark,
+              color: isActive ? "var(--color-danger-main)" : "var(--color-primary-dark)",
             }}
           >
             {emergency.wardName}
           </span>
-          <span style={{ fontSize: '12px', color: palette.textMuted }}>{timeAgo}</span>
+          <span style={{ fontSize: '12px', color: "var(--color-text-muted)" }}>{timeAgo}</span>
         </div>
-        <div style={{ fontSize: '12px', color: palette.textMuted }}>
+        <div style={{ fontSize: '12px', color: "var(--color-text-muted)" }}>
           {TYPE_LABELS[emergency.type]} | {STATUS_LABELS[emergency.status]}
         </div>
         {emergency.respondedAgencies.length > 0 && (
           <div
             style={{
               fontSize: '11px',
-              color: palette.textSoft,
+              color: "var(--color-text-soft)",
               marginTop: '6px',
               overflow: 'hidden',
               textOverflow: 'ellipsis',

@@ -1,436 +1,220 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import SidebarLayout from '../../components/SidebarLayout';
-import { palette } from '../theme';
+import { useEffect, useMemo, useState } from 'react';
+import DashboardLayout from '../../components/layouts/DashboardLayout';
 import { LocationMap, type WardLocation } from '../../components/LocationMap';
+import MonitoringSidebar from '../../components/monitoring/MonitoringSidebar';
+import { useApi } from '../../hooks/useApi';
+import { apiClient } from '../../lib/api-client';
+import DetailModal, {
+  type BeneficiaryDetail,
+  type BeneficiaryUpdatePayload,
+  type BeneficiarySummary,
+} from '../beneficiaries/DetailModal';
+import '../../styles/monitoring.css';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const borderStyle = `1px solid ${palette.border}`;
+type LocationsResponse = {
+  locations: WardLocation[];
+};
+
+type BeneficiaryDetailResponse = {
+  data: BeneficiaryDetail & { id: string };
+};
+
+type MyWardsResponse = {
+  wards: Array<{
+    id: string;
+    wardId: string | null;
+    name: string;
+    phoneNumber?: string;
+    address?: string;
+    birthDate?: string;
+  }>;
+};
+
+const EMPTY_DETAIL: BeneficiaryDetail = {
+  name: '',
+  email: null,
+  phoneNumber: null,
+  birthDate: null,
+  address: null,
+  gender: null,
+  type: null,
+  emergencyContact: null,
+  diseases: [],
+  medication: null,
+  notes: null,
+  recentLogs: [],
+};
+
+// --- Hook for Beneficiary Logic ---
+function useBeneficiaryDetail(selectedWardId: string | null, locations: WardLocation[]) {
+  // 1-1. Fetch MyWards for ID Mapping
+  const { data: myWardsData } = useApi<MyWardsResponse>({
+    deps: [],
+    fetcher: (client, signal) => client.get('/v1/admin/my-wards', { signal }),
+  });
+
+  // Build ID Mapping: wardId -> beneficiaryId
+  const wardIdToBeneficiaryId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (myWardsData?.wards && Array.isArray(myWardsData.wards)) {
+      myWardsData.wards.forEach(w => {
+        if (w.wardId && w.id) {
+          map.set(w.wardId, w.id);
+        }
+      });
+    }
+    return map; // Stable reference unless data changes
+  }, [myWardsData]);
+
+  // Resolve Target ID
+  const targetBeneficiaryId = useMemo(() => {
+    if (!selectedWardId) return null;
+    return wardIdToBeneficiaryId.get(selectedWardId) || selectedWardId;
+  }, [selectedWardId, wardIdToBeneficiaryId]);
+
+  // 1-2. Fetch Detail
+  const {
+    data: detailResponse,
+    refetch: refetchDetail,
+    error: detailError,
+  } = useApi<BeneficiaryDetailResponse>({
+    deps: [targetBeneficiaryId],
+    skip: !targetBeneficiaryId,
+    fetcher: (client, signal) => {
+      if (!targetBeneficiaryId) throw new Error('No Target ID');
+      return client.get(`/v1/admin/beneficiaries/${targetBeneficiaryId}`, { signal });
+    },
+  });
+
+  // Construct Final Data Object
+  const selectedData = useMemo(() => {
+    if (!selectedWardId) return null;
+
+    const location = locations.find(loc => loc.wardId === selectedWardId);
+    if (!location) return null;
+
+    // Summary from Location
+    const summary: BeneficiarySummary = {
+      id: targetBeneficiaryId || location.wardId,
+      name: location.wardName,
+      status: location.status === 'emergency' ? 'WARNING' : location.status === 'warning' ? 'CAUTION' : 'NORMAL',
+      isRegistered: true,
+      phoneNumber: null,
+      address: null,
+      age: null,
+      gender: null,
+      manager: null,
+      emergencyContact: null,
+      lastCall: null,
+      type: null
+    };
+
+    const detailApiData = detailResponse?.data;
+    const isMatchingData = detailApiData && detailApiData.id === targetBeneficiaryId;
+
+    const detail: BeneficiaryDetail = isMatchingData
+      ? detailApiData
+      : {
+        ...EMPTY_DETAIL,
+        name: location.wardName,
+      };
+
+    // Enrich from MyWards if needed
+    if (!isMatchingData && myWardsData?.wards) {
+      const wardInfo = myWardsData.wards.find(w => w.wardId === selectedWardId);
+      if (wardInfo) {
+        if (!detail.name) detail.name = wardInfo.name;
+        if (wardInfo.phoneNumber) detail.phoneNumber = wardInfo.phoneNumber;
+        if (wardInfo.address) detail.address = wardInfo.address;
+        if (wardInfo.birthDate) detail.birthDate = wardInfo.birthDate;
+      }
+    }
+
+    return { summary, detail, refetchDetail };
+  }, [selectedWardId, locations, detailResponse, targetBeneficiaryId, myWardsData, refetchDetail]);
+
+  return { selectedData, detailError };
+}
 
 export default function LocationsPage() {
-  const [locations, setLocations] = useState<WardLocation[]>([]);
   const [selectedWardId, setSelectedWardId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
 
-  const fetchLocations = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('admin_access_token');
-      if (!token) {
-        window.location.href = '/login';
-        return;
-      }
-      const response = await fetch(`${API_BASE}/v1/admin/locations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem('admin_access_token');
-          localStorage.removeItem('admin_refresh_token');
-          localStorage.removeItem('admin_info');
-          window.location.href = '/login';
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const data = await response.json();
-      setLocations(data.locations || []);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // 1. Fetch Locations
+  const { data: locationsDataRaw, loading: locationsLoading, refetch: refetchLocations } = useApi<unknown>({
+    deps: [],
+    fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
+  });
+
+  const locations: WardLocation[] = useMemo(() => {
+    if (!locationsDataRaw) return [];
+    if (Array.isArray(locationsDataRaw)) return locationsDataRaw as WardLocation[];
+    const response = locationsDataRaw as LocationsResponse;
+    if (Array.isArray(response.locations)) return response.locations;
+    return [];
+  }, [locationsDataRaw]);
 
   useEffect(() => {
-    fetchLocations();
+    const interval = setInterval(() => refetchLocations(), 30000);
+    return () => clearInterval(interval);
+  }, [refetchLocations]);
 
-    // Auto refresh every 30 seconds
-    let interval: NodeJS.Timeout | null = null;
-    if (autoRefresh) {
-      interval = setInterval(fetchLocations, 30000);
+  // 2. Use Custom Hook for Details
+  const { selectedData, detailError } = useBeneficiaryDetail(selectedWardId, locations);
+
+  // Error Handling (Toast or alert could be better, for now console/alert)
+  useEffect(() => {
+    if (detailError && selectedWardId) {
+      console.error("Failed to load details:", detailError);
+      // Optional: Trigger a toast here if we had a toast system
     }
+  }, [detailError, selectedWardId]);
 
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [fetchLocations, autoRefresh]);
-
-  const handleWardClick = useCallback((wardId: string) => {
-    setSelectedWardId(wardId);
-  }, []);
-
-  const selectedLocation = selectedWardId
-    ? locations.find(loc => loc.wardId === selectedWardId)
-    : null;
-
-  const statusCounts = locations.reduce(
-    (acc, loc) => {
-      acc[loc.status] = (acc[loc.status] || 0) + 1;
-      return acc;
-    },
-    { normal: 0, warning: 0, emergency: 0 } as Record<string, number>,
-  );
-
-  return (
-    <SidebarLayout>
-      <div
-        style={{ display: 'flex', gap: '24px', height: 'calc(100vh - 80px)' }}
-      >
-        {/* Ward List Panel */}
-        <aside
-          style={{
-            width: '340px',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            border: borderStyle,
-            display: 'flex',
-            flexDirection: 'column',
-            flexShrink: 0,
-            overflow: 'hidden',
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              padding: '20px',
-              borderBottom: borderStyle,
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontSize: '18px',
-                fontWeight: 700,
-                color: palette.primaryDark,
-              }}
-            >
-              실시간 위치 현황
-            </h2>
-            <p
-              style={{ margin: '6px 0 0', fontSize: '14px', color: palette.textMuted }}
-            >
-              등록된 피보호자: {locations.length}명
-            </p>
-          </div>
-
-          {/* Status Summary */}
-          <div
-            style={{
-              display: 'flex',
-              gap: '8px',
-              padding: '14px 20px',
-              borderBottom: borderStyle,
-            }}
-          >
-            <StatusBadge
-              label="정상"
-              count={statusCounts.normal}
-              color="#22c55e"
-            />
-            <StatusBadge
-              label="주의"
-              count={statusCounts.warning}
-              color="#f59e0b"
-            />
-            <StatusBadge
-              label="비상"
-              count={statusCounts.emergency}
-              color="#ef4444"
-            />
-          </div>
-
-          {/* Controls */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '14px 20px',
-              borderBottom: borderStyle,
-            }}
-          >
-            <label
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={e => setAutoRefresh(e.target.checked)}
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  accentColor: palette.primary,
-                }}
-              />
-              <span
-                style={{ fontSize: '14px', color: palette.primaryDark, fontWeight: 500 }}
-              >
-                자동 새로고침
-              </span>
-            </label>
-            <button
-              onClick={fetchLocations}
-              style={{
-                padding: '8px 14px',
-                fontSize: '13px',
-                backgroundColor: palette.primary,
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              새로고침
-            </button>
-          </div>
-
-          {/* Ward List */}
-          <div style={{ flex: 1, overflow: 'auto' }}>
-            {isLoading ? (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: palette.textMuted,
-                }}
-              >
-                로딩 중...
-              </div>
-            ) : error ? (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: '#dc2626',
-                }}
-              >
-                오류: {error}
-              </div>
-            ) : locations.length === 0 ? (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: palette.textMuted,
-                }}
-              >
-                등록된 위치 정보가 없습니다.
-              </div>
-            ) : (
-              locations.map(loc => (
-                <WardListItem
-                  key={loc.wardId}
-                  location={loc}
-                  isSelected={loc.wardId === selectedWardId}
-                  onClick={() => handleWardClick(loc.wardId)}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Selected Ward Detail */}
-          {selectedLocation && (
-            <div
-              style={{
-                padding: '20px',
-                borderTop: borderStyle,
-                backgroundColor: palette.background,
-              }}
-            >
-              <h3
-                style={{
-                  margin: '0 0 14px',
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: palette.primaryDark,
-                }}
-              >
-                {selectedLocation.wardName}
-              </h3>
-              <div
-                style={{
-                  fontSize: '13px',
-                  color: palette.primaryDark,
-                  lineHeight: '1.9',
-                }}
-              >
-                <div>
-                  <strong style={{ color: palette.primaryDark }}>위치:</strong>{' '}
-                  {selectedLocation.latitude.toFixed(6)},{' '}
-                  {selectedLocation.longitude.toFixed(6)}
-                </div>
-                {selectedLocation.accuracy && (
-                  <div>
-                    <strong style={{ color: palette.primaryDark }}>정확도:</strong>{' '}
-                    {selectedLocation.accuracy.toFixed(1)}m
-                  </div>
-                )}
-                <div>
-                  <strong style={{ color: palette.primaryDark }}>마지막 업데이트:</strong>{' '}
-                  {new Date(selectedLocation.lastUpdated).toLocaleString(
-                    'ko-KR',
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </aside>
-
-        {/* Map */}
-        <main
-          style={{
-            flex: 1,
-            borderRadius: '12px',
-            overflow: 'hidden',
-            border: borderStyle,
-          }}
-        >
-          <LocationMap
-            locations={locations}
-            onWardClick={handleWardClick}
-            selectedWardId={selectedWardId || undefined}
-          />
-        </main>
-      </div>
-    </SidebarLayout>
-  );
-}
-
-function StatusBadge({
-  label,
-  count,
-  color,
-}: {
-  label: string;
-  count: number;
-  color: string;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 12px',
-        backgroundColor: color + '15',
-        borderRadius: '20px',
-        border: `1px solid ${color}30`,
-      }}
-    >
-      <div
-        style={{
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          backgroundColor: color,
-        }}
-      />
-      <span style={{ fontSize: '13px', color: palette.primaryDark, fontWeight: 500 }}>
-        {label}: {count}
-      </span>
-    </div>
-  );
-}
-
-function WardListItem({
-  location,
-  isSelected,
-  onClick,
-}: {
-  location: WardLocation;
-  isSelected: boolean;
-  onClick: () => void;
-}) {
-  const statusColors: Record<string, string> = {
-    normal: '#22c55e',
-    warning: '#f59e0b',
-    emergency: '#ef4444',
+  const handleUpdate = async (payload: BeneficiaryUpdatePayload) => {
+    if (!selectedData) return null;
+    try {
+      const result = await apiClient.put<BeneficiaryDetailResponse>(
+        `/v1/admin/beneficiaries/${selectedData.summary.id}`,
+        payload
+      );
+      selectedData.refetchDetail();
+      return result.data;
+    } catch (err) {
+      console.error(err);
+      throw new Error('Update failed');
+    }
   };
 
-  const timeAgo = getTimeAgo(new Date(location.lastUpdated));
-
   return (
-    <button
-      onClick={onClick}
-      style={{
-        width: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '14px',
-        padding: '14px 20px',
-        border: 'none',
-        borderBottom: '1px solid #F0F5E8',
-        backgroundColor: isSelected ? palette.soft : 'transparent',
-        cursor: 'pointer',
-        textAlign: 'left',
-        transition: 'background 150ms ease',
-      }}
-      onMouseEnter={e =>
-        !isSelected && (e.currentTarget.style.backgroundColor = palette.background)
-      }
-      onMouseLeave={e =>
-        !isSelected && (e.currentTarget.style.backgroundColor = 'transparent')
-      }
-    >
-      <div
-        style={{
-          width: '42px',
-          height: '42px',
-          borderRadius: '50%',
-          backgroundColor: statusColors[location.status],
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: '14px',
-          flexShrink: 0,
-        }}
-      >
-        {location.wardName.charAt(0)}
+    <DashboardLayout noPadding>
+      <div className="monitoring-container">
+        <main className="monitoring-map-section">
+          {locationsLoading && locations.length === 0 && (
+            <div className="map-loading-overlay">데이터 불러오는 중...</div>
+          )}
+          <LocationMap
+            locations={locations}
+            selectedWardId={selectedWardId || undefined}
+            onWardClick={setSelectedWardId}
+          />
+        </main>
+
+        <MonitoringSidebar
+          locations={locations}
+          selectedWardId={selectedWardId}
+          onSelect={setSelectedWardId}
+        />
+
+        {selectedData && (
+          <DetailModal
+            beneficiary={selectedData.summary}
+            detail={selectedData.detail}
+            onClose={() => setSelectedWardId(null)}
+            onUpdate={handleUpdate}
+          />
+        )}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontWeight: isSelected ? 600 : 500,
-            fontSize: '14px',
-            color: palette.primaryDark,
-            marginBottom: '4px',
-          }}
-        >
-          {location.wardName}
-        </div>
-        <div style={{ fontSize: '12px', color: palette.textMuted }}>{timeAgo}</div>
-      </div>
-      <div
-        style={{
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          backgroundColor: statusColors[location.status],
-          flexShrink: 0,
-        }}
-      />
-    </button>
+    </DashboardLayout>
   );
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return '방금 전';
-  if (diffMin < 60) return `${diffMin}분 전`;
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return date.toLocaleDateString('ko-KR');
 }

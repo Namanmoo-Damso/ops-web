@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import SidebarLayout from '../../components/SidebarLayout';
-import { palette, shadows } from '../theme';
+import DashboardLayout from '../../components/layouts/DashboardLayout';
 import { StatCard } from './StatCard';
 import {
   AlertTriangleIcon,
@@ -12,13 +11,12 @@ import {
   SearchIcon,
   UsersIcon,
 } from './icons';
-import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+import { useApi } from '../../hooks/useApi';
+import Button from '../../components/ui/Button';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const SEARCH_DEBOUNCE_MS = 400;
 const RESEND_ALL_DELAY_MS = 400;
 const RESEND_ONE_DELAY_MS = 300;
-const borderStyle = `1px solid ${palette.border}`;
 
 type ApiWard = {
   id: string;
@@ -89,25 +87,9 @@ export default function MyWardsPage() {
     return { total, linked, pending, rate };
   }, []);
 
-  const { data, loading, error } = useAuthedFetch<MyWardsApiResponse>({
+  const { data, loading, error } = useApi<MyWardsApiResponse>({
     deps: [refreshKey],
-    fetcher: async ({ token, signal }) => {
-      const response = await fetch(`${API_BASE}/v1/admin/my-wards`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        signal,
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        throw new AuthError('인증이 만료되었습니다.');
-      }
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      return (await response.json()) as MyWardsApiResponse;
-    },
+    fetcher: (client, signal) => client.get('/v1/admin/my-wards', { signal }),
   });
 
   useEffect(() => {
@@ -230,14 +212,14 @@ export default function MyWardsPage() {
   const isRefreshing = loading && hasLoaded;
 
   return (
-    <SidebarLayout>
+    <DashboardLayout>
       {isInitialLoading && (
         <div
           style={{
             minHeight: '60vh',
             display: 'grid',
             placeItems: 'center',
-            color: palette.textMuted,
+            color: 'var(--color-text-muted)',
             fontSize: '14px',
           }}
         >
@@ -251,25 +233,18 @@ export default function MyWardsPage() {
             display: 'grid',
             placeItems: 'center',
             gap: '12px',
-            color: palette.danger,
+            color: 'var(--color-danger-main)',
             fontSize: '14px',
             fontWeight: 700,
           }}
         >
           <div>{error}</div>
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setRefreshKey(k => k + 1)}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              border: borderStyle,
-              backgroundColor: palette.panel,
-              color: palette.primaryDark,
-              cursor: 'pointer',
-            }}
           >
             다시 시도
-          </button>
+          </Button>
         </div>
       )}
       {(hasLoaded || (!isInitialLoading && !error)) && (
@@ -286,8 +261,8 @@ export default function MyWardsPage() {
               style={{
                 padding: '10px 14px',
                 borderRadius: '10px',
-                backgroundColor: palette.background,
-                color: palette.primaryDark,
+                backgroundColor: "var(--color-bg)",
+                color: "var(--color-primary-dark)",
                 fontSize: '13px',
                 fontWeight: 700,
                 marginBottom: '12px',
@@ -302,13 +277,13 @@ export default function MyWardsPage() {
                 margin: 0,
                 fontSize: '24px',
                 fontWeight: 700,
-                color: palette.primaryDark,
+                color: "var(--color-primary-dark)",
               }}
             >
               대상자 연동 현황
             </h1>
             <p
-              style={{ margin: '6px 0 0', color: palette.textMuted, fontSize: '14px' }}
+              style={{ margin: '6px 0 0', color: "var(--color-text-muted)", fontSize: '14px' }}
             >
               등록된 대상자의 앱 설치 및 기기 연동 상태를 관리합니다.
             </p>
@@ -317,8 +292,8 @@ export default function MyWardsPage() {
           {totals.pending > 0 && (
             <div
               style={{
-                background: '#fff4f4',
-                border: '1px solid #fecdd3',
+                background: "var(--color-danger-soft)",
+                border: `1px solid ${"var(--color-danger-border)"}`,
                 borderRadius: '16px',
                 padding: '18px 20px',
                 display: 'flex',
@@ -343,10 +318,10 @@ export default function MyWardsPage() {
                     width: '40px',
                     height: '40px',
                     borderRadius: '12px',
-                    backgroundColor: palette.dangerSoft,
+                    backgroundColor: "var(--color-danger-soft)",
                     display: 'grid',
                     placeItems: 'center',
-                    color: palette.primary,
+                    color: "var(--color-primary)",
                     flexShrink: 0,
                   }}
                 >
@@ -380,9 +355,9 @@ export default function MyWardsPage() {
                   border: 'none',
                   backgroundColor:
                     totals.pending === 0 || resendingAll
-                      ? palette.dangerBorder
-                      : palette.danger,
-                  color: palette.panel,
+                      ? "var(--color-danger-border)"
+                      : "var(--color-danger-main)",
+                  color: "white",
                   fontWeight: 700,
                   fontSize: '14px',
                   cursor:
@@ -395,17 +370,17 @@ export default function MyWardsPage() {
                   boxShadow:
                     totals.pending === 0 || resendingAll
                       ? 'none'
-                      : shadows.dangerStrong,
+                      : "var(--shadow-danger-strong)",
                   transition: 'all 150ms ease',
                   whiteSpace: 'nowrap',
                 }}
                 onMouseEnter={e => {
                   if (totals.pending === 0 || resendingAll) return;
-                  e.currentTarget.style.backgroundColor = palette.danger;
+                  e.currentTarget.style.backgroundColor = "var(--color-danger-main)";
                 }}
                 onMouseLeave={e => {
                   if (totals.pending === 0 || resendingAll) return;
-                  e.currentTarget.style.backgroundColor = palette.danger;
+                  e.currentTarget.style.backgroundColor = "var(--color-danger-main)";
                 }}
               >
                 <RefreshIcon size={16} />
@@ -439,7 +414,7 @@ export default function MyWardsPage() {
                     width: '100%',
                     height: '8px',
                     borderRadius: '999px',
-                    backgroundColor: palette.border,
+                    backgroundColor: "var(--color-border)",
                     overflow: 'hidden',
                     marginTop: '10px',
                   }}
@@ -448,7 +423,7 @@ export default function MyWardsPage() {
                     style={{
                       width: `${totals.rate}%`,
                       height: '100%',
-                      backgroundColor: palette.primary,
+                      backgroundColor: "var(--color-primary)",
                       transition: 'width 150ms ease',
                     }}
                   />
@@ -472,17 +447,17 @@ export default function MyWardsPage() {
 
           <section
             style={{
-              background: palette.panel,
-              border: borderStyle,
+              background: "white",
+              border: "1px solid var(--color-border)",
               borderRadius: '16px',
-              boxShadow: shadows.lifted,
+              boxShadow: "var(--shadow-lifted)",
               overflow: 'hidden',
             }}
           >
             <div
               style={{
                 padding: '16px 20px',
-                borderBottom: borderStyle,
+                borderBottom: "1px solid var(--color-border)",
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '12px',
@@ -494,7 +469,7 @@ export default function MyWardsPage() {
                 style={{
                   display: 'flex',
                   gap: '8px',
-                  background: palette.soft,
+                  background: "var(--color-accent-soft)",
                   padding: '6px',
                   borderRadius: '12px',
                 }}
@@ -508,13 +483,13 @@ export default function MyWardsPage() {
                     borderRadius: '10px',
                     border: 'none',
                     backgroundColor:
-                      filterStatus === 'all' ? palette.panel : 'transparent',
-                    color: filterStatus === 'all' ? palette.primaryDark : palette.textMuted,
+                      filterStatus === 'all' ? "white" : 'transparent',
+                    color: filterStatus === 'all' ? "var(--color-primary-dark)" : "var(--color-text-muted)",
                     fontWeight: 700,
                     fontSize: '14px',
                     boxShadow:
                       filterStatus === 'all'
-                        ? shadows.raised
+                        ? "var(--shadow-raised)"
                         : 'none',
                     cursor: 'pointer',
                   }}
@@ -530,13 +505,13 @@ export default function MyWardsPage() {
                     borderRadius: '10px',
                     border: 'none',
                     backgroundColor:
-                      filterStatus === 'pending' ? palette.panel : 'transparent',
-                    color: filterStatus === 'pending' ? palette.danger : palette.textMuted,
+                      filterStatus === 'pending' ? "white" : 'transparent',
+                    color: filterStatus === 'pending' ? "var(--color-danger-main)" : "var(--color-text-muted)",
                     fontWeight: 700,
                     fontSize: '14px',
                     boxShadow:
                       filterStatus === 'pending'
-                        ? shadows.raised
+                        ? "var(--shadow-raised)"
                         : 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -547,8 +522,8 @@ export default function MyWardsPage() {
                   미연동 대상자
                   <span
                     style={{
-                      backgroundColor: palette.dangerSoft,
-                      color: palette.danger,
+                      backgroundColor: "var(--color-danger-soft)",
+                      color: "var(--color-danger-main)",
                       borderRadius: '999px',
                       padding: '2px 8px',
                       fontSize: '12px',
@@ -567,9 +542,9 @@ export default function MyWardsPage() {
                   style={{
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    border: borderStyle,
-                    backgroundColor: autoRefresh ? palette.successSoft : palette.panel,
-                    color: autoRefresh ? palette.successDark : palette.textMuted,
+                    border: "1px solid var(--color-border)",
+                    backgroundColor: autoRefresh ? "var(--color-success-soft)" : "white",
+                    color: autoRefresh ? "var(--color-success-dark)" : "var(--color-text-muted)",
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -591,9 +566,9 @@ export default function MyWardsPage() {
                   style={{
                     padding: '10px 14px',
                     borderRadius: '10px',
-                    border: borderStyle,
-                    backgroundColor: loading ? palette.soft : palette.panel,
-                    color: loading ? palette.textSoft : palette.primaryDark,
+                    border: "1px solid var(--color-border)",
+                    backgroundColor: loading ? "var(--color-accent-soft)" : "white",
+                    color: loading ? "var(--color-text-soft)" : "var(--color-primary-dark)",
                     fontSize: '14px',
                     fontWeight: 600,
                     cursor: loading ? 'not-allowed' : 'pointer',
@@ -616,25 +591,25 @@ export default function MyWardsPage() {
                     left: '12px',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: palette.textSoft,
+                    color: "var(--color-text-soft)",
                     pointerEvents: 'none',
                   }}
                 >
-              <SearchIcon size={18} />
-            </div>
-            <input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="이름 · 이메일 · 전화번호 검색"
-              aria-label="이름, 이메일 또는 전화번호 검색"
-              style={{
-                width: '100%',
-                padding: '10px 12px 10px 36px',
+                  <SearchIcon size={18} />
+                </div>
+                <input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="이름 · 이메일 · 전화번호 검색"
+                  aria-label="이름, 이메일 또는 전화번호 검색"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px 10px 36px',
                     borderRadius: '10px',
-                    border: borderStyle,
-                    backgroundColor: palette.background,
+                    border: "1px solid var(--color-border)",
+                    backgroundColor: "var(--color-bg)",
                     fontSize: '14px',
-                    color: palette.primaryDark,
+                    color: "var(--color-primary-dark)",
                     outline: 'none',
                   }}
                 />
@@ -642,19 +617,19 @@ export default function MyWardsPage() {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-            <table
-              style={{ width: '100%', borderCollapse: 'collapse' }}
-              aria-label="대상자 연동 테이블"
-            >
+              <table
+                style={{ width: '100%', borderCollapse: 'collapse' }}
+                aria-label="대상자 연동 테이블"
+              >
                 <thead>
                   <tr
                     style={{
-                      backgroundColor: palette.background,
-                      color: palette.primaryDark,
-                      fontSize: '12px',
+                      backgroundColor: "var(--color-bg)",
+                      color: "var(--color-primary-dark)",
+                      fontSize: '16px',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
-                      borderBottom: borderStyle,
+                      borderBottom: "1px solid var(--color-border)",
                     }}
                   >
                     <th style={{ padding: '14px 16px', textAlign: 'left' }}>
@@ -680,30 +655,30 @@ export default function MyWardsPage() {
                       key={ward.id}
                       style={{
                         borderBottom: '1px solid #F0F5E8',
-                        backgroundColor: palette.panel,
+                        backgroundColor: "white",
                         transition: 'background-color 150ms ease',
                       }}
                       onMouseEnter={e => {
                         e.currentTarget.style.backgroundColor = '#f7f9fb';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.backgroundColor = palette.panel;
+                        e.currentTarget.style.backgroundColor = "white";
                       }}
                     >
                       <td
                         style={{
                           padding: '14px 16px',
                           fontWeight: 700,
-                          color: palette.primaryDark,
+                          color: "var(--color-primary-dark)",
                         }}
                       >
                         {ward.name}
                       </td>
                       <td style={{ padding: '14px 12px' }}>
-                        <div style={{ color: palette.primaryDark, fontSize: '14px' }}>
+                        <div style={{ color: "var(--color-primary-dark)", fontSize: '14px' }}>
                           {ward.phoneNumber}
                         </div>
-                        <div style={{ color: palette.textSoft, fontSize: '12px' }}>
+                        <div style={{ color: "var(--color-text-soft)", fontSize: '12px' }}>
                           {ward.email}
                         </div>
                       </td>
@@ -716,8 +691,8 @@ export default function MyWardsPage() {
                               gap: '6px',
                               padding: '6px 10px',
                               borderRadius: '999px',
-                              backgroundColor: '#e9f0df',
-                              color: palette.primaryDark,
+                              backgroundColor: "var(--color-accent-soft)",
+                              color: "var(--color-primary-dark)",
                               fontSize: '12px',
                               fontWeight: 700,
                             }}
@@ -733,8 +708,8 @@ export default function MyWardsPage() {
                               gap: '6px',
                               padding: '6px 10px',
                               borderRadius: '999px',
-                              backgroundColor: palette.dangerSoft,
-                              color: palette.danger,
+                              backgroundColor: "var(--color-danger-soft)",
+                              color: "var(--color-danger-main)",
                               fontSize: '12px',
                               fontWeight: 700,
                               animation: 'pulse 1.6s ease-in-out infinite',
@@ -750,26 +725,26 @@ export default function MyWardsPage() {
                           padding: '14px 12px',
                           textAlign: 'center',
                           fontSize: '12px',
-                          color: palette.primaryDark,
+                          color: "var(--color-primary-dark)",
                         }}
                       >
                         {formatDate(ward.lastCallAt)}
                       </td>
                       <td style={{ padding: '14px 12px', textAlign: 'center' }}>
                         {!ward.isRegistered ? (
-                        <button
-                          onClick={() => handleResendOne(ward)}
-                          disabled={resendingId !== null || resendingAll}
-                          aria-label={`${ward.name} 재발송`}
-                          style={{
-                            padding: '8px 12px',
+                          <button
+                            onClick={() => handleResendOne(ward)}
+                            disabled={resendingId !== null || resendingAll}
+                            aria-label={`${ward.name} 재발송`}
+                            style={{
+                              padding: '8px 12px',
                               borderRadius: '10px',
                               border: 'none',
                               backgroundColor:
                                 resendingId !== null || resendingAll
                                   ? '#bfdbfe'
-                                  : palette.primary,
-                              color: palette.panel,
+                                  : "var(--color-primary)",
+                              color: "white",
                               fontWeight: 700,
                               fontSize: '12px',
                               cursor:
@@ -783,11 +758,11 @@ export default function MyWardsPage() {
                             }}
                             onMouseEnter={e => {
                               if (resendingId !== null || resendingAll) return;
-                              e.currentTarget.style.backgroundColor = palette.primaryDark;
+                              e.currentTarget.style.backgroundColor = "var(--color-primary-dark)";
                             }}
                             onMouseLeave={e => {
                               if (resendingId !== null || resendingAll) return;
-                              e.currentTarget.style.backgroundColor = palette.primary;
+                              e.currentTarget.style.backgroundColor = "var(--color-primary)";
                             }}
                           >
                             <RefreshIcon size={14} />
@@ -796,66 +771,36 @@ export default function MyWardsPage() {
                               : '재발송'}
                           </button>
                         ) : (
-                          <span style={{ color: palette.textSoft, fontSize: '12px' }}>
+                          <span style={{ color: "var(--color-text-soft)", fontSize: '12px' }}>
                             -
                           </span>
                         )}
                       </td>
                     </tr>
                   ))}
+                  {filteredWards.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={5}
+                        style={{
+                          padding: '40px',
+                          textAlign: 'center',
+                          color: "var(--color-text-muted)",
+                          fontSize: '14px',
+                        }}
+                      >
+                        {searchQuery
+                          ? '검색 결과가 없습니다.'
+                          : '표시할 대상자가 없습니다.'}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
-
-            {filteredWards.length === 0 && (
-              <div
-                style={{
-                  padding: '32px',
-                  textAlign: 'center',
-                  color: palette.primaryDark,
-                }}
-              >
-                <div
-                  style={{
-                    width: '56px',
-                    height: '56px',
-                    borderRadius: '14px',
-                    backgroundColor: palette.soft,
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: totals.total === 0 ? palette.secondary : palette.primaryDark,
-                    margin: '0 auto 12px',
-                  }}
-                >
-                  <CheckCircleIcon size={26} />
-                </div>
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: '16px',
-                    color: palette.primaryDark,
-                  }}
-                >
-                  {totals.total === 0
-                    ? '등록된 대상자가 없습니다'
-                    : '모든 대상자가 연동되었습니다'}
-                </div>
-                <div
-                  style={{
-                    fontSize: '13px',
-                    color: palette.textSoft,
-                    marginTop: '4px',
-                  }}
-                >
-                  {totals.total === 0
-                    ? '대상자를 등록하고 연동을 시작하세요.'
-                    : '현재 조치가 필요한 대상자가 없습니다.'}
-                </div>
-              </div>
-            )}
           </section>
         </div>
       )}
-    </SidebarLayout>
+    </DashboardLayout>
   );
 }

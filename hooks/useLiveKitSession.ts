@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+import type { Admin } from '../types/models';
+
 type Role = 'host' | 'viewer' | 'observer';
 
 export type UseLiveKitSessionOptions = {
@@ -79,7 +81,7 @@ export function useLiveKitSession({
         });
 
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json() as { admin: Admin };
           const adminId = data.admin?.id || '';
           const adminNameValue =
             data.admin?.name || data.admin?.email || 'Admin';

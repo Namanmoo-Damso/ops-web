@@ -2,9 +2,16 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { apiClient } from '../../../lib/api-client';
+import { useAuth } from '../../../hooks/useAuth';
+import type { Admin } from '../../../types/models';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const KAKAO_CLIENT_ID = process.env.NEXT_PUBLIC_KAKAO_CLIENT_ID || '';
+// API response types
+interface OAuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  admin: Admin;
+}
 
 export default function OAuthCallbackPage() {
   return (
@@ -33,6 +40,7 @@ function LoadingSpinner() {
 function CallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
@@ -40,60 +48,73 @@ function CallbackContent() {
     const handleCallback = async () => {
       const provider = searchParams.get('provider');
       const code = searchParams.get('code');
+      const state = searchParams.get('state');
       const errorParam = searchParams.get('error');
 
-      if (errorParam) {
+      // Helper function to cleanup and show error
+      const handleError = (errorMessage: string) => {
+        // Always clean up OAuth state on error
+        sessionStorage.removeItem('oauth_state');
         setStatus('error');
-        setError('OAuth 인증이 취소되었습니다.');
+        setError(errorMessage);
+        // Auto redirect to login page after 3 seconds
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      };
+
+      if (errorParam) {
+        handleError('로그인 과정에서 오류가 발생했습니다.');
         return;
       }
 
       if (!provider || !code) {
-        setStatus('error');
-        setError('잘못된 콜백 요청입니다.');
+        handleError('잘못된 요청입니다.');
         return;
       }
 
+      // CSRF State Verification
+      const savedState = sessionStorage.getItem('oauth_state');
+      if (!state || state !== savedState) {
+        handleError('보안 검증에 실패했습니다. (State Mismatch)');
+        return;
+      }
+
+      // Clear state after successful verification
+      sessionStorage.removeItem('oauth_state');
+
       try {
-        // 서버에서 authorization code를 access token으로 교환 후 로그인 처리
         const redirectUri = `${window.location.origin}/login/callback?provider=${provider}`;
-        console.log('[Callback] Sending to server:', {
-          provider,
-          code: code.substring(0, 10) + '...',
-          redirectUri,
-        });
 
-        const response = await fetch(`${API_BASE}/admin/auth/oauth/code`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ provider, code, redirectUri }),
-        });
+        const data = await apiClient.post<OAuthResponse>(
+          '/admin/auth/oauth/code',
+          { provider, code, redirectUri },
+          { skipAuth: true }
+        );
 
-        const data = await response.json();
+        // Login and wait for completion
+        login(data.accessToken, data.refreshToken, data.admin);
 
-        if (!response.ok) {
-          throw new Error(data.message || '로그인에 실패했습니다.');
-        }
+        // Clear OAuth state on success
+        sessionStorage.removeItem('oauth_state');
 
-        // 토큰 저장
-        localStorage.setItem('admin_access_token', data.accessToken);
-        localStorage.setItem('admin_refresh_token', data.refreshToken);
-        localStorage.setItem('admin_info', JSON.stringify(data.admin));
-
-        // 조직이 없으면 조직 선택 페이지로, 있으면 대시보드로 이동
+        // Redirect based on organization
         if (!data.admin.organizationId) {
           router.replace('/select-organization');
         } else {
           router.replace('/dashboard');
         }
       } catch (err) {
-        setStatus('error');
-        setError((err as Error).message);
+        // Log actual error for debugging
+        console.error('[Callback] Login failed:', err);
+        // Clean up OAuth state on API failure
+        sessionStorage.removeItem('oauth_state');
+        handleError('로그인 처리에 실패했습니다. 잠시 후 다시 시도해주세요.');
       }
     };
 
     handleCallback();
-  }, [searchParams, router]);
+  }, [searchParams, router, login]);
 
   if (status === 'error') {
     return (
@@ -134,8 +155,11 @@ function CallbackContent() {
           <h1 style={{ margin: '0 0 8px', fontSize: '20px', color: '#4A5D23' }}>
             로그인 실패
           </h1>
-          <p style={{ margin: '0 0 24px', fontSize: '14px', color: '#64748b' }}>
+          <p style={{ margin: '0 0 12px', fontSize: '14px', color: '#64748b' }}>
             {error}
+          </p>
+          <p style={{ margin: '0 0 24px', fontSize: '12px', color: '#94a3b8' }}>
+            3초 후 로그인 페이지로 이동합니다...
           </p>
           <button
             onClick={() => router.push('/login')}
@@ -149,7 +173,7 @@ function CallbackContent() {
               cursor: 'pointer',
             }}
           >
-            다시 시도
+            지금 이동
           </button>
         </div>
       </div>

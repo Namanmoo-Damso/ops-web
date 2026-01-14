@@ -1,0 +1,331 @@
+/* --- Beneficiaries Page Styles --- */
+.beneficiaries-container {
+    width: 100%;
+    margin: 0 auto;
+}
+
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.filter-search-container {
+    position: relative;
+    min-width: 240px;
+}
+
+.filter-group {
+    display: flex;
+    background-color: var(--color-accent-soft);
+    padding: 6px;
+    border-radius: 12px;
+    gap: 6px;
+}
+
+.filter-button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    background-color: transparent;
+    color: var(--color-text-soft);
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 150ms;
+}
+
+.filter-button.active {
+    background-color: var(--color-bg-panel);
+    color: var(--color-primary-dark);
+    box-shadow: var(--shadow-sm);
+}
+
+.filter-button.active.risk {
+    color: var(--color-danger-main);
+}
+
+.risk-badge {
+    background-color: var(--color-danger-soft);
+    color: var(--color-danger-main);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 12px;
+    font-weight: 800;
+    margin-left: 6px;
+}
+
+.table-footer {
+    border-top: 1px solid var(--color-border);
+    padding: 14px 16px;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--color-bg-primary);
+}
+
+/* --- Enhanced Table Styles (Damso Design Guide) --- */
+.beneficiary-table-container {
+    background-color: white;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.beneficiary-table-header {
+    background-color: var(--color-bg);
+    /* Cream Rice */
+}
+
+.beneficiary-table-head {
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--color-primary-dark);
+    /* Deep Moss */
+    text-align: center;
+}
+
+.beneficiary-table-head.text-center {
+    text-align: center;
+}
+
+.beneficiary-table-head.text-right {
+    text-align: right;
+}
+
+.beneficiary-table-cell {
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--color-primary-dark);
+}
+
+.beneficiary-table-cell.text-center {
+    text-align: center;
+}
+
+.beneficiary-table-cell.text-right {
+    text-align: right;
+}
+
+.beneficiary-table-row {
+    border-bottom: 1px solid var(--color-border);
+    transition: background-color 150ms ease;
+    cursor: pointer;
+}
+
+.beneficiary-table-row:hover {
+    background-color: var(--color-bg-elevated-1);
+    /* Soft Sprout hover */
+}
+
+.beneficiary-table-row.selected {
+    background-color: rgba(143, 169, 99, 0.15);
+}
+
+/* User info cell with avatar */
+.beneficiary-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.beneficiary-user-name {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--color-primary-dark);
+}
+
+.beneficiary-user-meta {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+}
+
+.profile-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 16px;
+}
+
+.profile-circle.normal {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
+
+.profile-circle.warning {
+    background-color: var(--color-danger-main);
+}
+
+.profile-circle.caution {
+    background-color: #f59e0b;
+    /* Caution orange */
+}
+
+/* User Info Cell */
+.user-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-name {
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--color-primary-dark);
+}
+
+
+/* --- Detail Modal --- */
+.beneficiary-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    padding-left: calc(var(--sidebar-width, 0px) + 16px);
+    z-index: 2000;
+}
+
+.beneficiary-modal-content {
+    width: min(1000px, calc(100vw - var(--sidebar-width, 0px) - 48px));
+    max-height: 90vh;
+    background-color: var(--color-bg-primary);
+    border-radius: 32px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.32);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--color-border);
+}
+
+.beneficiary-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--color-border);
+    background: white;
+}
+
+.beneficiary-modal-header.warning {
+    background: linear-gradient(90deg, #fff5f5 0%, #fff 70%);
+}
+
+.beneficiary-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background-color: var(--color-bg-primary);
+}
+
+.beneficiary-modal-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.beneficiary-modal-footer {
+    padding: 20px 28px;
+    border-top: 1px solid var(--color-border);
+    background-color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.beneficiary-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    color: white;
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: 24px;
+}
+
+.beneficiary-avatar.default {
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
+
+.beneficiary-avatar.warning {
+    background-color: #dc2626;
+}
+
+.beneficiary-name-block .name {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--color-primary-dark);
+}
+
+.beneficiary-name-block .age {
+    color: var(--color-text-muted);
+    font-weight: 700;
+    font-size: 16px;
+    margin-left: 8px;
+}
+
+.beneficiary-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.beneficiary-grid-logs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.beneficiary-col-2 {
+    grid-column: span 2;
+}
+
+.beneficiary-col-3 {
+    grid-column: span 3;
+}
+
+.beneficiary-span-2 {
+    grid-column: span 2;
+}
+
+.log-card {
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    padding: 16px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background-color: var(--color-bg-elevated-1);
+}
+
+.log-content {
+    color: var(--color-primary-dark);
+    font-weight: 800;
+    font-size: 18px;
+}
+
+.log-date {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}

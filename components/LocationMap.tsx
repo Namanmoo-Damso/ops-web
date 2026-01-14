@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { INACTIVITY_THRESHOLD_MS } from '../lib/date-utils';
 
 declare global {
   interface Window {
@@ -206,21 +207,18 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
       );
       const existingMarker = markersRef.current.get(loc.wardId);
 
+
+
+      // ...
+
+      const lastUpdated = new Date(loc.lastUpdated).getTime();
+      const now = Date.now();
+      const isInactive = (now - lastUpdated) > INACTIVITY_THRESHOLD_MS;
+
+      const statusClass = isInactive ? 'bg-caution' : `bg-${loc.status}`;
+
       const iconContent = `
-        <div style="
-          width: 32px;
-          height: 32px;
-          background-color: ${STATUS_COLORS[loc.status]};
-          border: 2px solid white;
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-weight: bold;
-          font-size: 12px;
-        ">
+        <div class="map-marker-icon ${statusClass}">
           ${loc.wardName.charAt(0)}
         </div>
       `;
@@ -236,27 +234,6 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
         });
 
         window.naver.maps.Event.addListener(marker, 'click', () => {
-          const infoContent = `
-            <div style="padding: 12px; min-width: 150px;">
-              <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">
-                ${loc.wardName}
-              </div>
-              <div style="font-size: 12px; color: #64748b; margin-bottom: 4px;">
-                상태: <span style="color: ${STATUS_COLORS[loc.status]}; font-weight: bold;">
-                  ${STATUS_LABELS[loc.status]}
-                </span>
-              </div>
-              <div style="font-size: 12px; color: #64748b;">
-                마지막 업데이트: ${new Date(loc.lastUpdated).toLocaleString('ko-KR')}
-              </div>
-            </div>
-          `;
-
-          if (infoWindowRef.current) {
-            infoWindowRef.current.setContent(infoContent);
-            infoWindowRef.current.open(map, marker);
-          }
-
           onWardClick?.(loc.wardId);
         });
 
@@ -297,42 +274,16 @@ export function LocationMap({ locations, onWardClick, selectedWardId }: Props) {
 
   if (error) {
     return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#F7F9F2',
-          color: '#ef4444',
-        }}
-      >
+      <div className="map-error-container">
         {error}
       </div>
     );
   }
 
   return (
-    <div
-      ref={mapRef}
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '400px',
-        backgroundColor: '#E9F0DF',
-      }}
-    >
+    <div ref={mapRef} className="map-container">
       {!isMapReady && (
-        <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        <div className="map-loading-overlay">
           지도 로딩 중...
         </div>
       )}

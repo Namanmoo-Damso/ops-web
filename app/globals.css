@@ -5,6 +5,13 @@
  * 모든 CSS 변수는 styles/theme.css에서 관리됩니다.
  */
 @import '../styles/theme.css';
+@import '../styles/components.css';
+@import '../styles/dashboard.css';
+@import '../styles/beneficiaries.css';
+@import '../styles/my-wards.css';
+@import '../styles/stats.css';
+@import '../styles/staff.css';
+@import '../styles/settings.css';
 
 /* ========================================
    CSS Reset

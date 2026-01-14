@@ -20,7 +20,7 @@ export const EmptyTile = () => (
   <div className={`${styles.tile} ${styles.tileEmpty}`}>
     <div className={styles.emptyContent}>
       <IconUser />
-      <span>Empty</span>
+      <span>대기중</span>
     </div>
   </div>
 );
