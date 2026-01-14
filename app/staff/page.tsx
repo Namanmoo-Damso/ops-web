@@ -15,9 +15,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import { UsersIcon } from '../my-wards/icons';
-import BeneficiaryListModal, {
+import StaffAssignmentModal, {
   Beneficiary,
-} from '../../components/staff/BeneficiaryListModal';
+  UnassignedWard,
+} from '../../components/staff/StaffAssignmentModal';
 import AddStaffModal, {
   NewStaffData,
 } from '../../components/staff/AddStaffModal';
@@ -45,7 +46,9 @@ export default function StaffPage() {
   const [selectedAssignments, setSelectedAssignments] = useState<Beneficiary[]>(
     [],
   );
-  const [isBeneficiaryModalOpen, setIsBeneficiaryModalOpen] = useState(false);
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+  const [unassignedWards, setUnassignedWards] = useState<UnassignedWard[]>([]);
+  const [isLoadingUnassigned, setIsLoadingUnassigned] = useState(false);
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +125,7 @@ export default function StaffPage() {
         phone: a.wardPhoneNumber,
       })),
     );
-    setIsBeneficiaryModalOpen(true);
+    setIsAssignmentModalOpen(true);
     setOpenMenuId(null);
   };
 
@@ -136,7 +139,7 @@ export default function StaffPage() {
     setEditForm({
       name: staff.name || '',
       phone: staff.phoneNumber || '',
-      email: staff.email,
+      email: staff.email || '',
     });
     setOpenMenuId(null);
   };
@@ -181,9 +184,30 @@ export default function StaffPage() {
     }
   };
 
-  const handleAssignMore = () => {
-    console.log('[Staff] Assign more beneficiaries');
-    // TODO: Open selection modal
+  const handleLoadUnassigned = async () => {
+    setIsLoadingUnassigned(true);
+    const wards = await staffApi.getUnassignedWards();
+    setUnassignedWards(wards);
+    setIsLoadingUnassigned(false);
+  };
+
+  const handleAssignWards = async (wardIds: string[]) => {
+    if (!selectedStaffId) return;
+    // Assign each ward sequentially
+    for (const wardId of wardIds) {
+      await staffApi.assignWard(selectedStaffId, wardId);
+    }
+    // Reload assignments
+    const assignments = await staffApi.getAssignments(selectedStaffId);
+    setSelectedAssignments(
+      assignments.map(a => ({
+        id: a.id,
+        name: a.wardName,
+        phone: a.wardPhoneNumber,
+      })),
+    );
+    // Reload staff list to update counts
+    loadData();
   };
 
   const handleUnassign = async (assignmentId: string) => {
@@ -403,15 +427,18 @@ export default function StaffPage() {
           </div>
         )}
 
-        {/* Beneficiary List Modal */}
+        {/* Staff Assignment Modal (combined) */}
         {selectedStaff && (
-          <BeneficiaryListModal
-            open={isBeneficiaryModalOpen}
-            onClose={() => setIsBeneficiaryModalOpen(false)}
+          <StaffAssignmentModal
+            open={isAssignmentModalOpen}
+            onClose={() => setIsAssignmentModalOpen(false)}
             staffName={selectedStaff.name || '직원'}
             beneficiaries={selectedAssignments}
             onDelete={handleUnassign}
-            onAssignMore={handleAssignMore}
+            unassignedWards={unassignedWards}
+            isLoadingUnassigned={isLoadingUnassigned}
+            onLoadUnassigned={handleLoadUnassigned}
+            onAssign={handleAssignWards}
           />
         )}
 

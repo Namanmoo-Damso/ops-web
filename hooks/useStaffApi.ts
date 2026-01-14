@@ -9,21 +9,18 @@ import { apiClient } from '../lib/api-client';
 
 export interface Staff {
   id: string;
-  email: string;
-  name: string | null;
+  email: string | null;
+  name: string;
   phoneNumber: string | null;
   team: string | null;
   jobTitle: string | null;
-  maxCapacity: number;
   isActive: boolean;
   currentAssigned: number;
   createdAt: string;
 }
 
 export interface StaffDetail extends Staff {
-  role: string;
-  organizationId: string | null;
-  lastLoginAt: string | null;
+  organizationId: string;
   updatedAt: string;
 }
 
@@ -57,12 +54,11 @@ export interface StaffListResponse {
 }
 
 export interface CreateStaffData {
-  email: string;
   name: string;
+  email?: string;
   phoneNumber?: string;
   team?: string;
   jobTitle?: string;
-  maxCapacity?: number;
 }
 
 export interface UpdateStaffData {
@@ -70,7 +66,6 @@ export interface UpdateStaffData {
   phoneNumber?: string;
   team?: string;
   jobTitle?: string;
-  maxCapacity?: number;
   isActive?: boolean;
 }
 
@@ -158,6 +153,22 @@ export function useStaffApi() {
         '/v1/admin/staff/teams',
       );
       return res.teams;
+    } catch {
+      return [];
+    }
+  }, []);
+
+  /**
+   * Get list of unassigned wards (without staff)
+   */
+  const getUnassignedWards = useCallback(async (): Promise<
+    { id: string; name: string; phoneNumber: string }[]
+  > => {
+    try {
+      const res = await apiClient.get<{
+        data: { id: string; name: string; phoneNumber: string }[];
+      }>('/v1/admin/staff/unassigned-wards');
+      return res.data;
     } catch {
       return [];
     }
@@ -297,6 +308,7 @@ export function useStaffApi() {
     getStaff,
     getStats,
     getTeams,
+    getUnassignedWards,
     createStaff,
     updateStaff,
     deleteStaff,
