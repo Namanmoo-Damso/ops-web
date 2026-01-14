@@ -369,7 +369,12 @@ export const ParticipantDetailSidebar = ({
           cursor: 'pointer',
           pointerEvents: 'auto',
         }}
-        onClick={onClose}
+        onClick={e => {
+          // Only close if clicking directly on the backdrop itself
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
       />
 
       {/* Floating Sidebar */}
