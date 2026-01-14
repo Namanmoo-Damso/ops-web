@@ -1,11 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   TrackRefContext,
   VideoTrack,
   useRoomContext,
 } from '@livekit/components-react';
-import { VideoQuality, RoomEvent, Track } from 'livekit-client';
+import {
+  VideoQuality,
+  RoomEvent,
+  Track,
+  type TrackPublication,
+} from 'livekit-client';
 import type { MockParticipant } from './ParticipantSidebar';
+import Slider from '../ui/Slider';
 
 type FullScreenVideoProps = {
   participant: MockParticipant;
@@ -19,6 +25,46 @@ export const FullScreenVideo = ({
   isDanger = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
+  const [volume, setVolume] = useState(100);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeControlRef = useRef<HTMLDivElement>(null);
+
+  // Close volume slider when clicking outside
+  useEffect(() => {
+    if (!showVolumeSlider) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        volumeControlRef.current &&
+        !volumeControlRef.current.contains(event.target as Node)
+      ) {
+        setShowVolumeSlider(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showVolumeSlider]);
+
+  // Apply volume to audio track
+  useEffect(() => {
+    const audioPublication = videoTrackRef?.participant
+      ?.getTrackPublications?.()
+      ?.find((pub: TrackPublication) => pub.kind === Track.Kind.Audio);
+    const audioTrack = audioPublication?.track;
+
+    if (audioTrack?.attachedElements) {
+      const volumeValue = volume / 100;
+      audioTrack.attachedElements.forEach((element: HTMLMediaElement) => {
+        if (element.volume !== volumeValue) {
+          element.volume = volumeValue;
+        }
+      });
+    }
+  }, [volume, videoTrackRef]);
 
   // Request highest quality immediately
   useEffect(() => {
@@ -283,6 +329,130 @@ export const FullScreenVideo = ({
             {participant.name}
           </div>
         </div>
+      </div>
+
+      {/* Volume Control - Separate from video container to have higher z-index than backdrop */}
+      <div
+        ref={volumeControlRef}
+        style={{
+          position: 'fixed',
+          bottom: 'calc(4vh)',
+          left: '53%',
+          transform: 'translateX(calc(-50% + 70px))',
+          zIndex: 65,
+        }}
+      >
+        {/* Volume Slider Popup - Vertical */}
+        {showVolumeSlider && (
+          <div
+            onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              bottom: '100px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '120px',
+              height: '32px',
+            }}
+          >
+            <div
+              style={{
+                transform: 'rotate(-90deg)',
+                transformOrigin: 'center center',
+                width: '120px',
+              }}
+            >
+              <Slider
+                value={volume}
+                onChange={setVolume}
+                min={0}
+                max={100}
+                step={1}
+                aria-label="Volume"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Volume Button */}
+        <button
+          onClick={e => {
+            e.stopPropagation();
+            e.preventDefault();
+            setShowVolumeSlider(!showVolumeSlider);
+          }}
+          onMouseDown={e => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          style={{
+            padding: '12px',
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '12px',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+            transition: 'background 0.2s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+          }}
+          aria-label="Volume control"
+        >
+          {volume === 0 ? (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          ) : volume < 50 ? (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            </svg>
+          ) : (
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </svg>
+          )}
+        </button>
       </div>
     </>
   );
