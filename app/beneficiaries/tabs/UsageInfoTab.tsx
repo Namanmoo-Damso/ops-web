@@ -5,6 +5,15 @@ import { Copy, Phone, Timer, TrendingUp, Loader2 } from 'lucide-react';
 import styles from '../DetailModal.module.css';
 import { SectionTitle } from '../../../components/ui';
 import { useBeneficiaryStatsApi, BeneficiaryUsageStats } from '../../../hooks';
+import {
+  type PeriodFilter,
+  PERIOD_LABELS,
+  formatDateToInput,
+  getDateRangeForPeriod,
+  getStartOfMonth,
+  getDaysInMonth,
+  parseDateInput,
+} from '../../../lib/date-utils';
 
 // Days of the week
 const DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
@@ -13,100 +22,12 @@ type Day = (typeof DAYS)[number];
 // Schedule type
 type DailySchedule = Record<Day, string>;
 
-// Period type
-type PeriodFilter = 'today' | 'week' | 'month' | '3month' | '6month' | 'year';
-
-const PERIOD_LABELS: Record<PeriodFilter, string> = {
-  today: '오늘',
-  week: '주간',
-  month: '월간',
-  '3month': '3개월',
-  '6month': '6개월',
-  year: '1년',
-};
+// Exclude 'custom' for this component
+type UsagePeriodFilter = Exclude<PeriodFilter, 'custom'>;
 
 interface UsageInfoTabProps {
   beneficiaryId: string | number;
   beneficiaryName: string;
-}
-
-function formatDateToInput(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-function getStartOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month + 1, 0).getDate();
-}
-
-// Calculate end date based on start date and period
-function getEndDateForPeriod(
-  startDateStr: string,
-  periodKey: PeriodFilter,
-): string {
-  const start = new Date(startDateStr);
-  let end: Date;
-
-  switch (periodKey) {
-    case 'today':
-      end = new Date(start);
-      break;
-    case 'week':
-      end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      break;
-    case 'month':
-      end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 1,
-        start.getDate(),
-      );
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear(), start.getMonth() + 2, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    case '3month':
-      end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 3,
-        start.getDate(),
-      );
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear(), start.getMonth() + 4, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    case '6month':
-      end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 6,
-        start.getDate(),
-      );
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear(), start.getMonth() + 7, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    case 'year':
-      end = new Date(
-        start.getFullYear() + 1,
-        start.getMonth(),
-        start.getDate(),
-      );
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear() + 1, start.getMonth() + 1, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    default:
-      end = new Date(start);
-  }
-
-  return formatDateToInput(end);
 }
 
 export default function UsageInfoTab({
@@ -136,13 +57,13 @@ export default function UsageInfoTab({
   });
   const [applyAllTime, setApplyAllTime] = useState('09:00');
 
-  // Period and date state - start date defaults to today
-  const [period, setPeriod] = useState<PeriodFilter>('month');
-  const [startDate, setStartDate] = useState(() =>
-    formatDateToInput(new Date()),
+  // Period and date state - defaults to last month (past data)
+  const [period, setPeriod] = useState<UsagePeriodFilter>('month');
+  const [startDate, setStartDate] = useState(
+    () => getDateRangeForPeriod('month').startDate,
   );
-  const [endDate, setEndDate] = useState(() =>
-    getEndDateForPeriod(formatDateToInput(new Date()), 'month'),
+  const [endDate, setEndDate] = useState(
+    () => getDateRangeForPeriod('month').endDate,
   );
 
   // Calendar state
@@ -150,14 +71,34 @@ export default function UsageInfoTab({
     getStartOfMonth(new Date()),
   );
 
-  // Update end date when period or start date changes
-  useEffect(() => {
-    const newEndDate = getEndDateForPeriod(startDate, period);
-    setEndDate(newEndDate);
-  }, [period, startDate]);
+  // Handle period change - recalculate both start and end dates
+  const handlePeriodChange = useCallback((newPeriod: UsagePeriodFilter) => {
+    setPeriod(newPeriod);
+    const range = getDateRangeForPeriod(newPeriod);
+    setStartDate(range.startDate);
+    setEndDate(range.endDate);
+  }, []);
+
+  // Handle manual date input changes
+  const handleStartDateChange = useCallback((value: string) => {
+    const parsed = parseDateInput(value);
+    if (parsed) {
+      setStartDate(value);
+    }
+  }, []);
+
+  const handleEndDateChange = useCallback((value: string) => {
+    const parsed = parseDateInput(value);
+    if (parsed) {
+      setEndDate(value);
+    }
+  }, []);
 
   // Fetch stats when dates change
   const fetchStats = useCallback(async () => {
+    // Validate dates before fetching
+    if (!startDate || !endDate) return;
+
     const result = await getUsageStats(
       String(beneficiaryId),
       startDate,
@@ -184,14 +125,6 @@ export default function UsageInfoTab({
       newSchedule[day] = applyAllTime;
     });
     setSchedule(newSchedule);
-  };
-
-  const handlePeriodChange = (newPeriod: PeriodFilter) => {
-    setPeriod(newPeriod);
-  };
-
-  const handleStartDateChange = (value: string) => {
-    setStartDate(value);
   };
 
   // Computed stats for display
@@ -234,6 +167,16 @@ export default function UsageInfoTab({
     return days;
   }, [calendarMonth, callDates]);
 
+  // Available periods for this component (exclude 'custom')
+  const availablePeriods: UsagePeriodFilter[] = [
+    'today',
+    'week',
+    'month',
+    '3month',
+    '6month',
+    'year',
+  ];
+
   return (
     <div className={styles.usageTabContent}>
       {/* Stats Section - Full Width at Top */}
@@ -243,10 +186,12 @@ export default function UsageInfoTab({
           <div className={styles.usageFilterRow}>
             <select
               value={period}
-              onChange={e => handlePeriodChange(e.target.value as PeriodFilter)}
+              onChange={e =>
+                handlePeriodChange(e.target.value as UsagePeriodFilter)
+              }
               className={styles.periodSelect}
             >
-              {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map(p => (
+              {availablePeriods.map(p => (
                 <option key={p} value={p}>
                   {PERIOD_LABELS[p]}
                 </option>
@@ -263,7 +208,7 @@ export default function UsageInfoTab({
               <input
                 type="date"
                 value={endDate}
-                readOnly
+                onChange={e => handleEndDateChange(e.target.value)}
                 className={styles.usageDateInput}
               />
             </div>

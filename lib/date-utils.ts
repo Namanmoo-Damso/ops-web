@@ -13,7 +13,9 @@
  * formatRelativeTime('2024-01-07T10:30:00Z') // "3일 전"
  * formatRelativeTime(null) // "-"
  */
-export function formatRelativeTime(dateString: string | null | undefined): string {
+export function formatRelativeTime(
+  dateString: string | null | undefined,
+): string {
   if (!dateString) return '-';
 
   try {
@@ -50,9 +52,19 @@ export function formatRelativeTime(dateString: string | null | undefined): strin
     }
 
     // Calculate days difference using normalized dates to avoid DST issues
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diffDays = Math.floor((startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24));
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const startOfDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    const diffDays = Math.floor(
+      (startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
 
     if (diffDays === 0) {
       return '오늘';
@@ -96,14 +108,31 @@ export function getKoreanConsonant(name: string): string {
     const code = firstChar.charCodeAt(0);
 
     // Korean unicode range: 0xAC00 (가) ~ 0xD7A3 (힣)
-    if (code >= 0xAC00 && code <= 0xD7A3) {
+    if (code >= 0xac00 && code <= 0xd7a3) {
       const consonants = [
-        'ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ',
-        'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+        'ㄱ',
+        'ㄲ',
+        'ㄴ',
+        'ㄷ',
+        'ㄸ',
+        'ㄹ',
+        'ㅁ',
+        'ㅂ',
+        'ㅃ',
+        'ㅅ',
+        'ㅆ',
+        'ㅇ',
+        'ㅈ',
+        'ㅉ',
+        'ㅊ',
+        'ㅋ',
+        'ㅌ',
+        'ㅍ',
+        'ㅎ',
       ];
       // Calculate initial consonant index (초성)
       // 한글 = (초성 × 588) + (중성 × 28) + 종성 + 0xAC00
-      const consonantIndex = Math.floor((code - 0xAC00) / 588);
+      const consonantIndex = Math.floor((code - 0xac00) / 588);
 
       if (consonantIndex >= 0 && consonantIndex < consonants.length) {
         return consonants[consonantIndex];
@@ -121,7 +150,20 @@ export function getKoreanConsonant(name: string): string {
  * Standard Korean consonants used for alphabetical navigation
  */
 export const KOREAN_CONSONANTS = [
-  'ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+  'ㄱ',
+  'ㄴ',
+  'ㄷ',
+  'ㄹ',
+  'ㅁ',
+  'ㅂ',
+  'ㅅ',
+  'ㅇ',
+  'ㅈ',
+  'ㅊ',
+  'ㅋ',
+  'ㅌ',
+  'ㅍ',
+  'ㅎ',
 ] as const;
 
 /**
@@ -130,7 +172,9 @@ export const KOREAN_CONSONANTS = [
  * @param dateInput - Date object or string
  * @returns Formatted date string
  */
-export function formatDateKorean(dateInput: Date | string = new Date()): string {
+export function formatDateKorean(
+  dateInput: Date | string = new Date(),
+): string {
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const days = ['일', '월', '화', '수', '목', '금', '토'];
   const month = date.getMonth() + 1;
@@ -189,4 +233,211 @@ export function getTimeAgo(dateStr: string): string {
   if (hours < 24) return `${hours}시간 전`;
   if (days < 7) return `${days}일 전`;
   return new Date(dateStr).toLocaleDateString('ko-KR');
+}
+
+// ============================================================================
+// Period/Date Range Utilities (for stats, logs, etc.)
+// ============================================================================
+
+export type PeriodFilter =
+  | 'today'
+  | 'week'
+  | 'month'
+  | '3month'
+  | '6month'
+  | 'year'
+  | 'custom';
+
+export const PERIOD_LABELS: Record<PeriodFilter, string> = {
+  today: '오늘',
+  week: '주간',
+  month: '월간',
+  '3month': '3개월',
+  '6month': '6개월',
+  year: '1년',
+  custom: '직접선택',
+};
+
+/**
+ * Safely formats a Date to YYYY-MM-DD string
+ * Returns empty string if date is invalid
+ */
+export function formatDateToInput(date: Date | null | undefined): string {
+  if (!date || isNaN(date.getTime())) {
+    return '';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Safely parses a YYYY-MM-DD string to Date
+ * Returns null if invalid
+ */
+export function parseDateInput(dateStr: string): Date | null {
+  if (!dateStr || dateStr.length < 10) return null;
+  const date = new Date(dateStr + 'T00:00:00');
+  if (isNaN(date.getTime())) return null;
+  return date;
+}
+
+/**
+ * Gets the first day of the month for a given date
+ */
+export function getStartOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+/**
+ * Gets the last day of the month for a given date
+ */
+export function getEndOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}
+
+/**
+ * Gets the number of days in a month
+ */
+export function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+/**
+ * Calculates the date range (startDate, endDate) based on period
+ * The range is always in the PAST (ending today or at end of current period)
+ *
+ * @param period - The period filter type
+ * @param today - Reference date (defaults to today)
+ * @returns Object with startDate and endDate as YYYY-MM-DD strings
+ */
+export function getDateRangeForPeriod(
+  period: PeriodFilter,
+  today: Date = new Date(),
+): { startDate: string; endDate: string } {
+  const endDate = new Date(today);
+  let startDate: Date;
+
+  switch (period) {
+    case 'today':
+      startDate = new Date(today);
+      break;
+    case 'week':
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - 6);
+      break;
+    case 'month':
+      startDate = new Date(today);
+      startDate.setMonth(today.getMonth() - 1);
+      startDate.setDate(startDate.getDate() + 1);
+      break;
+    case '3month':
+      startDate = new Date(today);
+      startDate.setMonth(today.getMonth() - 3);
+      startDate.setDate(startDate.getDate() + 1);
+      break;
+    case '6month':
+      startDate = new Date(today);
+      startDate.setMonth(today.getMonth() - 6);
+      startDate.setDate(startDate.getDate() + 1);
+      break;
+    case 'year':
+      startDate = new Date(today);
+      startDate.setFullYear(today.getFullYear() - 1);
+      startDate.setDate(startDate.getDate() + 1);
+      break;
+    case 'custom':
+    default:
+      // For custom, default to last month
+      startDate = new Date(today);
+      startDate.setMonth(today.getMonth() - 1);
+      startDate.setDate(startDate.getDate() + 1);
+      break;
+  }
+
+  return {
+    startDate: formatDateToInput(startDate),
+    endDate: formatDateToInput(endDate),
+  };
+}
+
+/**
+ * Validates and clamps a date string to be within reasonable bounds
+ * Returns the clamped date string or the original if valid
+ */
+export function validateDateInput(
+  dateStr: string,
+  minDate?: Date,
+  maxDate?: Date,
+): string {
+  const date = parseDateInput(dateStr);
+  if (!date) return formatDateToInput(new Date());
+
+  if (minDate && date < minDate) {
+    return formatDateToInput(minDate);
+  }
+  if (maxDate && date > maxDate) {
+    return formatDateToInput(maxDate);
+  }
+  return dateStr;
+}
+
+// ============================================================================
+// Stats Page Period Utilities (different labels from standard PeriodFilter)
+// ============================================================================
+
+export type StatsPeriodFilter =
+  | 'daily'
+  | 'weekly'
+  | 'monthly'
+  | '3months'
+  | '6months'
+  | '1year';
+
+export const STATS_PERIOD_LABELS: Record<StatsPeriodFilter, string> = {
+  daily: '일간',
+  weekly: '주간',
+  monthly: '월간',
+  '3months': '3개월',
+  '6months': '6개월',
+  '1year': '1년',
+};
+
+/**
+ * Maps StatsPeriodFilter to PeriodFilter for date range calculation
+ */
+function mapStatsPeriodToPeriod(statsPeriod: StatsPeriodFilter): PeriodFilter {
+  switch (statsPeriod) {
+    case 'daily':
+      return 'today';
+    case 'weekly':
+      return 'week';
+    case 'monthly':
+      return 'month';
+    case '3months':
+      return '3month';
+    case '6months':
+      return '6month';
+    case '1year':
+      return 'year';
+    default:
+      return 'month';
+  }
+}
+
+/**
+ * Calculates the date range for stats page periods
+ * Uses the same logic as getDateRangeForPeriod but with stats-specific period names
+ *
+ * @param period - The stats period filter type
+ * @param today - Reference date (defaults to today)
+ * @returns Object with startDate and endDate as YYYY-MM-DD strings
+ */
+export function getDateRangeForStatsPeriod(
+  period: StatsPeriodFilter,
+  today: Date = new Date(),
+): { startDate: string; endDate: string } {
+  const mappedPeriod = mapStatsPeriodToPeriod(period);
+  return getDateRangeForPeriod(mappedPeriod, today);
 }

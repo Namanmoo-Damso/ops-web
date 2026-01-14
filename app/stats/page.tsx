@@ -39,15 +39,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useDashboardApi, StatsResponse } from '../../hooks';
-
-// --- Types ---
-type PeriodFilter =
-  | 'daily'
-  | 'weekly'
-  | 'monthly'
-  | '3months'
-  | '6months'
-  | '1year';
+import {
+  formatDateToInput,
+  parseDateInput,
+  getDateRangeForStatsPeriod,
+  type StatsPeriodFilter,
+  STATS_PERIOD_LABELS,
+} from '../../lib/date-utils';
 
 // --- Mock Data ---
 const MOCK_CALL_STATS = {
@@ -136,110 +134,46 @@ function formatTimeAgo(timestamp: string): string {
   return '방금 전';
 }
 
-function formatDateToInput(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-function getEndDateForPeriod(
-  startDateStr: string,
-  periodKey: PeriodFilter,
-): string {
-  const start = new Date(startDateStr);
-
-  // Clone start date for manipulation
-  let end: Date;
-
-  switch (periodKey) {
-    case 'daily':
-      // Same day
-      end = new Date(start);
-      break;
-    case 'weekly':
-      end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      break;
-    case 'monthly': {
-      // Get same date next month, then subtract 1 day
-      // Handle month-end edge cases (e.g., Jan 31 -> Feb 28)
-      end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 1,
-        start.getDate(),
-      );
-      // If day changed due to overflow, go to last day of intended month
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear(), start.getMonth() + 2, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    }
-    case '3months': {
-      end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 3,
-        start.getDate(),
-      );
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear(), start.getMonth() + 4, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    }
-    case '6months': {
-      end = new Date(
-        start.getFullYear(),
-        start.getMonth() + 6,
-        start.getDate(),
-      );
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear(), start.getMonth() + 7, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    }
-    case '1year': {
-      end = new Date(
-        start.getFullYear() + 1,
-        start.getMonth(),
-        start.getDate(),
-      );
-      // Handle Feb 29 -> Feb 28 in non-leap year
-      if (end.getDate() !== start.getDate()) {
-        end = new Date(start.getFullYear() + 1, start.getMonth() + 1, 0);
-      }
-      end.setDate(end.getDate() - 1);
-      break;
-    }
-    default:
-      end = new Date(start);
-  }
-
-  return formatDateToInput(end);
-}
-
-const PERIOD_LABELS: Record<PeriodFilter, string> = {
-  daily: '일간',
-  weekly: '주간',
-  monthly: '월간',
-  '3months': '3개월',
-  '6months': '6개월',
-  '1year': '1년',
-};
-
 // --- Page Component ---
 export default function StatsPage() {
   const { getStats } = useDashboardApi();
 
-  const [period, setPeriod] = useState<PeriodFilter>('daily');
-  const [startDate, setStartDate] = useState(() =>
-    formatDateToInput(new Date()),
+  // Period and date state - defaults to daily (today)
+  const [period, setPeriod] = useState<StatsPeriodFilter>('daily');
+  const [startDate, setStartDate] = useState(
+    () => getDateRangeForStatsPeriod('daily').startDate,
   );
-  const [endDate, setEndDate] = useState(() => formatDateToInput(new Date()));
+  const [endDate, setEndDate] = useState(
+    () => getDateRangeForStatsPeriod('daily').endDate,
+  );
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   // API data state
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Handle period change - recalculate both start and end dates
+  const handlePeriodChange = useCallback((newPeriod: StatsPeriodFilter) => {
+    setPeriod(newPeriod);
+    const range = getDateRangeForStatsPeriod(newPeriod);
+    setStartDate(range.startDate);
+    setEndDate(range.endDate);
+  }, []);
+
+  // Handle manual date input changes
+  const handleStartDateChange = useCallback((value: string) => {
+    const parsed = parseDateInput(value);
+    if (parsed) {
+      setStartDate(value);
+    }
+  }, []);
+
+  const handleEndDateChange = useCallback((value: string) => {
+    const parsed = parseDateInput(value);
+    if (parsed) {
+      setEndDate(value);
+    }
+  }, []);
 
   // Load stats on mount
   useEffect(() => {
@@ -290,25 +224,6 @@ export default function StatsPage() {
       showLegend: true,
       showGrid: false,
     });
-
-  // Update dates when period changes
-  const handlePeriodChange = (newPeriod: PeriodFilter) => {
-    setPeriod(newPeriod);
-    const newEndDate = getEndDateForPeriod(startDate, newPeriod);
-    setEndDate(newEndDate);
-  };
-
-  // Handle start date change - auto-update end date based on period
-  const handleStartDateChange = (value: string) => {
-    setStartDate(value);
-    const newEndDate = getEndDateForPeriod(value, period);
-    setEndDate(newEndDate);
-  };
-
-  // Handle end date change - manual override
-  const handleEndDateChange = (value: string) => {
-    setEndDate(value);
-  };
 
   const [downloadMessage, setDownloadMessage] = useState<string | null>(null);
 
@@ -389,15 +304,17 @@ export default function StatsPage() {
         {/* Period Filter */}
         <div className="stats-filter-section">
           <div className="stats-filter-presets">
-            {(Object.keys(PERIOD_LABELS) as PeriodFilter[]).map(key => (
-              <button
-                key={key}
-                className={`stats-filter-btn ${period === key ? 'active' : ''}`}
-                onClick={() => handlePeriodChange(key)}
-              >
-                {PERIOD_LABELS[key]}
-              </button>
-            ))}
+            {(Object.keys(STATS_PERIOD_LABELS) as StatsPeriodFilter[]).map(
+              key => (
+                <button
+                  key={key}
+                  className={`stats-filter-btn ${period === key ? 'active' : ''}`}
+                  onClick={() => handlePeriodChange(key)}
+                >
+                  {STATS_PERIOD_LABELS[key]}
+                </button>
+              ),
+            )}
           </div>
           <div className="stats-filter-dates">
             <input
