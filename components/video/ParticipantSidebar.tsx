@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
-import { IconMic } from "../Icons";
-import { getInitials } from "./VideoTiles";
-import styles from "../../app/page.module.css";
+import { useState, useMemo } from 'react';
+import { IconMic } from '../Icons';
+import { getInitials } from './VideoTiles';
+import styles from '../../app/page.module.css';
 
 export type MockParticipant = {
   id: string;
@@ -40,20 +40,20 @@ export const ParticipantSidebar = ({
   connected,
   canControl,
 }: ParticipantSidebarProps) => {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredParticipants = useMemo(() => {
     if (!searchQuery.trim()) return participants;
     const query = searchQuery.toLowerCase();
     return participants.filter(
-      (p) =>
+      p =>
         p.name.toLowerCase().includes(query) ||
-        p.id.toLowerCase().includes(query)
+        p.id.toLowerCase().includes(query),
     );
   }, [participants, searchQuery]);
 
   const selectedParticipant = selectedParticipantId
-    ? participants.find((p) => p.id === selectedParticipantId)
+    ? participants.find(p => p.id === selectedParticipantId)
     : null;
   const isSelectedOnline = selectedParticipant?.online === true;
 
@@ -61,39 +61,39 @@ export const ParticipantSidebar = ({
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
         <span>Participants ({participants.length})</span>
-        <span className={styles.topIcon} onClick={onClose}>X</span>
+        <span className={styles.topIcon} onClick={onClose}>
+          X
+        </span>
       </div>
       <div className={styles.sidebarSearch}>
         <input
           className={styles.searchInput}
           placeholder="Find participant"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
         />
       </div>
       <div className={styles.participantList}>
-        {filteredParticipants.map((participant) => (
+        {filteredParticipants.map(participant => (
           <div
             key={participant.id}
             className={`${styles.participantRow} ${
-              participant.speaking ? styles.active : ""
-            } ${participant.online === false ? styles.offline : ""} ${
-              !participant.you ? styles.participantClickable : ""
-            } ${participant.id === selectedParticipantId ? styles.participantSelected : ""}`}
+              participant.speaking ? styles.active : ''
+            } ${participant.online === false ? styles.offline : ''} ${
+              !participant.you ? styles.participantClickable : ''
+            } ${participant.id === selectedParticipantId ? styles.participantSelected : ''}`}
             onClick={() => {
               if (participant.you) return;
               onSelectParticipant(participant.id);
             }}
           >
             <div className={styles.participantAvatar}>
-              {participant.you ? "YOU" : getInitials(participant.name)}
+              {participant.you ? 'YOU' : getInitials(participant.name)}
             </div>
             <div className={styles.participantMeta}>
-              <span className={styles.participantName}>
-                {participant.name}
-              </span>
+              <span className={styles.participantName}>{participant.name}</span>
               <span className={styles.participantStatus}>
-                {participant.status || ""}
+                {participant.status || ''}
               </span>
             </div>
             <div className={styles.participantIcon}>
@@ -115,11 +115,16 @@ export const ParticipantSidebar = ({
           className={`${styles.footerButton} ${styles.primary}`}
           onClick={() => {
             if (isSelectedOnline) return;
-            onInvite(selectedParticipantId ?? "");
+            onInvite(selectedParticipantId ?? '');
           }}
-          disabled={!connected || inviteBusy || !selectedParticipantId || isSelectedOnline}
+          disabled={
+            !connected ||
+            inviteBusy ||
+            !selectedParticipantId ||
+            isSelectedOnline
+          }
         >
-          {isSelectedOnline ? "Already in room" : "Invite"}
+          {isSelectedOnline ? 'Already in room' : 'Invite'}
         </button>
       </div>
       {inviteStatus ? (

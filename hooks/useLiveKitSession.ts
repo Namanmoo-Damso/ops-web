@@ -1,23 +1,14 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from 'react';
 
-const IDENTITY_STORAGE_KEY = "damso.identity";
-const NAME_STORAGE_KEY = "damso.name";
-
-const generateIdentity = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `host-${crypto.randomUUID()}`;
-  }
-  return `host-${Date.now()}`;
-};
-
-type Role = "host" | "viewer" | "observer";
+type Role = 'host' | 'viewer' | 'observer';
 
 export type UseLiveKitSessionOptions = {
   apiBase: string;
   livekitUrl: string;
   defaultRoomName: string;
+  autoJoin?: boolean;
 };
 
 export type UseLiveKitSessionReturn = {
@@ -46,11 +37,10 @@ export function useLiveKitSession({
   apiBase,
   livekitUrl,
   defaultRoomName,
+  autoJoin = false,
 }: UseLiveKitSessionOptions): UseLiveKitSessionReturn {
-  const [identity, setIdentity] = useState(generateIdentity);
-  const [name, setName] = useState("Host");
   const [roomName] = useState(defaultRoomName);
-  const [token, setToken] = useState<string>("");
+  const [token, setToken] = useState<string>('');
   const [serverUrl, setServerUrl] = useState<string>(livekitUrl);
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
@@ -59,24 +49,50 @@ export function useLiveKitSession({
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [inviteBusy, setInviteBusy] = useState(false);
   const [gridSize, setGridSize] = useState(3);
-  const [showParticipantList, setShowParticipantList] = useState(true);
+  const [showParticipantList, setShowParticipantList] = useState(false);
 
+  // Admin identity and name (fetched from admin/me endpoint or derived from token)
+  const [adminIdentity, setAdminIdentity] = useState<string>('');
+  const [adminName, setAdminName] = useState<string>('');
+
+  // Track if auto-join has been attempted to prevent duplicates
+  const autoJoinAttempted = useRef(false);
+
+  // Fetch admin info on mount
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const storedIdentity = window.localStorage.getItem(IDENTITY_STORAGE_KEY);
-    if (storedIdentity) {
-      setIdentity(storedIdentity);
-    } else {
-      const nextIdentity = generateIdentity();
-      window.localStorage.setItem(IDENTITY_STORAGE_KEY, nextIdentity);
-      setIdentity(nextIdentity);
-    }
+    const fetchAdminInfo = async () => {
+      try {
+        const adminAccessToken =
+          typeof window !== 'undefined'
+            ? window.localStorage.getItem('admin_access_token')
+            : null;
 
-    const storedName = window.localStorage.getItem(NAME_STORAGE_KEY);
-    if (storedName) {
-      setName(storedName);
-    }
-  }, []);
+        if (!adminAccessToken) return;
+
+        const apiBaseResolved =
+          apiBase ||
+          (typeof window !== 'undefined' ? window.location.origin : '');
+        const res = await fetch(`${apiBaseResolved}/admin/me`, {
+          headers: {
+            Authorization: `Bearer ${adminAccessToken}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const adminId = data.admin?.id || '';
+          const adminNameValue =
+            data.admin?.name || data.admin?.email || 'Admin';
+          setAdminIdentity(`admin_${adminId}`);
+          setAdminName(adminNameValue);
+        }
+      } catch (err) {
+        console.error('Failed to fetch admin info:', err);
+      }
+    };
+
+    fetchAdminInfo();
+  }, [apiBase]);
 
   const joinRoom = useCallback(async () => {
     if (connecting || connected) return;
@@ -84,27 +100,28 @@ export function useLiveKitSession({
     setError(null);
     try {
       const apiBaseResolved = apiBase || window.location.origin;
-      const authRes = await fetch(`${apiBaseResolved}/v1/auth/anonymous`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identity, displayName: name }),
-      });
-      if (!authRes.ok) {
-        throw new Error(`Auth failed (${authRes.status})`);
-      }
-      const authData = await authRes.json();
 
+      // Use admin access token from localStorage instead of anonymous auth
+      const adminAccessToken =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem('admin_access_token')
+          : null;
+
+      if (!adminAccessToken) {
+        throw new Error('Admin not authenticated. Please log in.');
+      }
+
+      // Request RTC token using admin credentials
       const rtcRes = await fetch(`${apiBaseResolved}/v1/rtc/token`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authData.accessToken || ""}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminAccessToken}`,
         },
         body: JSON.stringify({
           roomName,
-          identity,
-          name,
-          role: "host" as Role,
+          // identity and name will be set by server based on admin token
+          role: 'host' as Role,
         }),
       });
       if (!rtcRes.ok) {
@@ -112,68 +129,79 @@ export function useLiveKitSession({
       }
       const rtcData = await rtcRes.json();
       if (!rtcData?.token) {
-        throw new Error("RTC token missing");
+        throw new Error('RTC token missing');
       }
       setToken(rtcData.token);
       setServerUrl(rtcData.livekitUrl || livekitUrl);
       setConnected(true);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : "Join failed");
+      setError(err instanceof Error ? err.message : 'Join failed');
     } finally {
       setConnecting(false);
     }
-  }, [connecting, connected, apiBase, identity, name, roomName, livekitUrl]);
+  }, [connecting, connected, apiBase, roomName, livekitUrl]);
+
+  // Auto-join when enabled (only once)
+  useEffect(() => {
+    if (autoJoin && apiBase && !autoJoinAttempted.current) {
+      autoJoinAttempted.current = true;
+      joinRoom();
+    }
+  }, [autoJoin, apiBase, joinRoom]);
 
   const leaveRoom = useCallback(() => {
     setConnected(false);
-    setToken("");
+    setToken('');
     setServerUrl(livekitUrl);
     setFocusedId(null);
   }, [livekitUrl]);
 
-  const inviteParticipant = useCallback(async (targetIdentity: string) => {
-    if (inviteBusy) return;
-    const target = targetIdentity.trim();
-    if (!target) {
-      setInviteStatus("목록에서 참가자를 선택하세요");
-      return;
-    }
-    if (target === identity) {
-      setInviteStatus("자기 자신에게는 호출할 수 없습니다");
-      return;
-    }
-    setInviteBusy(true);
-    setInviteStatus(null);
-    try {
-      const apiBaseResolved = apiBase || window.location.origin;
-      const res = await fetch(`${apiBaseResolved}/v1/calls/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          callerIdentity: identity,
-          callerName: name,
-          calleeIdentity: target,
-          roomName,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || `Invite failed (${res.status})`);
+  const inviteParticipant = useCallback(
+    async (targetIdentity: string) => {
+      if (inviteBusy) return;
+      const target = targetIdentity.trim();
+      if (!target) {
+        setInviteStatus('목록에서 참가자를 선택하세요');
+        return;
       }
-      const callId = data?.callId ? ` (${data.callId})` : "";
-      setInviteStatus(`Invite sent${callId}`);
-    } catch (err) {
-      console.error(err);
-      setInviteStatus(err instanceof Error ? err.message : "Invite failed");
-    } finally {
-      setInviteBusy(false);
-    }
-  }, [inviteBusy, identity, name, apiBase, roomName]);
+      if (target === adminIdentity) {
+        setInviteStatus('자기 자신에게는 호출할 수 없습니다');
+        return;
+      }
+      setInviteBusy(true);
+      setInviteStatus(null);
+      try {
+        const apiBaseResolved = apiBase || window.location.origin;
+        const res = await fetch(`${apiBaseResolved}/v1/calls/invite`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            callerIdentity: adminIdentity,
+            callerName: adminName,
+            calleeIdentity: target,
+            roomName,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data?.message || `Invite failed (${res.status})`);
+        }
+        const callId = data?.callId ? ` (${data.callId})` : '';
+        setInviteStatus(`Invite sent${callId}`);
+      } catch (err) {
+        console.error(err);
+        setInviteStatus(err instanceof Error ? err.message : 'Invite failed');
+      } finally {
+        setInviteBusy(false);
+      }
+    },
+    [inviteBusy, adminIdentity, adminName, apiBase, roomName],
+  );
 
   return {
-    identity,
-    name,
+    identity: adminIdentity,
+    name: adminName,
     roomName,
     token,
     serverUrl,

@@ -1,791 +1,315 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
-import SidebarLayout from "../../components/SidebarLayout";
+import { useState, type ReactElement } from 'react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Grid2x2,
+  Map,
+  MapPin,
+  MonitorPlay,
+  Phone,
+  Sparkles,
+  Users,
+} from 'lucide-react';
+import Link from 'next/link';
+import SidebarLayout from '../../components/SidebarLayout';
+import { AuthError, useAuthedFetch } from '../../hooks/useAuthedFetch';
+import styles from './dashboard.module.css';
+import {
+  type FeatureCardProps,
+  type HeroCopy,
+  type MyWardsStatsResponse,
+  type StatCardProps,
+  type StatTone,
+} from './types';
 
-// 차트 컴포넌트들을 동적으로 import (SSR 비활성화)
-const WeeklyTrendChart = dynamic(
-  () => import("../../components/DashboardCharts").then((mod) => mod.WeeklyTrendChart),
-  { ssr: false, loading: () => <ChartLoading /> }
-);
-const MoodPieChart = dynamic(
-  () => import("../../components/DashboardCharts").then((mod) => mod.MoodPieChart),
-  { ssr: false, loading: () => <ChartLoading /> }
-);
-const KeywordsBarChart = dynamic(
-  () => import("../../components/DashboardCharts").then((mod) => mod.KeywordsBarChart),
-  { ssr: false, loading: () => <ChartLoading /> }
-);
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-function ChartLoading() {
-  return (
-    <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b" }}>
-      차트 로딩 중...
-    </div>
-  );
-}
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
-type DashboardStats = {
-  overview: {
-    totalWards: number;
-    activeWards: number;
-    totalGuardians: number;
-    totalOrganizations: number;
-    totalCalls: number;
-    totalCallMinutes: number;
-  };
-  todayStats: {
-    calls: number;
-    avgDuration: number;
-    emergencies: number;
-    newRegistrations: number;
-  };
-  weeklyTrend: {
-    calls: number[];
-    emergencies: number[];
-    labels: string[];
-  };
-  moodDistribution: {
-    positive: number;
-    neutral: number;
-    negative: number;
-  };
-  healthAlerts: {
-    warning: number;
-    info: number;
-    unread: number;
-  };
-  topKeywords: Array<{
-    keyword: string;
-    count: number;
-  }>;
-  organizationStats: Array<{
-    id: string;
-    name: string;
-    wardCount: number;
-    callCount: number;
-  }>;
-  recentActivity: Array<{
-    type: string;
-    description: string;
-    timestamp: string;
-    details: Record<string, unknown>;
-  }>;
-  fetchedAt: string;
-};
-
-type RealtimeStats = {
-  activeCalls: number;
-  onlineWards: number;
-  pendingEmergencies: number;
-  recentActivity: Array<{
-    type: string;
-    description: string;
-    timestamp: string;
-    details: Record<string, unknown>;
-  }>;
-  fetchedAt: string;
-};
-
-const MOOD_COLORS = {
-  positive: "#22c55e",
-  neutral: "#f59e0b",
-  negative: "#ef4444",
+const toneClass: Record<StatTone, string> = {
+  dark: styles.toneDark,
+  muted: styles.toneMuted,
+  primary: styles.tonePrimary,
+  warning: styles.toneWarning,
 };
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [realtime, setRealtime] = useState<RealtimeStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("admin_access_token");
-      if (!token) {
-        window.location.href = "/login";
-        return;
-      }
-      console.log("[Dashboard] Fetching stats from:", `${API_BASE}/v1/admin/dashboard/stats`);
-      const response = await fetch(`${API_BASE}/v1/admin/dashboard/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
+  const { data, loading, error } = useAuthedFetch<MyWardsStatsResponse>({
+    deps: [refreshKey],
+    fetcher: async ({ token, signal }) => {
+      const response = await fetch(`${API_BASE}/v1/admin/my-wards`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        signal,
       });
-      if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem("admin_access_token");
-          localStorage.removeItem("admin_refresh_token");
-          localStorage.removeItem("admin_info");
-          window.location.href = "/login";
-          return;
-        }
-        const errorText = await response.text();
-        console.error("[Dashboard] Stats fetch failed:", response.status, errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      if (response.status === 401 || response.status === 403) {
+        throw new AuthError('인증이 만료되었습니다.');
       }
-      const data = await response.json();
-      console.log("[Dashboard] Stats received:", data);
-      setStats(data);
-      setError(null);
-    } catch (err) {
-      console.error("[Dashboard] Stats error:", err);
-      setError((err as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const fetchRealtime = useCallback(async () => {
-    try {
-      const token = localStorage.getItem("admin_access_token");
-      if (!token) {
-        window.location.href = "/login";
-        return;
-      }
-      const response = await fetch(`${API_BASE}/v1/admin/dashboard/realtime`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem("admin_access_token");
-          localStorage.removeItem("admin_refresh_token");
-          localStorage.removeItem("admin_info");
-          window.location.href = "/login";
-          return;
-        }
         throw new Error(`HTTP ${response.status}`);
       }
-      const data = await response.json();
-      setRealtime(data);
-    } catch {
-      // Silently fail for realtime
-    }
-  }, []);
+      return (await response.json()) as MyWardsStatsResponse;
+    },
+  });
 
-  useEffect(() => {
-    fetchStats();
-    fetchRealtime();
+  const totalCount =
+    typeof data?.stats?.total === 'number' ? data.stats.total : 0;
+  const linkedCount =
+    typeof data?.stats?.registered === 'number' ? data.stats.registered : 0;
+  const unlinkedCount = Math.max(totalCount - linkedCount, 0);
 
-    let statsInterval: NodeJS.Timeout | null = null;
-    let realtimeInterval: NodeJS.Timeout | null = null;
+  const syncState =
+    totalCount === 0
+      ? 'empty'
+      : unlinkedCount > 0
+        ? 'needs_link'
+        : 'all_linked';
 
-    if (autoRefresh) {
-      statsInterval = setInterval(fetchStats, 60000); // 1분마다 전체 통계
-      realtimeInterval = setInterval(fetchRealtime, 10000); // 10초마다 실시간
-    }
-
-    return () => {
-      if (statsInterval) clearInterval(statsInterval);
-      if (realtimeInterval) clearInterval(realtimeInterval);
-    };
-  }, [fetchStats, fetchRealtime, autoRefresh]);
-
-  if (isLoading) {
-    return (
-      <SidebarLayout title="대시보드">
-        <div style={{ padding: "48px", textAlign: "center", color: "#64748b" }}>
-          대시보드 로딩 중...
-        </div>
-      </SidebarLayout>
-    );
-  }
-
-  if (error) {
-    return (
-      <SidebarLayout title="대시보드">
-        <div style={{ padding: "48px", textAlign: "center", color: "#dc2626" }}>
-          오류: {error}
+  const heroCopy: HeroCopy = error
+    ? {
+        title: '연동 현황을 불러오지 못했습니다.',
+        desc: (
+          <>
+            네트워크 상태를 확인한 뒤 다시 시도해주세요.
+            <br />
+            문제가 계속되면 관리자에게 문의하세요.
+          </>
+        ),
+        action: (
           <button
-            onClick={fetchStats}
-            style={{
-              marginLeft: "12px",
-              padding: "8px 16px",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontWeight: 500,
-            }}
+            className={styles.heroAction}
+            type="button"
+            onClick={() => setRefreshKey(key => key + 1)}
           >
-            재시도
+            다시 시도하기
           </button>
-        </div>
-      </SidebarLayout>
-    );
-  }
-
-  if (!stats) return null;
-
-  // API 응답을 차트 데이터로 변환
-  const moodTotal = stats.moodDistribution.positive + stats.moodDistribution.neutral + stats.moodDistribution.negative;
-  const moodData = [
-    { name: "긍정", value: stats.moodDistribution.positive, color: MOOD_COLORS.positive },
-    { name: "중립", value: stats.moodDistribution.neutral, color: MOOD_COLORS.neutral },
-    { name: "부정", value: stats.moodDistribution.negative, color: MOOD_COLORS.negative },
-  ];
-
-  // weeklyTrend를 차트 데이터로 변환
-  const weeklyTrendData = stats.weeklyTrend.labels.map((label, index) => ({
-    dayLabel: label,
-    calls: stats.weeklyTrend.calls[index] || 0,
-    emergencies: stats.weeklyTrend.emergencies[index] || 0,
-  }));
+        ),
+      }
+    : loading
+      ? {
+          title: '연동 현황을 불러오는 중입니다.',
+          desc: (
+            <>
+              최신 대상자 연동 정보를 확인하고 있습니다.
+              <br />
+              잠시만 기다려주세요.
+            </>
+          ),
+          action: (
+            <button
+              className={`${styles.heroAction} ${styles.heroActionDisabled}`}
+              type="button"
+              disabled
+            >
+              불러오는 중...
+            </button>
+          ),
+        }
+      : syncState === 'empty'
+        ? {
+            title: '아직 등록된 피보호자가 없습니다.',
+            desc: (
+              <>
+                CSV 업로드 또는 수기 등록으로 바로 시작하세요.
+                <br />
+                등록이 완료되면 실시간 관제 기능을 사용할 수 있습니다.
+              </>
+            ),
+            action: (
+              <button
+                className={styles.heroAction}
+                type="button"
+                onClick={() => setCsvModalOpen(true)}
+              >
+                피보호자 등록하기
+              </button>
+            ),
+          }
+        : syncState === 'needs_link'
+          ? {
+              title: `${unlinkedCount}명의 대상자가 아직 연동되지 않았습니다.`,
+              desc: (
+                <>
+                  대상자 연동 현황에서 보호자 연결을 완료해주세요.
+                  <br />
+                  연동이 완료되면 자동 관제 기능이 활성화됩니다.
+                </>
+              ),
+              action: (
+                <Link className={styles.heroAction} href="/my-wards">
+                  대상자 연동 현황으로 가기
+                </Link>
+              ),
+            }
+          : {
+              title: `총 ${totalCount}명의 대상자가 등록되었습니다.`,
+              desc: (
+                <>
+                  전체 대상자 관리에서 상세 정보를 확인하고 관리하세요.
+                  <br />
+                  오늘도 담소의 관제로 안전하게 케어하세요.
+                </>
+              ),
+              action: (
+                <Link className={styles.heroAction} href="/beneficiaries">
+                  전체 대상자 관리
+                </Link>
+              ),
+            };
 
   return (
-    <SidebarLayout>
-      {/* Custom Header with Controls */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "24px",
-        }}
-      >
-        <div>
-          <h1 style={{ margin: 0, fontSize: "22px", fontWeight: 700, color: "#1e293b" }}>
-            관제 대시보드
-          </h1>
-          <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#64748b" }}>
-            마지막 업데이트: {new Date(stats.fetchedAt).toLocaleString("ko-KR")}
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <input
-              type="checkbox"
-              checked={autoRefresh}
-              onChange={(e) => setAutoRefresh(e.target.checked)}
-              style={{ width: "16px", height: "16px", accentColor: "#3b82f6" }}
-            />
-            <span style={{ fontSize: "14px", color: "#475569", fontWeight: 500 }}>자동 새로고침</span>
-          </label>
-          <button
-            onClick={() => {
-              fetchStats();
-              fetchRealtime();
-            }}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#3b82f6",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: 600,
-              transition: "background 150ms ease",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#2563eb")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#3b82f6")}
-          >
-            새로고침
-          </button>
-        </div>
-      </div>
-
-      {/* Realtime Stats Banner */}
-      {realtime && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "16px",
-            marginBottom: "24px",
-          }}
-        >
-          <RealtimeCard
-            label="진행 중인 통화"
-            value={realtime.activeCalls}
-            color="#3b82f6"
-            icon="📞"
-          />
-          <RealtimeCard
-            label="온라인 피보호자"
-            value={realtime.onlineWards}
-            color="#22c55e"
-            icon="🟢"
-          />
-          <RealtimeCard
-            label="대기 중인 비상상황"
-            value={realtime.pendingEmergencies}
-            color={realtime.pendingEmergencies > 0 ? "#dc2626" : "#64748b"}
-            icon="🚨"
-            highlight={realtime.pendingEmergencies > 0}
-          />
-        </div>
-      )}
-
-      {/* Overview Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(6, 1fr)",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
-        <StatCard label="전체 피보호자" value={stats.overview.totalWards} />
-        <StatCard
-          label="활성 피보호자"
-          value={stats.overview.activeWards}
-          subtext={`${Math.round((stats.overview.activeWards / Math.max(stats.overview.totalWards, 1)) * 100)}%`}
-        />
-        <StatCard label="전체 보호자" value={stats.overview.totalGuardians} />
-        <StatCard label="등록 기관" value={stats.overview.totalOrganizations} />
-        <StatCard
-          label="총 통화 수"
-          value={stats.overview.totalCalls.toLocaleString()}
-        />
-        <StatCard
-          label="총 통화 시간"
-          value={`${Math.round(stats.overview.totalCallMinutes / 60)}시간`}
-          subtext={`${stats.overview.totalCallMinutes.toLocaleString()}분`}
-        />
-      </div>
-
-      {/* Today Stats */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "16px",
-          marginBottom: "24px",
-        }}
-      >
-        <TodayCard
-          label="오늘 통화"
-          value={stats.todayStats.calls}
-          icon="📞"
-        />
-        <TodayCard
-          label="평균 통화시간"
-          value={`${stats.todayStats.avgDuration.toFixed(1)}분`}
-          icon="⏱️"
-        />
-        <TodayCard
-          label="오늘 비상상황"
-          value={stats.todayStats.emergencies}
-          icon="🚨"
-          highlight={stats.todayStats.emergencies > 0}
-        />
-        <TodayCard
-          label="신규 등록"
-          value={stats.todayStats.newRegistrations}
-          icon="👤"
-        />
-      </div>
-
-      {/* Charts Row 1 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "2fr 1fr",
-          gap: "24px",
-          marginBottom: "24px",
-        }}
-      >
-        {/* Weekly Trend Chart */}
-        <div
-          style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "20px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-            주간 추이
-          </h3>
-          <WeeklyTrendChart data={weeklyTrendData} />
-        </div>
-
-        {/* Mood Distribution */}
-        <div
-          style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "20px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-            감정 분포 (총 {moodTotal}건)
-          </h3>
-          <MoodPieChart data={moodData} />
-        </div>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "24px",
-          marginBottom: "24px",
-        }}
-      >
-        {/* Health Alerts */}
-        <div
-          style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "20px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-            건강 알림
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <AlertRow
-              label="경고 알림"
-              value={stats.healthAlerts.warning}
-              color="#f59e0b"
-            />
-            <AlertRow
-              label="정보 알림"
-              value={stats.healthAlerts.info}
-              color="#3b82f6"
-            />
-            <AlertRow
-              label="미확인 알림"
-              value={stats.healthAlerts.unread}
-              color="#dc2626"
-              highlight
-            />
-          </div>
-        </div>
-
-        {/* Top Keywords */}
-        <div
-          style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "20px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-            주요 건강 키워드
-          </h3>
-          {stats.topKeywords.length > 0 ? (
-            <KeywordsBarChart data={stats.topKeywords.slice(0, 5)} />
-          ) : (
-            <div
-              style={{
-                height: "200px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
-              }}
+    <SidebarLayout
+      title="기관 통합 관제"
+      csvModalOpen={csvModalOpen}
+      onCsvModalOpenChange={setCsvModalOpen}
+    >
+      <div className={styles.page}>
+        {error && (
+          <div className={styles.notice}>
+            연동 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+            <button
+              className={styles.noticeButton}
+              type="button"
+              onClick={() => setRefreshKey(key => key + 1)}
             >
-              키워드 데이터 없음
-            </div>
-          )}
-        </div>
-
-        {/* Organization Stats */}
-        <div
-          style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "20px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-            border: "1px solid #e2e8f0",
-          }}
-        >
-          <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-            기관별 현황
-          </h3>
-          {stats.organizationStats.length > 0 ? (
-            <div style={{ maxHeight: "200px", overflow: "auto" }}>
-              <table style={{ width: "100%", fontSize: "13px", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
-                    <th style={{ textAlign: "left", padding: "10px 4px", color: "#475569", fontWeight: 600 }}>기관</th>
-                    <th style={{ textAlign: "right", padding: "10px 4px", color: "#475569", fontWeight: 600 }}>피보호자</th>
-                    <th style={{ textAlign: "right", padding: "10px 4px", color: "#475569", fontWeight: 600 }}>통화</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.organizationStats.map((org) => (
-                    <tr key={org.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                      <td style={{ padding: "10px 4px", color: "#1e293b" }}>{org.name}</td>
-                      <td style={{ textAlign: "right", padding: "10px 4px", color: "#475569" }}>{org.wardCount}</td>
-                      <td style={{ textAlign: "right", padding: "10px 4px", color: "#475569" }}>{org.callCount}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div
-              style={{
-                height: "200px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#64748b",
-              }}
-            >
-              등록된 기관 없음
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div
-        style={{
-          backgroundColor: "white",
-          borderRadius: "12px",
-          padding: "20px",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-          border: "1px solid #e2e8f0",
-        }}
-      >
-        <h3 style={{ margin: "0 0 16px", fontSize: "16px", fontWeight: 600, color: "#1e293b" }}>
-          최근 활동
-        </h3>
-        {stats.recentActivity.length > 0 ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {stats.recentActivity.slice(0, 10).map((activity, index) => (
-              <ActivityItem key={index} activity={activity} />
-            ))}
-          </div>
-        ) : (
-          <div style={{ padding: "24px", textAlign: "center", color: "#64748b" }}>
-            최근 활동 없음
+              다시 시도
+            </button>
           </div>
         )}
+        <section className={styles.hero}>
+          <div className={styles.heroGlow} />
+          <div className={styles.heroContent}>
+            <div className={styles.heroBadge}>
+              <span className={styles.heroPill}>NEW</span>
+              <span className={styles.heroBadgeText}>시스템 설정 완료</span>
+            </div>
+            <h1 className={styles.heroTitle}>{heroCopy.title}</h1>
+            <p className={styles.heroDesc}>{heroCopy.desc}</p>
+          </div>
+          {heroCopy.action}
+        </section>
+
+        <section className={styles.featureGrid}>
+          <FeatureCard
+            icon={<MonitorPlay size={22} />}
+            cornerIcon={<Grid2x2 size={76} />}
+            title="실시간 영상 모니터링"
+            description="여러 어르신과의 통화 화면을 한눈에 확인합니다. 응급 상황 발생 시 해당 화면이 자동으로 팝업됩니다."
+            actionLabel="모니터링 뷰 열기"
+            href="/"
+          />
+          <FeatureCard
+            icon={<MapPin size={22} />}
+            cornerIcon={<Map size={76} />}
+            title="지도 기반 위치 관제"
+            description="등록된 120명의 거주지 위치가 지도에 매핑되었습니다. 지역별 현황과 이동 동선을 시각적으로 파악하세요."
+            actionLabel="지도 뷰 열기"
+            href="/locations"
+          />
+        </section>
+
+        <section>
+          <h2 className={styles.sectionTitle}>
+            <Sparkles size={18} color="#f59e0b" /> 금일현황
+          </h2>
+          <div className={styles.statsGrid}>
+            <StatCard
+              label="총 등록 대상"
+              value="120"
+              unit="명"
+              icon={<Users size={18} />}
+              tone="dark"
+            />
+            <StatCard
+              label="오늘 예정 통화"
+              value="120"
+              unit="건"
+              icon={<Clock size={18} />}
+              badge="오후 2시 시작 예정"
+              tone="muted"
+            />
+            <StatCard
+              label="위험 감지"
+              value="0"
+              unit="건"
+              icon={<CheckCircle2 size={18} />}
+              badge="현재 안전함"
+              tone="primary"
+            />
+            <StatCard
+              label="연결 대기 중"
+              value="120"
+              unit="명"
+              icon={<Phone size={18} />}
+              tone="warning"
+            />
+          </div>
+        </section>
+
+        <section className={styles.empty}>
+          <div className={styles.emptyIcon}>
+            <Phone size={32} />
+          </div>
+          <h3 className={styles.emptyTitle}>아직 진행된 통화가 없습니다.</h3>
+          <p className={styles.emptyDesc}>
+            설정하신 시간에 AI가 자동으로 전화를 걸기 시작합니다.
+            <br />
+            혹은 <strong>[모니터링 뷰]</strong>에서 수동으로 연결할 수 있습니다.
+          </p>
+          <button className={styles.emptyAction} type="button">
+            AI 강제 실행하기 (즉시 시작)
+          </button>
+        </section>
       </div>
     </SidebarLayout>
   );
 }
 
-function RealtimeCard({
-  label,
-  value,
-  color,
+function FeatureCard({
   icon,
-  highlight,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  icon: string;
-  highlight?: boolean;
-}) {
+  cornerIcon,
+  title,
+  description,
+  actionLabel,
+  href,
+}: FeatureCardProps) {
   return (
-    <div
-      style={{
-        backgroundColor: highlight ? "#fef2f2" : "white",
-        borderRadius: "12px",
-        padding: "18px 22px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-        display: "flex",
-        alignItems: "center",
-        gap: "16px",
-        border: highlight ? "2px solid #fca5a5" : "1px solid #e2e8f0",
-        animation: highlight ? "pulse 2s infinite" : "none",
-      }}
-    >
-      <span style={{ fontSize: "28px" }}>{icon}</span>
-      <div>
-        <div style={{ fontSize: "26px", fontWeight: 700, color }}>{value}</div>
-        <div style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>{label}</div>
-      </div>
-    </div>
+    <Link className={styles.featureCard} href={href}>
+      <div className={styles.featureCorner}>{cornerIcon}</div>
+      <div className={styles.featureIcon}>{icon}</div>
+      <h3 className={styles.featureTitle}>{title}</h3>
+      <p className={styles.featureDesc}>{description}</p>
+      <span className={styles.featureAction}>
+        {actionLabel} <ArrowRight size={14} />
+      </span>
+    </Link>
   );
 }
 
 function StatCard({
   label,
   value,
-  subtext,
-}: {
-  label: string;
-  value: string | number;
-  subtext?: string;
-}) {
-  return (
-    <div
-      style={{
-        backgroundColor: "white",
-        borderRadius: "12px",
-        padding: "18px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-        textAlign: "center",
-        border: "1px solid #e2e8f0",
-      }}
-    >
-      <div style={{ fontSize: "26px", fontWeight: 700, color: "#1e293b" }}>
-        {value}
-      </div>
-      <div style={{ fontSize: "13px", color: "#64748b", marginTop: "6px", fontWeight: 500 }}>
-        {label}
-      </div>
-      {subtext && (
-        <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px" }}>
-          {subtext}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TodayCard({
-  label,
-  value,
+  unit,
   icon,
-  highlight,
-}: {
-  label: string;
-  value: string | number;
-  icon: string;
-  highlight?: boolean;
-}) {
+  badge,
+  tone,
+}: StatCardProps) {
   return (
-    <div
-      style={{
-        backgroundColor: highlight ? "#fef2f2" : "white",
-        borderRadius: "12px",
-        padding: "18px 22px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
-        display: "flex",
-        alignItems: "center",
-        gap: "14px",
-        border: highlight ? "1px solid #fca5a5" : "1px solid #e2e8f0",
-      }}
-    >
-      <span style={{ fontSize: "26px" }}>{icon}</span>
-      <div>
-        <div
-          style={{
-            fontSize: "22px",
-            fontWeight: 700,
-            color: highlight ? "#dc2626" : "#1e293b",
-          }}
-        >
-          {value}
-        </div>
-        <div style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>{label}</div>
+    <div className={styles.statCard}>
+      <div className={styles.statTop}>
+        <div className={`${styles.statIcon} ${toneClass[tone]}`}>{icon}</div>
+        {badge ? <span className={styles.statBadge}>{badge}</span> : null}
+      </div>
+      <div className={styles.statLabel}>{label}</div>
+      <div className={styles.statValue}>
+        <strong className={styles.statValueNumber}>{value}</strong>
+        <span className={styles.statValueUnit}>{unit}</span>
       </div>
     </div>
   );
-}
-
-function AlertRow({
-  label,
-  value,
-  color,
-  highlight,
-}: {
-  label: string;
-  value: number;
-  color: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "14px 18px",
-        backgroundColor: highlight ? "#fef2f2" : "#f8fafc",
-        borderRadius: "10px",
-        border: highlight ? "1px solid #fca5a5" : "1px solid #e2e8f0",
-      }}
-    >
-      <span style={{ fontSize: "14px", color: "#475569", fontWeight: 500 }}>{label}</span>
-      <span
-        style={{
-          fontSize: "20px",
-          fontWeight: 700,
-          color,
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function ActivityItem({
-  activity,
-}: {
-  activity: {
-    type: string;
-    description: string;
-    timestamp: string;
-    details: Record<string, unknown>;
-  };
-}) {
-  const typeIcons: Record<string, string> = {
-    call_started: "📞",
-    call_ended: "📴",
-    emergency: "🚨",
-  };
-
-  const typeColors: Record<string, string> = {
-    call_started: "#3b82f6",
-    call_ended: "#64748b",
-    emergency: "#dc2626",
-  };
-
-  const timeAgo = getTimeAgo(new Date(activity.timestamp));
-
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "14px",
-        padding: "12px 16px",
-        backgroundColor: activity.type === "emergency" ? "#fef2f2" : "#f8fafc",
-        borderRadius: "10px",
-        border: activity.type === "emergency" ? "1px solid #fca5a5" : "1px solid #e2e8f0",
-      }}
-    >
-      <span style={{ fontSize: "22px" }}>{typeIcons[activity.type] || "📌"}</span>
-      <div style={{ flex: 1 }}>
-        <div
-          style={{
-            fontSize: "14px",
-            fontWeight: 500,
-            color: typeColors[activity.type] || "#475569",
-          }}
-        >
-          {activity.description}
-        </div>
-      </div>
-      <div style={{ fontSize: "12px", color: "#94a3b8", fontWeight: 500 }}>{timeAgo}</div>
-    </div>
-  );
-}
-
-function getTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return "방금 전";
-  if (diffMin < 60) return `${diffMin}분 전`;
-  if (diffHour < 24) return `${diffHour}시간 전`;
-  if (diffDay < 7) return `${diffDay}일 전`;
-  return date.toLocaleDateString("ko-KR");
 }
