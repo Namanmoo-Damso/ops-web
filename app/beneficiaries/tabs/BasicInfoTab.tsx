@@ -5,7 +5,7 @@ import styles from '../DetailModal.module.css';
 import { SectionTitle } from '../../../components/ui';
 import { formatTags } from '../../../utils/formatters';
 import type { BeneficiarySummary } from '../../../types/models';
-import type { BeneficiaryDetail } from '../DetailModal';
+import type { BeneficiaryDetail, StaffOption } from '../DetailModal';
 
 // Form data type for editing
 export type BasicInfoFormData = {
@@ -20,12 +20,6 @@ export type BasicInfoFormData = {
   medication: string;
   notes: string;
 };
-
-// Staff option for assignment dropdown
-interface StaffOption {
-  id: string;
-  name: string;
-}
 
 interface BasicInfoTabProps {
   beneficiary: BeneficiarySummary;
