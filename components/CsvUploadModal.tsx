@@ -1,20 +1,174 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { overlays, palette, shadows } from '../app/theme';
 import CsvUploadPanel, { CleanRow } from './CsvUploadPanel';
 import ManualWardForm, { ManualWardPayload } from './ManualWardForm';
 
-const IconClose = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+import { IconArrowLeft, IconClose, IconInfo, IconDownload } from './Icons';
+import { SharedButton, ModalHeader } from './RegistrationShared';
+
+const IconChevron = ({ open }: { open: boolean }) => (
+  <svg
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{
+      transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+      transition: 'transform 200ms ease',
+    }}
+  >
     <path
-      d="M18 6L6 18M6 6l12 12"
+      d="M6 9l6 6 6-6"
       stroke="currentColor"
       strokeWidth="1.6"
       strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </svg>
 );
+
+function CsvFormatGuide() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const columns = [
+    { name: '이름', required: true, example: '홍길동' },
+    { name: '성별', required: true, example: 'male / female' },
+    { name: '생년월일', required: true, example: '1945-03-15' },
+    { name: '전화번호', required: true, example: '010-1234-5678' },
+    { name: '이메일', required: true, example: 'hong@example.com' },
+    { name: '주소', required: true, example: '서울시 강남구' },
+    { name: '기저질환', required: false, example: '고혈압, 당뇨' },
+    { name: '복약정보', required: false, example: '혈압약, 당뇨약' },
+    { name: '비상 연락처', required: false, example: '홍길순 010-5678-1234' },
+    { name: '비고', required: false, example: '오전 통화 선호' },
+  ];
+
+  return (
+    <div
+      style={{
+        marginBottom: '12px',
+        border: `1px solid ${palette.border}`,
+        borderRadius: '12px',
+        backgroundColor: palette.background,
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        onClick={() => setIsOpen(prev => !prev)}
+        style={{
+          width: '100%',
+          padding: '12px 14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+          color: palette.primaryDark,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: palette.primary }}>
+            <IconInfo />
+          </span>
+          <span style={{ fontSize: '16px', fontWeight: 600 }}>
+            CSV 형식 가이드
+          </span>
+        </div>
+        <IconChevron open={isOpen} />
+      </button>
+
+      {isOpen && (
+        <div
+          style={{
+            padding: '0 14px 14px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}
+        >
+          {/* Download Button */}
+          <a
+            href="/templates/damso_register_template.csv"
+            download="damso_register_template.csv"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              backgroundColor: palette.primary,
+              color: '#fff',
+              fontSize: '16px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              width: 'fit-content',
+            }}
+          >
+            <IconDownload />
+            템플릿 CSV 다운로드
+          </a>
+
+          {/* Column Table */}
+          <div
+            style={{
+              borderRadius: '8px',
+              border: `1px solid ${palette.border}`,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.2fr 0.6fr 1.2fr',
+                padding: '10px 14px',
+                backgroundColor: palette.soft,
+                fontSize: '16px',
+                fontWeight: 700,
+                color: palette.primaryDark,
+              }}
+            >
+              <span>항목</span>
+              <span>필수</span>
+              <span>예시</span>
+            </div>
+            {columns.map((col, idx) => (
+              <div
+                key={col.name}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1.2fr 0.6fr 1.2fr',
+                  padding: '10px 14px',
+                  fontSize: '16px',
+                  color: palette.primaryDark,
+                  borderTop: idx === 0 ? 'none' : `1px solid ${palette.border}`,
+                  backgroundColor:
+                    idx % 2 === 0 ? palette.panel : palette.background,
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>{col.name}</span>
+                <span
+                  style={{
+                    color: col.required ? palette.danger : palette.textMuted,
+                  }}
+                >
+                  {col.required ? '필수' : '선택'}
+                </span>
+                <span style={{ color: palette.textMuted }}>{col.example}</span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ fontSize: '16px', color: palette.textMuted }}>
+            💡 헤더는 한글/영어 모두 인식됩니다.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type CsvUploadModalProps = {
   open: boolean;
@@ -56,6 +210,19 @@ export default function CsvUploadModal({
       '궁금한 점은 기관으로 문의해주세요.',
     ].join('\n'),
   );
+  const [showGuide, setShowGuide] = useState(true);
+  const [uploadStage, setUploadStage] = useState<'select' | 'preview'>(
+    'select',
+  );
+
+  useEffect(() => {
+    if (open) {
+      setMode('upload');
+      setStep('form');
+      setShowGuide(true);
+      setUploadStage('select');
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -68,6 +235,7 @@ export default function CsvUploadModal({
     setKakaoHint(null);
     setKakaoEditOpen(false);
     setModeLocked(false);
+    setUploadStage('select');
     onClose();
   };
 
@@ -108,71 +276,49 @@ export default function CsvUploadModal({
         position: 'fixed',
         inset: 0,
         backgroundColor: overlays.scrim,
-        display: 'grid',
-        placeItems: 'center',
+        display: 'flex',
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '20px',
         zIndex: 10000,
         padding: '16px',
       }}
       onClick={handleClose}
     >
+      {/* Main Registration Modal */}
       <div
         style={{
           width: '100%',
-          maxWidth: '720px',
+          maxWidth:
+            step === 'kakao'
+              ? '620px'
+              : mode === 'manual'
+                ? '620px'
+                : uploadStage === 'preview'
+                  ? '960px'
+                  : '480px',
           borderRadius: '16px',
           backgroundColor: palette.panel,
           boxShadow: shadows.deep,
-          padding: '28px',
+          padding: '20px',
           border: `1px solid ${palette.border}`,
+          height: 'min(680px, 85vh)',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'all 300ms ease',
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '12px',
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: '18px',
-              fontWeight: 700,
-              color: palette.primaryDark,
-            }}
-          >
-            피보호자 등록
-          </h3>
-          <button
-            onClick={handleClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              display: 'grid',
-              placeItems: 'center',
-              color: palette.textSoft,
-              cursor: uploading ? 'not-allowed' : 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = palette.soft;
-              e.currentTarget.style.color = palette.textMuted;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = palette.textSoft;
-            }}
-          >
-            <IconClose />
-          </button>
-        </div>
+        <ModalHeader
+          title="대상자 등록"
+          onClose={handleClose}
+          IconClose={IconClose}
+        />
 
-        {!modeLocked && (
+        {(step === 'form' && mode !== 'upload') ||
+        (mode === 'upload' && uploadStage === 'select') ? (
           <div
             style={{
               display: 'grid',
@@ -196,15 +342,14 @@ export default function CsvUploadModal({
                     setPendingCsv(null);
                     setPendingManual(null);
                     setKakaoHint(null);
-                    setModeLocked(true);
                   }}
                   style={{
-                    padding: '10px 12px',
+                    padding: '12px 14px',
                     borderRadius: '10px',
                     border: `1px solid ${isActive ? palette.primary : palette.border}`,
                     backgroundColor: isActive ? palette.soft : palette.panel,
                     color: isActive ? palette.primaryDark : palette.textMuted,
-                    fontSize: '14px',
+                    fontSize: '16px',
                     fontWeight: 600,
                     cursor: uploading ? 'not-allowed' : 'pointer',
                     transition: 'all 150ms ease',
@@ -215,6 +360,26 @@ export default function CsvUploadModal({
               );
             })}
           </div>
+        ) : null}
+
+        {/* Guide Toggle Button (Only in CSV mode and Select stage) */}
+        {mode === 'upload' && step === 'form' && uploadStage === 'select' && (
+          <SharedButton
+            onClick={() => setShowGuide(!showGuide)}
+            variant="secondary"
+            fullWidth
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              border: `1px solid ${palette.border}`,
+              marginBottom: '14px',
+            }}
+          >
+            <IconArrowLeft />
+            입력 가이드 {showGuide ? '닫기' : '보기'}
+          </SharedButton>
         )}
 
         <div style={{ display: step === 'form' ? 'block' : 'none' }}>
@@ -222,16 +387,23 @@ export default function CsvUploadModal({
             <CsvUploadPanel
               onConfirm={handleCsvConfirm}
               onCancel={handleClose}
+              onStageChange={setUploadStage}
               uploading={uploading}
               uploadProgress={uploadProgress}
             />
           ) : (
-            <ManualWardForm onSubmit={handleManualSubmit} onCancel={handleClose} />
+            <ManualWardForm
+              onSubmit={handleManualSubmit}
+              onCancel={handleClose}
+              loading={uploading}
+            />
           )}
         </div>
 
         {step === 'kakao' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+          >
             <div
               style={{
                 padding: '16px',
@@ -243,10 +415,22 @@ export default function CsvUploadModal({
                 gap: '8px',
               }}
             >
-              <div style={{ fontSize: '15px', fontWeight: 700, color: palette.primaryDark }}>
+              <div
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: palette.primaryDark,
+                }}
+              >
                 카카오 알림톡 초대장
               </div>
-              <div style={{ fontSize: '13px', color: palette.textMuted, lineHeight: 1.5 }}>
+              <div
+                style={{
+                  fontSize: '16px',
+                  color: palette.textMuted,
+                  lineHeight: 1.5,
+                }}
+              >
                 {mode === 'upload'
                   ? `CSV 이메일 기준으로 ${pendingCsv?.rows.length ?? 0}명에게 초대장을 보낼 수 있습니다.`
                   : `입력한 이메일/전화번호로 초대장을 보낼 수 있습니다.`}
@@ -273,7 +457,7 @@ export default function CsvUploadModal({
               >
                 <div
                   style={{
-                    fontSize: '13px',
+                    fontSize: '16px',
                     fontWeight: 700,
                     color: palette.primaryDark,
                   }}
@@ -286,9 +470,11 @@ export default function CsvUploadModal({
                     padding: '6px 10px',
                     borderRadius: '999px',
                     border: `1px solid ${palette.border}`,
-                    backgroundColor: kakaoEditOpen ? palette.primary : palette.background,
+                    backgroundColor: kakaoEditOpen
+                      ? palette.primary
+                      : palette.background,
                     color: kakaoEditOpen ? palette.panel : palette.primaryDark,
-                    fontSize: '12px',
+                    fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 150ms ease',
@@ -325,7 +511,7 @@ export default function CsvUploadModal({
                     borderRadius: '12px',
                     border: `1px solid ${palette.border}`,
                     backgroundColor: '#fff7c2',
-                    fontSize: '13px',
+                    fontSize: '16px',
                     color: palette.primaryDark,
                     lineHeight: 1.7,
                   }}
@@ -337,7 +523,7 @@ export default function CsvUploadModal({
                     border: `1px solid ${palette.border}`,
                     backgroundColor: palette.background,
                     padding: '18px',
-                    fontSize: '13px',
+                    fontSize: '16px',
                     color: '#1f2937',
                     lineHeight: 1.7,
                     whiteSpace: 'pre-line',
@@ -361,7 +547,7 @@ export default function CsvUploadModal({
                 border: 'none',
                 backgroundColor: '#FFE81D',
                 color: palette.primaryDark,
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 700,
                 cursor: uploading ? 'not-allowed' : 'pointer',
                 transition: 'all 150ms ease',
@@ -386,14 +572,20 @@ export default function CsvUploadModal({
                   color: palette.textMuted,
                   borderRadius: '10px',
                   padding: '10px 12px',
-                  fontSize: '12px',
+                  fontSize: '14px',
                 }}
               >
                 {kakaoHint}
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px',
+              }}
+            >
               <button
                 disabled={uploading}
                 onClick={() => setStep('form')}
@@ -403,7 +595,7 @@ export default function CsvUploadModal({
                   border: `1px solid ${palette.border}`,
                   backgroundColor: palette.panel,
                   color: palette.primaryDark,
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 600,
                   cursor: uploading ? 'not-allowed' : 'pointer',
                   transition: 'all 150ms ease',
@@ -431,9 +623,11 @@ export default function CsvUploadModal({
                   borderRadius: '10px',
                   border: 'none',
                   backgroundColor:
-                    uploading || !hasPending ? palette.secondary : palette.primary,
+                    uploading || !hasPending
+                      ? palette.secondary
+                      : palette.primary,
                   color: palette.panel,
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 700,
                   cursor: uploading || !hasPending ? 'not-allowed' : 'pointer',
                   transition: 'all 150ms ease',
@@ -456,6 +650,175 @@ export default function CsvUploadModal({
           </div>
         )}
       </div>
+
+      {/* Side Reference Guide Panel - transitions based on mode */}
+      {step === 'form' && (
+        <div
+          style={{
+            width:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? '360px'
+                : '0px',
+            maxWidth: '360px',
+            borderRadius: '16px',
+            backgroundColor: palette.panel,
+            padding:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? '20px'
+                : '0px',
+            border:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? `1px solid ${palette.border}`
+                : 'none',
+            height: 'min(680px, 85vh)',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            transition: 'all 300ms ease',
+            opacity:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? 1
+                : 0,
+            overflow: 'hidden',
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '16px',
+            }}
+          >
+            <h4
+              style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: 700,
+                color: palette.primaryDark,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span style={{ color: palette.primary }}>
+                <IconInfo />
+              </span>
+              입력 항목 가이드
+            </h4>
+            <button
+              onClick={() => setShowGuide(false)}
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '6px',
+                border: 'none',
+                background: 'transparent',
+                display: 'grid',
+                placeItems: 'center',
+                color: palette.textSoft,
+                cursor: 'pointer',
+              }}
+            >
+              <IconClose />
+            </button>
+          </div>
+
+          {/* Column Table */}
+          <div
+            style={{
+              borderRadius: '8px',
+              border: `1px solid ${palette.border}`,
+              overflow: 'hidden',
+              marginBottom: '16px',
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1.5fr',
+                padding: '12px 14px',
+                backgroundColor: palette.soft,
+                fontSize: '16px',
+                fontWeight: 700,
+                color: palette.primaryDark,
+              }}
+            >
+              <span>항목</span>
+              <span>예시</span>
+            </div>
+            {[
+              { name: '이름', example: '홍길동' },
+              { name: '성별', example: '남 / 여' },
+              { name: '생년월일', example: '1945-03-15' },
+              { name: '전화번호', example: '010-1234-5678' },
+              { name: '이메일', example: 'hong@example.com' },
+              { name: '기저질환', example: '고혈압, 당뇨' },
+              { name: '복약정보', example: '혈압약, 항생제' },
+              { name: '비상 연락처', example: '010-5678-1234' },
+              { name: '비고', example: '기타 참고사항' },
+            ].map((col, idx) => (
+              <div
+                key={col.name}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1.5fr',
+                  padding: '10px 14px',
+                  fontSize: '16px',
+                  color: palette.primaryDark,
+                  borderTop: idx === 0 ? 'none' : `1px solid ${palette.border}`,
+                  backgroundColor:
+                    idx % 2 === 0 ? palette.panel : palette.background,
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>
+                  {col.name}
+                  {idx < 5 && (
+                    <span style={{ color: '#f97316', marginLeft: '4px' }}>
+                      *
+                    </span>
+                  )}
+                </span>
+                <span style={{ color: palette.textMuted, fontSize: '16px' }}>
+                  {col.example}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Download Button - moved below table */}
+          <a
+            href="/templates/ward_upload_template.csv"
+            download="ward_upload_template.csv"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '16px',
+              borderRadius: '12px',
+              backgroundColor: '#fff',
+              border: `2px solid ${palette.primaryDark}`,
+              color: palette.primaryDark,
+              fontSize: '18px',
+              fontWeight: 800,
+              textDecoration: 'none',
+              marginBottom: '16px',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = palette.soft;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#fff';
+            }}
+          >
+            <IconDownload />
+            템플릿 CSV 다운로드
+          </a>
+        </div>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { palette } from '../app/theme';
+import { SharedButton } from './RegistrationShared';
 import { API_BASE } from '../lib/api-client';
 
 const IconUpload = () => (
@@ -29,6 +30,10 @@ export type CleanRow = {
   phone_number: string;
   birth_date: string;
   address: string;
+  gender: string;
+  diseases: string;
+  medication: string;
+  emergency_contact: string;
   notes: string;
 };
 
@@ -37,6 +42,7 @@ type ParsedRow = CleanRow & { errors: string[] };
 type CsvUploadPanelProps = {
   onConfirm: (file: File, rows: CleanRow[]) => void;
   onCancel: () => void;
+  onStageChange?: (stage: 'select' | 'preview') => void;
   uploading?: boolean;
   uploadProgress?: { processed: number; total: number } | null;
 };
@@ -128,6 +134,57 @@ function mapHeaderToField(header: string): keyof CleanRow | null {
     ].some(v => normalized.includes(v.replace(/\s/g, '')))
   ) {
     return 'notes';
+  }
+
+  // Gender variations
+  if (
+    ['성별', 'gender', 'sex', '남녀', '성'].some(v =>
+      normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
+    return 'gender';
+  }
+
+  // Diseases variations (기저질환)
+  if (
+    [
+      '기저질환',
+      '질환',
+      '질병',
+      'diseases',
+      'disease',
+      'conditions',
+      '병력',
+    ].some(v => normalized.includes(v.replace(/\s/g, '')))
+  ) {
+    return 'diseases';
+  }
+
+  // Medication variations (복약정보)
+  if (
+    ['복약정보', '복약', '약', 'medication', 'medicine', 'drugs', '약물'].some(
+      v => normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
+    return 'medication';
+  }
+
+  // Emergency Contact variations (비상연락처)
+  if (
+    [
+      '비상연락처',
+      '비상 연락처',
+      '보호자',
+      'guardian',
+      'emergency',
+      'emergencycontact',
+      '담당자',
+      '가족',
+      '보호자명',
+      '보호자연락처',
+    ].some(v => normalized.includes(v.replace(/\s/g, '')))
+  ) {
+    return 'emergency_contact';
   }
 
   return null;
@@ -272,6 +329,10 @@ async function parseCsvText(text: string): Promise<{ rows: CleanRow[] }> {
       phone_number: '',
       birth_date: '',
       address: '',
+      gender: '',
+      diseases: '',
+      medication: '',
+      emergency_contact: '',
       notes: '',
     };
 
@@ -289,20 +350,47 @@ async function parseCsvText(text: string): Promise<{ rows: CleanRow[] }> {
   return { rows };
 }
 
+// Auto-format phone number: 01012345678 → 010-1234-5678
+function formatPhoneNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+// Auto-format birth date: supports YYMMDD (주민번호 앞자리) or YYYYMMDD
+function formatBirthDate(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  // Handle 6-digit YYMMDD format (주민번호 앞자리)
+  if (digits.length === 6) {
+    const yy = parseInt(digits.slice(0, 2), 10);
+    const century = yy >= 0 && yy <= 30 ? '20' : '19'; // 00-30 → 2000s, 31-99 → 1900s
+    return `${century}${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4, 6)}`;
+  }
+  // Handle 8-digit YYYYMMDD format
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
 function validateRow(row: CleanRow): string[] {
   const errors: string[] = [];
 
   if (!row.name.trim()) errors.push('이름 필수');
+  if (!row.gender.trim()) errors.push('성별 필수');
+  if (!row.birth_date.trim()) {
+    errors.push('생년월일 필수');
+  } else {
+    const date = new Date(row.birth_date.trim());
+    if (Number.isNaN(date.getTime())) errors.push('생년월일 형식 오류');
+  }
+  if (!row.phone_number.trim()) errors.push('전화번호 필수');
   if (!row.email.trim()) {
     errors.push('이메일 필수');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email.trim())) {
     errors.push('이메일 형식 오류');
   }
-  if (!row.phone_number.trim()) errors.push('전화번호 필수');
-  if (row.birth_date.trim()) {
-    const date = new Date(row.birth_date.trim());
-    if (Number.isNaN(date.getTime())) errors.push('생년월일 형식 오류');
-  }
+  if (!row.address.trim()) errors.push('주소 필수');
 
   return errors;
 }
@@ -310,6 +398,7 @@ function validateRow(row: CleanRow): string[] {
 export default function CsvUploadPanel({
   onConfirm,
   onCancel,
+  onStageChange,
   uploading = false,
   uploadProgress,
 }: CsvUploadPanelProps) {
@@ -341,6 +430,7 @@ export default function CsvUploadPanel({
       setParsedRows(validated);
       setParseError(null);
       setUploadStage('preview');
+      onStageChange?.('preview');
     } catch (error) {
       console.error(error);
       setParseError('CSV 파싱 중 오류가 발생했습니다.');
@@ -425,7 +515,7 @@ export default function CsvUploadPanel({
             </div>
             <div
               style={{
-                fontSize: '15px',
+                fontSize: '18px',
                 fontWeight: 600,
                 color: palette.primaryDark,
               }}
@@ -434,7 +524,7 @@ export default function CsvUploadPanel({
                 ? csvFile.name
                 : '여기에 파일을 끌어다 놓거나 클릭해서 선택'}
             </div>
-            <div style={{ fontSize: '13px', color: palette.textMuted }}>
+            <div style={{ fontSize: '16px', color: palette.textMuted }}>
               CSV 형식만 업로드 가능합니다
             </div>
             <input
@@ -479,19 +569,21 @@ export default function CsvUploadPanel({
               gap: '12px',
             }}
           >
-            <div style={{ fontSize: '14px', color: palette.primaryDark }}>
+            <div style={{ fontSize: '16px', color: palette.primaryDark }}>
               총 {parsedRows.length}건 •{' '}
               {hasRowErrors ? '오류를 수정해야 합니다' : '모두 유효합니다'}
             </div>
             <button
               onClick={() => {
                 setUploadStage('select');
+                onStageChange?.('select');
                 setParsedRows([]);
                 setParseError(null);
               }}
               style={{
                 padding: '8px 12px',
                 borderRadius: '8px',
+                fontSize: '16px',
                 border: borderStyle,
                 backgroundColor: palette.panel,
                 color: palette.primaryDark,
@@ -519,8 +611,9 @@ export default function CsvUploadPanel({
 
           <div
             style={{
-              maxHeight: '320px',
-              overflow: 'auto',
+              maxHeight: '460px',
+              overflowX: 'auto',
+              overflowY: 'auto',
               border: borderStyle,
               borderRadius: '12px',
             }}
@@ -528,103 +621,130 @@ export default function CsvUploadPanel({
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1.5fr 1.8fr 1.6fr 1fr 1fr 1fr',
-                padding: '10px 12px',
+                gridTemplateColumns:
+                  '90px 55px 100px 130px 170px 160px 100px 100px 110px 70px',
+                minWidth: '1190px',
+                gap: '8px',
+                padding: '14px 16px',
                 backgroundColor: palette.background,
-                fontSize: '12px',
+                fontSize: '16px',
                 fontWeight: 700,
                 color: palette.primaryDark,
                 borderBottom: borderStyle,
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
               }}
             >
-              <span>이름*</span>
-              <span>이메일*</span>
-              <span>전화번호*</span>
-              <span>생년월일</span>
-              <span>주소</span>
-              <span>비고</span>
+              <span style={{ marginLeft: '10px' }}>이름*</span>
+              <span style={{ marginLeft: '10px' }}>성별</span>
+              <span style={{ marginLeft: '10px' }}>생년월일</span>
+              <span style={{ marginLeft: '10px' }}>전화번호*</span>
+              <span style={{ marginLeft: '10px' }}>이메일*</span>
+              <span style={{ marginLeft: '10px' }}>주소</span>
+              <span style={{ marginLeft: '10px' }}>기저질환</span>
+              <span style={{ marginLeft: '10px' }}>복약정보</span>
+              <span style={{ marginLeft: '10px' }}>비상연락처</span>
+              <span style={{ marginLeft: '10px' }}>비고</span>
             </div>
-            {parsedRows.map((row, idx) => (
-              <div
-                key={row.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.5fr 1.8fr 1.6fr 1fr 1fr 1fr',
-                  gap: '6px',
-                  padding: '10px 12px',
-                  borderBottom:
-                    idx === parsedRows.length - 1
-                      ? 'none'
-                      : '1px solid #F0F5E8',
-                  backgroundColor: row.errors.length
-                    ? palette.warningSoft
-                    : palette.panel,
-                }}
-              >
-                {(
-                  [
-                    'name',
-                    'email',
-                    'phone_number',
-                    'birth_date',
-                    'address',
-                    'notes',
-                  ] as const
-                ).map(field => (
-                  <input
-                    key={field}
-                    value={row[field]}
-                    onChange={e => {
-                      const value = e.target.value;
-                      setParsedRows(prev =>
-                        prev.map(r =>
-                          r.id === row.id
-                            ? {
-                                ...r,
-                                [field]: value,
-                                errors: validateRow({
+            {parsedRows.map((row, idx) => {
+              const rowErrors = validateRow(row);
+              return (
+                <div
+                  key={row.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      '90px 55px 100px 130px 170px 160px 100px 100px 110px 70px',
+                    minWidth: '1190px',
+                    gap: '8px',
+                    padding: '12px 16px',
+                    borderBottom:
+                      idx === parsedRows.length - 1
+                        ? 'none'
+                        : '1px solid #F0F5E8',
+                    backgroundColor: rowErrors.length
+                      ? palette.warningSoft
+                      : palette.panel,
+                  }}
+                >
+                  {(
+                    [
+                      'name',
+                      'gender',
+                      'birth_date',
+                      'phone_number',
+                      'email',
+                      'address',
+                      'diseases',
+                      'medication',
+                      'emergency_contact',
+                      'notes',
+                    ] as const
+                  ).map(field => (
+                    <input
+                      key={field}
+                      value={row[field]}
+                      onChange={e => {
+                        let value = e.target.value;
+                        // Auto-format phone and birthdate
+                        if (field === 'phone_number') {
+                          value = formatPhoneNumber(value);
+                        } else if (field === 'birth_date') {
+                          value = formatBirthDate(value);
+                        }
+                        setParsedRows(prev =>
+                          prev.map(r =>
+                            r.id === row.id
+                              ? {
                                   ...r,
                                   [field]: value,
-                                }),
-                              }
-                            : r,
-                        ),
-                      );
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      border: row.errors.length
-                        ? '1px solid #fb7185'
-                        : borderStyle,
-                      backgroundColor: palette.panel,
-                      fontSize: '13px',
-                      color: palette.primaryDark,
-                    }}
-                    placeholder={
-                      field === 'birth_date'
-                        ? 'YYYY-MM-DD'
-                        : field === 'notes'
-                          ? '비고'
-                          : ''
-                    }
-                  />
-                ))}
-                {row.errors.length > 0 && (
-                  <div
-                    style={{
-                      gridColumn: '1 / -1',
-                      fontSize: '12px',
-                      color: palette.danger,
-                      marginTop: '6px',
-                    }}
-                  >
-                    {row.errors.join(' • ')}
-                  </div>
-                )}
-              </div>
-            ))}
+                                  errors: validateRow({
+                                    ...r,
+                                    [field]: value,
+                                  }),
+                                }
+                              : r,
+                          ),
+                        );
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        border: rowErrors.length
+                          ? '1px solid #fb7185'
+                          : borderStyle,
+                        backgroundColor: palette.panel,
+                        fontSize: '14px',
+                        color: palette.primaryDark,
+                      }}
+                      placeholder={
+                        field === 'birth_date'
+                          ? '주민번호 앞자리 (YYMMDD)'
+                          : field === 'gender'
+                            ? '남/여'
+                            : field === 'phone_number'
+                              ? '010-0000-0000'
+                              : ''
+                      }
+                    />
+                  ))}
+                  {rowErrors.length > 0 && (
+                    <div
+                      style={{
+                        gridColumn: '1 / -1',
+                        fontSize: '14px',
+                        color: palette.danger,
+                        marginTop: '8px',
+                      }}
+                    >
+                      {rowErrors.join(' • ')}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -679,94 +799,21 @@ export default function CsvUploadPanel({
         style={{
           display: 'flex',
           justifyContent: 'flex-end',
-          gap: '8px',
-          marginTop: '8px',
+          marginTop: '4px',
         }}
       >
-        <button
-          disabled={uploading}
-          onClick={onCancel}
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            border: borderStyle,
-            backgroundColor: palette.panel,
-            color: palette.primaryDark,
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            transition: 'all 150ms ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = palette.background;
-            e.currentTarget.style.color = palette.primaryDark;
-            e.currentTarget.style.borderColor = palette.secondary;
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = palette.panel;
-            e.currentTarget.style.color = palette.primaryDark;
-            e.currentTarget.style.borderColor = palette.border;
-          }}
-        >
-          Cancel
-        </button>
-        {uploadStage === 'preview' && (
-          <button
-            disabled={uploading}
-            onClick={() => {
-              setUploadStage('select');
-              setParsedRows([]);
-              setParseError(null);
-            }}
-            style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              border: borderStyle,
-              backgroundColor: palette.panel,
-              color: palette.primaryDark,
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: uploading ? 'not-allowed' : 'pointer',
-              transition: 'all 150ms ease',
-            }}
-          >
-            뒤로
-          </button>
-        )}
-        <button
+        <SharedButton
           disabled={uploadDisabled || uploading}
           onClick={uploadStage === 'select' ? handlePreview : handleConfirm}
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            border: 'none',
-            backgroundColor:
-              uploadDisabled || uploading ? palette.secondary : palette.primary,
-            color: palette.panel,
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor: uploadDisabled || uploading ? 'not-allowed' : 'pointer',
-            transition: 'all 150ms ease',
-            boxShadow:
-              uploadDisabled || uploading
-                ? 'none'
-                : '0 10px 30px rgba(37,99,235,0.15)',
-          }}
-          onMouseEnter={e => {
-            if (uploadDisabled || uploading) return;
-            e.currentTarget.style.backgroundColor = palette.primaryDark;
-          }}
-          onMouseLeave={e => {
-            if (uploadDisabled || uploading) return;
-            e.currentTarget.style.backgroundColor = palette.primary;
-          }}
+          fullWidth
+          fontSize="20px"
         >
           {uploading
             ? '업로드 중...'
             : uploadStage === 'select'
-              ? '미리보기'
+              ? '등록하기'
               : '확인 후 업로드'}
-        </button>
+        </SharedButton>
       </div>
     </div>
   );
