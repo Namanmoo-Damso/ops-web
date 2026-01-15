@@ -38,13 +38,42 @@ import {
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-type BeneficiaryDetailPayload = BeneficiaryDetail & {
+// API response type (has 'guardian' instead of 'emergencyContact')
+type BeneficiaryDetailApiPayload = Omit<
+  BeneficiaryDetail,
+  'emergencyContact'
+> & {
   id: string;
+  guardian: string | null;
 };
 
 type BeneficiaryDetailResponse = {
-  data: BeneficiaryDetailPayload;
+  data: BeneficiaryDetailApiPayload;
 };
+
+// Convert API response to frontend type
+function mapApiToDetail(
+  api: BeneficiaryDetailApiPayload,
+): BeneficiaryDetail & { id: string } {
+  return {
+    id: api.id,
+    name: api.name,
+    email: api.email,
+    phoneNumber: api.phoneNumber,
+    birthDate: api.birthDate,
+    address: api.address,
+    gender: api.gender,
+    type: api.type,
+    emergencyContact: api.guardian, // Map guardian to emergencyContact
+    diseases: api.diseases,
+    medication: api.medication,
+    notes: api.notes,
+    recentLogs: api.recentLogs,
+  };
+}
+
+// Mapped detail type for internal use
+type MappedBeneficiaryDetail = BeneficiaryDetail & { id: string };
 
 const EMPTY_DETAIL: BeneficiaryDetail = {
   name: '',
@@ -74,7 +103,7 @@ export default function BeneficiariesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [detailOverride, setDetailOverride] =
-    useState<BeneficiaryDetailPayload | null>(null);
+    useState<MappedBeneficiaryDetail | null>(null);
   const [activeConsonant, setActiveConsonant] = useState<string | null>(null);
   const [openInEditMode, setOpenInEditMode] = useState(false);
   const [reinviting, setReinviting] = useState(false);
@@ -195,16 +224,17 @@ export default function BeneficiariesPage() {
   const handleUpdate = async (
     id: string,
     payload: BeneficiaryUpdatePayload,
-  ): Promise<BeneficiaryDetailPayload | null> => {
+  ): Promise<MappedBeneficiaryDetail | null> => {
     try {
       const result = await apiClient.put<BeneficiaryDetailResponse>(
         `/v1/admin/beneficiaries/${id}`,
         payload,
       );
 
-      setDetailOverride(result.data);
+      const mapped = mapApiToDetail(result.data);
+      setDetailOverride(mapped);
       setRefreshKey(prev => prev + 1);
-      return result.data;
+      return mapped;
     } catch (err) {
       if (err instanceof AuthError) throw err;
       console.error('Update beneficiary failed.', err);
@@ -411,11 +441,12 @@ export default function BeneficiariesPage() {
     if (!selectedId) return null;
     const base = items.find(item => item.id === selectedId);
     if (!base) return null;
+    // Map API response to frontend type
     const detail =
       detailOverride?.id === selectedId
         ? detailOverride
         : detailResponse?.data?.id === selectedId
-          ? detailResponse.data
+          ? mapApiToDetail(detailResponse.data)
           : EMPTY_DETAIL;
     return { base, detail, detailLoading, detailError };
   }, [

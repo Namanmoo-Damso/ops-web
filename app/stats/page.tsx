@@ -49,11 +49,11 @@ import {
 
 // --- Mock Data ---
 const MOCK_CALL_STATS = {
-  totalCalls: 1247,
+  totalCalls: 247,
   avgCallsPerWard: 8.3,
-  avgCallDuration: '12분 18초',
-  inboundCalls: 312,
-  outboundCalls: 935,
+  avgCallDuration: '8분 18초',
+  inboundCalls: 100,
+  outboundCalls: 147,
 };
 
 const MOCK_SENTIMENT_DATA = [

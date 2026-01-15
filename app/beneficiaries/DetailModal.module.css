@@ -2,9 +2,9 @@
   --beneficiary-modal-overlay-z: 2000;
   --beneficiary-modal-max-width: 900px;
   --beneficiary-modal-padding: 16px;
-  --beneficiary-border-color: #E9F0DF;
+  --beneficiary-border-color: #e9f0df;
   --beneficiary-muted: #94a3b8;
-  --beneficiary-heading: #4A5D23;
+  --beneficiary-heading: #4a5d23;
   --beneficiary-card-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
   --beneficiary-dialog-shadow: 0 24px 80px rgba(15, 23, 42, 0.32);
 }
@@ -17,7 +17,9 @@
   align-items: center;
   justify-content: center;
   padding: var(--beneficiary-modal-padding);
-  padding-left: calc(var(--sidebar-width, 0px) + var(--beneficiary-modal-padding));
+  padding-left: calc(
+    var(--sidebar-width, 0px) + var(--beneficiary-modal-padding)
+  );
   z-index: var(--beneficiary-modal-overlay-z);
 }
 
@@ -25,16 +27,22 @@
 @media (max-height: 700px) {
   .overlay {
     align-items: flex-start;
-    padding-top: calc(var(--header-height, 64px) + var(--beneficiary-modal-padding));
+    padding-top: calc(
+      var(--header-height, 64px) + var(--beneficiary-modal-padding)
+    );
   }
 }
 
 .dialog {
-  width: min(var(--beneficiary-modal-max-width),
-      calc(100vw - var(--sidebar-width, 0px) - 48px));
-  max-width: min(var(--beneficiary-modal-max-width),
-      calc(100vw - var(--sidebar-width, 0px) - 48px));
-  background-color: #FBFDF9;
+  width: min(
+    var(--beneficiary-modal-max-width),
+    calc(100vw - var(--sidebar-width, 0px) - 48px)
+  );
+  max-width: min(
+    var(--beneficiary-modal-max-width),
+    calc(100vw - var(--sidebar-width, 0px) - 48px)
+  );
+  background-color: #fbfdf9;
   border-radius: 32px;
   box-shadow: var(--beneficiary-dialog-shadow);
   overflow: hidden;
@@ -157,11 +165,11 @@
 }
 
 .metaSeparator {
-  color: #C2D5A8;
+  color: #c2d5a8;
 }
 
 .metaValue {
-  color: #4A5D23;
+  color: #4a5d23;
   font-weight: 700;
 }
 
@@ -174,9 +182,9 @@
 .ghostButton {
   padding: 12px 20px;
   border-radius: 12px;
-  border: 1px solid #E9F0DF;
+  border: 1px solid #e9f0df;
   background-color: #ffffff;
-  color: #4A5D23;
+  color: #4a5d23;
   font-weight: 800;
   font-size: 18px;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
@@ -189,20 +197,20 @@
   gap: 8px;
   padding: 8px 12px;
   border-radius: 12px;
-  border: 1px solid #E9F0DF;
-  background: #F7F9F2;
+  border: 1px solid #e9f0df;
+  background: #f7f9f2;
 }
 
 .managerLabel {
   font-size: 16px;
   font-weight: 800;
-  color: #4A5D23;
+  color: #4a5d23;
 }
 
 .managerSelect {
   border: none;
   background: transparent;
-  color: #4A5D23;
+  color: #4a5d23;
   font-weight: 800;
   font-size: 16px;
   outline: none;
@@ -224,7 +232,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background-color: #FBFDF9;
+  background-color: #fbfdf9;
 }
 
 .column {
@@ -335,7 +343,7 @@
 }
 
 .editField:focus-within {
-  border-color: #8FA963;
+  border-color: #8fa963;
   box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.2);
 }
 
@@ -351,7 +359,7 @@
 .editSelect,
 .editInputTwoLine {
   border: none;
-  border-left: 1px solid #E2E8F0;
+  border-left: 1px solid #e2e8f0;
   border-radius: 0;
   padding: 2px 0 2px 12px;
   font-size: 17px;
@@ -415,8 +423,8 @@
 }
 
 .editCancel {
-  background: #F0F5E8;
-  color: #4A5D23;
+  background: #f0f5e8;
+  color: #4a5d23;
   border: none;
   padding: 12px 18px;
   border-radius: 12px;
@@ -508,7 +516,7 @@
   font-size: 16px;
 }
 
-.card .infoRow+.infoRow {
+.card .infoRow + .infoRow {
   margin-top: 6px;
 }
 
@@ -522,8 +530,8 @@
   padding: 8px 12px;
   border-radius: 12px;
   border: 1px solid var(--beneficiary-border-color);
-  background: #F7F9F2;
-  color: #6E7F4F;
+  background: #f7f9f2;
+  color: #6e7f4f;
   font-weight: 900;
   font-size: 15px;
   cursor: pointer;
@@ -531,8 +539,8 @@
 }
 
 .logMoreButton:hover {
-  color: #4A5D23;
-  background: #EEF3E6;
+  color: #4a5d23;
+  background: #eef3e6;
 }
 
 .logsHeader {
@@ -550,7 +558,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  background-color: #F7F9F2;
+  background-color: #f7f9f2;
 }
 
 .logTextBlock {
@@ -564,11 +572,11 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #8FA963;
+  color: #8fa963;
 }
 
 .logContent {
-  color: #4A5D23;
+  color: #4a5d23;
   font-weight: 800;
   font-size: 19px;
   line-height: 1.4;
@@ -585,8 +593,8 @@
 .emptyLogs {
   padding: 18px;
   border-radius: 18px;
-  background-color: #F7F9F2;
-  color: #4A5D23;
+  background-color: #f7f9f2;
+  color: #4a5d23;
   font-weight: 700;
 }
 
@@ -594,7 +602,7 @@
   padding: 12px 18px;
   border-radius: 12px;
   border: none;
-  background-color: #F0F5E8;
+  background-color: #f0f5e8;
   color: #ef4444;
   font-weight: 800;
   font-size: 16px;
@@ -657,7 +665,7 @@
 
 .confirmDescription {
   font-size: 15px;
-  color: #4A5D23;
+  color: #4a5d23;
   font-weight: 700;
   line-height: 1.5;
 }
@@ -670,8 +678,8 @@
 }
 
 .confirmCancel {
-  background: #F0F5E8;
-  color: #4A5D23;
+  background: #f0f5e8;
+  color: #4a5d23;
   border: none;
   padding: 11px 18px;
   border-radius: 10px;
@@ -703,7 +711,6 @@
   font-weight: 700;
 }
 
-
 .spanTwo {
   grid-column: span 2;
 }
@@ -720,7 +727,7 @@
 }
 
 .noteField:focus-within {
-  border-color: #8FA963;
+  border-color: #8fa963;
   box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.2);
 }
 
@@ -734,7 +741,7 @@
   background-color: transparent;
   font-size: 17px;
   font-weight: 700;
-  color: #4A5D23;
+  color: #4a5d23;
   outline: none;
   resize: none;
 }
@@ -958,7 +965,7 @@
   width: 100px;
   height: 100px;
   border-radius: 24px;
-  color: #FBFDF9;
+  color: #fbfdf9;
   display: grid;
   place-items: center;
   font-weight: 900;
@@ -1533,6 +1540,8 @@
   flex-direction: column;
   gap: 12px;
   flex: 1;
+  min-height: 0; /* Enable flex shrinking */
+  overflow: hidden;
 }
 
 /* Top row with search, period filter, and write button */
@@ -1659,6 +1668,9 @@
   gap: 10px;
   flex: 1;
   overflow-y: auto;
+  max-height: 400px; /* Fixed height for scrolling */
+  min-height: 200px;
+  padding-right: 4px; /* Space for scrollbar */
 }
 
 .emptyLogs {
