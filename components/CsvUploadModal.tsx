@@ -34,11 +34,11 @@ function CsvFormatGuide() {
 
   const columns = [
     { name: '이름', required: true, example: '홍길동' },
-    { name: '이메일', required: true, example: 'hong@example.com' },
+    { name: '성별', required: true, example: 'male / female' },
+    { name: '생년월일', required: true, example: '1945-03-15' },
     { name: '전화번호', required: true, example: '010-1234-5678' },
-    { name: '생년월일', required: false, example: '1945-03-15' },
-    { name: '주소', required: false, example: '서울시 강남구' },
-    { name: '성별', required: false, example: 'male / female' },
+    { name: '이메일', required: true, example: 'hong@example.com' },
+    { name: '주소', required: true, example: '서울시 강남구' },
     { name: '기저질환', required: false, example: '고혈압, 당뇨' },
     { name: '복약정보', required: false, example: '혈압약, 당뇨약' },
     { name: '비상 연락처', required: false, example: '홍길순 010-5678-1234' },
@@ -91,8 +91,8 @@ function CsvFormatGuide() {
         >
           {/* Download Button */}
           <a
-            href="/templates/ward_upload_template.csv"
-            download="ward_upload_template.csv"
+            href="/templates/damso_register_template.csv"
+            download="damso_register_template.csv"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -211,7 +211,9 @@ export default function CsvUploadModal({
     ].join('\n'),
   );
   const [showGuide, setShowGuide] = useState(true);
-  const [uploadStage, setUploadStage] = useState<'select' | 'preview'>('select');
+  const [uploadStage, setUploadStage] = useState<'select' | 'preview'>(
+    'select',
+  );
 
   useEffect(() => {
     if (open) {
@@ -315,7 +317,8 @@ export default function CsvUploadModal({
           IconClose={IconClose}
         />
 
-        {step === 'form' && mode !== 'upload' || (mode === 'upload' && uploadStage === 'select') ? (
+        {(step === 'form' && mode !== 'upload') ||
+        (mode === 'upload' && uploadStage === 'select') ? (
           <div
             style={{
               display: 'grid',
@@ -652,11 +655,17 @@ export default function CsvUploadModal({
       {step === 'form' && (
         <div
           style={{
-            width: mode === 'upload' && showGuide && uploadStage === 'select' ? '360px' : '0px',
+            width:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? '360px'
+                : '0px',
             maxWidth: '360px',
             borderRadius: '16px',
             backgroundColor: palette.panel,
-            padding: mode === 'upload' && showGuide && uploadStage === 'select' ? '20px' : '0px',
+            padding:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? '20px'
+                : '0px',
             border:
               mode === 'upload' && showGuide && uploadStage === 'select'
                 ? `1px solid ${palette.border}`
@@ -666,7 +675,10 @@ export default function CsvUploadModal({
             display: 'flex',
             flexDirection: 'column',
             transition: 'all 300ms ease',
-            opacity: mode === 'upload' && showGuide && uploadStage === 'select' ? 1 : 0,
+            opacity:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? 1
+                : 0,
             overflow: 'hidden',
           }}
           onClick={e => e.stopPropagation()}

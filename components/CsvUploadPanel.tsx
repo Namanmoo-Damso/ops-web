@@ -350,20 +350,47 @@ async function parseCsvText(text: string): Promise<{ rows: CleanRow[] }> {
   return { rows };
 }
 
+// Auto-format phone number: 01012345678 → 010-1234-5678
+function formatPhoneNumber(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
+// Auto-format birth date: supports YYMMDD (주민번호 앞자리) or YYYYMMDD
+function formatBirthDate(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 8);
+  // Handle 6-digit YYMMDD format (주민번호 앞자리)
+  if (digits.length === 6) {
+    const yy = parseInt(digits.slice(0, 2), 10);
+    const century = yy >= 0 && yy <= 30 ? '20' : '19'; // 00-30 → 2000s, 31-99 → 1900s
+    return `${century}${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4, 6)}`;
+  }
+  // Handle 8-digit YYYYMMDD format
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
 function validateRow(row: CleanRow): string[] {
   const errors: string[] = [];
 
   if (!row.name.trim()) errors.push('이름 필수');
+  if (!row.gender.trim()) errors.push('성별 필수');
+  if (!row.birth_date.trim()) {
+    errors.push('생년월일 필수');
+  } else {
+    const date = new Date(row.birth_date.trim());
+    if (Number.isNaN(date.getTime())) errors.push('생년월일 형식 오류');
+  }
+  if (!row.phone_number.trim()) errors.push('전화번호 필수');
   if (!row.email.trim()) {
     errors.push('이메일 필수');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email.trim())) {
     errors.push('이메일 형식 오류');
   }
-  if (!row.phone_number.trim()) errors.push('전화번호 필수');
-  if (row.birth_date.trim()) {
-    const date = new Date(row.birth_date.trim());
-    if (Number.isNaN(date.getTime())) errors.push('생년월일 형식 오류');
-  }
+  if (!row.address.trim()) errors.push('주소 필수');
 
   return errors;
 }
@@ -659,7 +686,13 @@ export default function CsvUploadPanel({
                       key={field}
                       value={row[field]}
                       onChange={e => {
-                        const value = e.target.value;
+                        let value = e.target.value;
+                        // Auto-format phone and birthdate
+                        if (field === 'phone_number') {
+                          value = formatPhoneNumber(value);
+                        } else if (field === 'birth_date') {
+                          value = formatBirthDate(value);
+                        }
                         setParsedRows(prev =>
                           prev.map(r =>
                             r.id === row.id
@@ -688,10 +721,12 @@ export default function CsvUploadPanel({
                       }}
                       placeholder={
                         field === 'birth_date'
-                          ? 'YYYY-MM-DD'
+                          ? '주민번호 앞자리 (YYMMDD)'
                           : field === 'gender'
                             ? '남/여'
-                            : ''
+                            : field === 'phone_number'
+                              ? '010-0000-0000'
+                              : ''
                       }
                     />
                   ))}

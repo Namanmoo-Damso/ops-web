@@ -46,10 +46,25 @@ export default function ManualWardForm({
   loading,
 }: ManualWardFormProps) {
   const formatPhoneNumber = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, 15);
+    const digits = raw.replace(/\D/g, '').slice(0, 11);
     if (digits.length <= 3) return digits;
     if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
     return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  };
+
+  // Auto-format birth date: supports YYMMDD (주민번호 앞자리) or YYYYMMDD
+  const formatBirthDate = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 8);
+    // Handle 6-digit YYMMDD format (주민번호 앞자리)
+    if (digits.length === 6) {
+      const yy = parseInt(digits.slice(0, 2), 10);
+      const century = yy >= 0 && yy <= 30 ? '20' : '19'; // 00-30 → 2000s, 31-99 → 1900s
+      return `${century}${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4, 6)}`;
+    }
+    // Handle 8-digit YYYYMMDD format
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
   };
 
   const [manualForm, setManualForm] = useState({
@@ -70,8 +85,11 @@ export default function ManualWardForm({
 
   const allowManualSubmit =
     manualForm.name.trim().length > 0 &&
-    (manualForm.email.trim().length > 0 ||
-      manualForm.phone_number.trim().length > 0);
+    manualForm.gender.trim().length > 0 &&
+    manualForm.birth_date.trim().length > 0 &&
+    manualForm.phone_number.trim().length > 0 &&
+    manualForm.email.trim().length > 0 &&
+    manualForm.address.trim().length > 0;
 
   const fieldErrors = useMemo(
     () => ({
@@ -92,24 +110,33 @@ export default function ManualWardForm({
   const validate = () => {
     const nextErrors: Partial<Record<FieldKey | 'global', string>> = {};
     const name = manualForm.name.trim();
-    const email = manualForm.email.trim();
-    const phone = manualForm.phone_number.trim();
+    const gender = manualForm.gender.trim();
     const birth = manualForm.birth_date.trim();
+    const phone = manualForm.phone_number.trim();
+    const email = manualForm.email.trim();
+    const address = manualForm.address.trim();
 
     if (!name) {
       nextErrors.name = '이름을 입력해주세요.';
     }
 
-    if (!email && !phone) {
-      nextErrors.email = '이메일 또는 전화번호 중 하나는 필수입니다.';
-      nextErrors.phone_number = '이메일 또는 전화번호 중 하나는 필수입니다.';
+    if (!gender) {
+      nextErrors.gender = '성별을 선택해주세요.';
     }
 
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      nextErrors.email = '이메일 형식이 올바르지 않습니다.';
+    if (!birth) {
+      nextErrors.birth_date = '생년월일을 입력해주세요.';
+    } else {
+      const date = new Date(birth);
+      if (Number.isNaN(date.getTime())) {
+        nextErrors.birth_date =
+          '생년월일 형식을 확인해주세요. (예: 1990-01-01)';
+      }
     }
 
-    if (phone) {
+    if (!phone) {
+      nextErrors.phone_number = '전화번호를 입력해주세요.';
+    } else {
       const normalized = phone.replace(/-/g, '');
       if (
         normalized.length < 7 ||
@@ -120,12 +147,14 @@ export default function ManualWardForm({
       }
     }
 
-    if (birth) {
-      const date = new Date(birth);
-      if (Number.isNaN(date.getTime())) {
-        nextErrors.birth_date =
-          '생년월일 형식을 확인해주세요. (예: 1990-01-01)';
-      }
+    if (!email) {
+      nextErrors.email = '이메일을 입력해주세요.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      nextErrors.email = '이메일 형식이 올바르지 않습니다.';
+    }
+
+    if (!address) {
+      nextErrors.address = '주소를 입력해주세요.';
     }
 
     setErrors(nextErrors);
@@ -162,22 +191,39 @@ export default function ManualWardForm({
     } catch (error) {
       setErrors(prev => ({
         ...prev,
-        global: (error as Error).message || '등록에 실패했습니다. 다시 시도해주세요.',
+        global:
+          (error as Error).message || '등록에 실패했습니다. 다시 시도해주세요.',
       }));
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}
+    >
       {/* Form Area */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          flex: 1,
+        }}
+      >
         {/* Row 1: 50/50 Split */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px',
+          }}
+        >
           <SharedInput
             label="이름"
             value={manualForm.name}
-            onChange={e => setManualForm(prev => ({ ...prev, name: e.target.value }))}
+            onChange={e =>
+              setManualForm(prev => ({ ...prev, name: e.target.value }))
+            }
             placeholder="홍길동"
             error={!!fieldErrors.name}
             requiredMark
@@ -185,7 +231,9 @@ export default function ManualWardForm({
           <SharedSelect
             label="성별"
             value={manualForm.gender}
-            onChange={e => setManualForm(prev => ({ ...prev, gender: e.target.value }))}
+            onChange={e =>
+              setManualForm(prev => ({ ...prev, gender: e.target.value }))
+            }
             error={!!fieldErrors.gender}
             requiredMark
             options={[
@@ -197,11 +245,22 @@ export default function ManualWardForm({
         </div>
 
         {/* Row 2: 50/50 Split */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px',
+          }}
+        >
           <SharedInput
             label="전화번호"
             value={manualForm.phone_number}
-            onChange={e => setManualForm(prev => ({ ...prev, phone_number: formatPhoneNumber(e.target.value) }))}
+            onChange={e =>
+              setManualForm(prev => ({
+                ...prev,
+                phone_number: formatPhoneNumber(e.target.value),
+              }))
+            }
             placeholder="010-1234-5678"
             error={!!fieldErrors.phone_number}
             requiredMark
@@ -210,7 +269,9 @@ export default function ManualWardForm({
             label="생년월일"
             type="date"
             value={manualForm.birth_date}
-            onChange={e => setManualForm(prev => ({ ...prev, birth_date: e.target.value }))}
+            onChange={e =>
+              setManualForm(prev => ({ ...prev, birth_date: e.target.value }))
+            }
             error={!!fieldErrors.birth_date}
             requiredMark
           />
@@ -220,7 +281,9 @@ export default function ManualWardForm({
         <SharedInput
           label="이메일"
           value={manualForm.email}
-          onChange={e => setManualForm(prev => ({ ...prev, email: e.target.value }))}
+          onChange={e =>
+            setManualForm(prev => ({ ...prev, email: e.target.value }))
+          }
           placeholder="user@example.com"
           error={!!fieldErrors.email}
           requiredMark
@@ -229,35 +292,48 @@ export default function ManualWardForm({
         <SharedInput
           label="주소"
           value={manualForm.address}
-          onChange={e => setManualForm(prev => ({ ...prev, address: e.target.value }))}
+          onChange={e =>
+            setManualForm(prev => ({ ...prev, address: e.target.value }))
+          }
           placeholder="서울특별시 ..."
         />
 
         <SharedInput
           label="기저질환"
           value={manualForm.diseases}
-          onChange={e => setManualForm(prev => ({ ...prev, diseases: e.target.value }))}
+          onChange={e =>
+            setManualForm(prev => ({ ...prev, diseases: e.target.value }))
+          }
           placeholder="고혈압, 당뇨 등"
         />
 
         <SharedInput
           label="복약정보"
           value={manualForm.medication}
-          onChange={e => setManualForm(prev => ({ ...prev, medication: e.target.value }))}
+          onChange={e =>
+            setManualForm(prev => ({ ...prev, medication: e.target.value }))
+          }
           placeholder="혈압약, 당뇨약 등"
         />
 
         <SharedInput
           label="비상 연락처"
           value={manualForm.emergency_contact}
-          onChange={e => setManualForm(prev => ({ ...prev, emergency_contact: formatPhoneNumber(e.target.value) }))}
+          onChange={e =>
+            setManualForm(prev => ({
+              ...prev,
+              emergency_contact: formatPhoneNumber(e.target.value),
+            }))
+          }
           placeholder="010-5678-1234"
         />
 
         <SharedTextArea
           label="비고"
           value={manualForm.notes}
-          onChange={e => setManualForm(prev => ({ ...prev, notes: e.target.value }))}
+          onChange={e =>
+            setManualForm(prev => ({ ...prev, notes: e.target.value }))
+          }
           placeholder="참고사항을 입력해주세요"
           rows={3}
         />
@@ -278,7 +354,13 @@ export default function ManualWardForm({
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginTop: '4px',
+        }}
+      >
         <SharedButton
           onClick={handleSubmit}
           disabled={loading}
