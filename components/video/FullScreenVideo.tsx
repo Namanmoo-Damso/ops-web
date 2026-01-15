@@ -19,15 +19,48 @@ type FullScreenVideoProps = {
   isDanger?: boolean;
 };
 
+const VOLUME_STORAGE_KEY = 'participant-volume';
+
+const getStoredVolume = (participantId: string): number => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
+    if (stored) {
+      const volumes = JSON.parse(stored);
+      return volumes[participantId] ?? 0;
+    }
+  } catch {
+    // ignore
+  }
+  return 0;
+};
+
+const saveVolume = (participantId: string, volume: number) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
+    const volumes = stored ? JSON.parse(stored) : {};
+    volumes[participantId] = volume;
+    localStorage.setItem(VOLUME_STORAGE_KEY, JSON.stringify(volumes));
+  } catch {
+    // ignore
+  }
+};
+
 export const FullScreenVideo = ({
   participant,
   videoTrackRef,
   isDanger = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
-  const [volume, setVolume] = useState(100);
+  const [volume, setVolume] = useState(() => getStoredVolume(participant.id));
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const volumeControlRef = useRef<HTMLDivElement>(null);
+
+  // Save volume to storage when it changes
+  useEffect(() => {
+    saveVolume(participant.id, volume);
+  }, [participant.id, volume]);
 
   // Close volume slider when clicking outside
   useEffect(() => {
