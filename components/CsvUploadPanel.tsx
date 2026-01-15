@@ -29,6 +29,10 @@ export type CleanRow = {
   phone_number: string;
   birth_date: string;
   address: string;
+  gender: string;
+  diseases: string;
+  medication: string;
+  guardian: string;
   notes: string;
 };
 
@@ -128,6 +132,48 @@ function mapHeaderToField(header: string): keyof CleanRow | null {
     ].some(v => normalized.includes(v.replace(/\s/g, '')))
   ) {
     return 'notes';
+  }
+
+  // Gender variations
+  if (
+    ['성별', 'gender', 'sex', '남녀', '성'].some(v =>
+      normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
+    return 'gender';
+  }
+
+  // Diseases variations (기저질환)
+  if (
+    [
+      '기저질환',
+      '질환',
+      '질병',
+      'diseases',
+      'disease',
+      'conditions',
+      '병력',
+    ].some(v => normalized.includes(v.replace(/\s/g, '')))
+  ) {
+    return 'diseases';
+  }
+
+  // Medication variations (복약정보)
+  if (
+    ['복약정보', '복약', '약', 'medication', 'medicine', 'drugs', '약물'].some(
+      v => normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
+    return 'medication';
+  }
+
+  // Guardian variations (보호자)
+  if (
+    ['보호자', 'guardian', '담당자', '가족', '보호자명', '보호자연락처'].some(
+      v => normalized.includes(v.replace(/\s/g, '')),
+    )
+  ) {
+    return 'guardian';
   }
 
   return null;
@@ -272,6 +318,10 @@ async function parseCsvText(text: string): Promise<{ rows: CleanRow[] }> {
       phone_number: '',
       birth_date: '',
       address: '',
+      gender: '',
+      diseases: '',
+      medication: '',
+      guardian: '',
       notes: '',
     };
 
