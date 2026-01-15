@@ -3,265 +3,295 @@
    ======================================== */
 
 .staff-container {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+/* --- Loading State --- */
+.staff-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-3xl);
+  color: var(--color-text-secondary);
+}
+
+.staff-loading .animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --- Staff Team Badge --- */
+.staff-team {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
 }
 
 /* (stats-summary classes moved to stats-summary.css) */
 
-
 /* --- Staff Grid --- */
 .staff-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-xl);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-xl);
 }
 
 @media (max-width: 1200px) {
-    .staff-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+  .staff-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {
-    .staff-grid {
-        grid-template-columns: 1fr;
-    }
+  .staff-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- Staff Card --- */
 .staff-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    padding: 12px 24px;
-    overflow: visible;
-    min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 12px 24px;
+  overflow: visible;
+  min-height: 200px;
 }
 
 /* Relative positioning for dropdown anchor */
 .relative {
-    position: relative;
+  position: relative;
 }
 
 /* 1. Header Section */
 .staff-header {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    /* SPACE ABOVE PHONE CONTACT */
-    margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  /* SPACE ABOVE PHONE CONTACT */
+  margin-bottom: 20px;
 }
 
 .staff-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: var(--font-size-h3);
-    font-weight: var(--font-weight-bold);
-    flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  flex-shrink: 0;
 }
 
 .staff-info {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .staff-name {
-    font-size: var(--font-size-h2);
-    font-weight: var(--font-weight-black);
-    color: var(--color-text-primary);
-    line-height: 1.2;
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-black);
+  color: var(--color-text-primary);
+  line-height: 1.2;
 }
 
 .staff-more-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background: transparent;
-    border-radius: var(--radius-md);
-    color: var(--color-text-muted);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 150ms ease;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms ease;
 }
 
 .staff-more-btn:hover {
-    background: var(--color-bg-elevated-1);
-    color: var(--color-text-primary);
+  background: var(--color-bg-elevated-1);
+  color: var(--color-text-primary);
 }
 
 /* --- Dropdown Menu --- */
 .staff-dropdown-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
-    background: white;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-    z-index: 10;
-    min-width: 120px;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 10;
+  min-width: 120px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
 }
 
 .staff-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    border: none;
-    background: transparent;
-    color: var(--color-text-primary);
-    font-size: 16px;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: left;
-    border-radius: var(--radius-sm);
-    transition: background-color 150ms;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: background-color 150ms;
 }
 
 .staff-dropdown-item:hover {
-    background-color: var(--color-bg-secondary);
+  background-color: var(--color-bg-secondary);
 }
 
 .staff-dropdown-item.delete {
-    color: var(--color-danger-main);
+  color: var(--color-danger-main);
 }
 
 .staff-dropdown-item.delete:hover {
-    background-color: var(--color-danger-light);
+  background-color: var(--color-danger-light);
 }
 
 /* 2. Contact Section */
 .staff-contact {
-    display: flex;
-    flex-direction: column;
-    /* Small gap between phone and email */
-    gap: 8px;
-    /* SPACE BELOW EMAIL CONTACT (ABOVE BUTTON) */
-    margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  /* Small gap between phone and email */
+  gap: 8px;
+  /* SPACE BELOW EMAIL CONTACT (ABOVE BUTTON) */
+  margin-bottom: 20px;
 }
 
 .staff-contact-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-md);
-    color: var(--color-primary-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  color: var(--color-primary-dark);
 }
 
 .staff-contact-item svg {
-    color: var(--color-text-muted);
-    flex-shrink: 0;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
 }
 
 .staff-contact-text {
-    font-size: var(--font-size-body);
-    font-weight: 500;
-    color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  font-weight: 500;
+  color: var(--color-text-primary);
 }
 
 /* --- Inline Editing Styles --- */
 .staff-name-input {
-    width: 100%;
-    font-size: var(--font-size-h2);
-    font-weight: var(--font-weight-black);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    background: white;
-    outline: none;
-    transition: border-color 150ms ease;
+  width: 100%;
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-black);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: white;
+  outline: none;
+  transition: border-color 150ms ease;
 }
 
 .staff-name-input:focus {
-    border-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .staff-contact-input {
-    width: 100%;
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    background: white;
-    outline: none;
-    transition: border-color 150ms ease;
+  width: 100%;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: white;
+  outline: none;
+  transition: border-color 150ms ease;
 }
 
 .staff-contact-input:focus {
-    border-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .staff-edit-actions {
-    display: flex;
-    gap: var(--spacing-sm);
-    margin-top: auto;
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-top: auto;
 }
 
 .flex-1 {
-    flex: 1;
+  flex: 1;
 }
 
 /* 3. Button Section */
 .staff-assign-btn {
-    margin-top: auto;
+  margin-top: auto;
 }
 
 /* --- Add Staff Card --- */
 .staff-add-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-md);
-    min-height: 200px;
-    /* Match card min-height */
-    border: 2px dashed var(--color-border-strong);
-    border-radius: var(--radius-2xl);
-    background: transparent;
-    color: var(--color-text-muted);
-    font-size: var(--font-size-body);
-    font-weight: var(--font-weight-medium);
-    cursor: pointer;
-    transition: all 200ms ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  min-height: 200px;
+  /* Match card min-height */
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius-2xl);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 200ms ease;
 }
 
 .staff-add-card:hover {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-    background: var(--color-accent-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-accent-soft);
 }
 
 /* --- Empty State --- */
 .staff-empty-state {
-    grid-column: 1 / -1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-4xl);
-    color: var(--color-text-muted);
-    text-align: center;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-4xl);
+  color: var(--color-text-muted);
+  text-align: center;
 }
 
 .staff-empty-state p {
-    font-size: var(--font-size-body);
-    font-weight: var(--font-weight-medium);
-    margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  margin: 0;
 }

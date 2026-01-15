@@ -52,6 +52,12 @@ type BeneficiaryFormData = BasicInfoFormData;
 // Re-export for backward compatibility
 export type { BeneficiarySummary } from '../../types/models';
 
+// Staff type for assignment dropdown
+export interface StaffOption {
+  id: string;
+  name: string;
+}
+
 type DetailModalProps = {
   beneficiary: BeneficiarySummary | undefined;
   detail: BeneficiaryDetail;
@@ -59,8 +65,12 @@ type DetailModalProps = {
   onDelete?: () => void;
   deleting?: boolean;
   deleteError?: string | null;
-  onUpdate?: (payload: BeneficiaryUpdatePayload) => Promise<BeneficiaryDetail | null>;
+  onUpdate?: (
+    payload: BeneficiaryUpdatePayload,
+  ) => Promise<BeneficiaryDetail | null>;
   initialEditMode?: boolean;
+  staffList?: StaffOption[];
+  onReassignStaff?: (newStaffId: string | null) => Promise<boolean>;
 };
 
 export default function DetailModal({
@@ -72,6 +82,8 @@ export default function DetailModal({
   deleteError = null,
   onUpdate,
   initialEditMode = false,
+  staffList = [],
+  onReassignStaff,
 }: DetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmDialogRef = useRef<HTMLDivElement>(null);
@@ -127,17 +139,41 @@ export default function DetailModal({
       detail.type,
     ],
   );
+
+  // Current assigned staff - use beneficiary's manager or fall back to admin name
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(
+    beneficiary?.managerId ?? null,
+  );
   const managerName = useMemo(() => {
-    if (typeof window === 'undefined') return '관리자';
+    // First check if there's an assigned staff
+    if (beneficiary?.manager) {
+      return beneficiary.manager;
+    }
+    // Fall back to logged-in admin name
+    if (typeof window === 'undefined') return '미배정';
     const raw = localStorage.getItem('admin_info');
-    if (!raw) return '관리자';
+    if (!raw) return '미배정';
     try {
       const parsed = JSON.parse(raw);
-      return parsed?.name ?? '관리자';
+      return parsed?.name ?? '미배정';
     } catch {
-      return '관리자';
+      return '미배정';
     }
-  }, []);
+  }, [beneficiary?.manager]);
+
+  // Handle staff change
+  const handleStaffChange = useCallback(
+    async (newStaffId: string) => {
+      if (!onReassignStaff) return;
+
+      const staffIdToSet = newStaffId === '' ? null : newStaffId;
+      const success = await onReassignStaff(staffIdToSet);
+      if (success) {
+        setSelectedStaffId(staffIdToSet);
+      }
+    },
+    [onReassignStaff],
+  );
 
   const handleCloseRequest = useCallback(() => {
     if (showDeleteConfirm) {
@@ -231,8 +267,9 @@ export default function DetailModal({
       : status === 'CAUTION'
         ? styles.tagCaution
         : styles.tagNormal;
-  const headerClassName = `${styles.header} ${isWarning ? styles.headerWarning : ''
-    }`.trim();
+  const headerClassName = `${styles.header} ${
+    isWarning ? styles.headerWarning : ''
+  }`.trim();
 
   const displayName = detail.name ?? beneficiary.name;
   const displayGender = detail.gender ?? beneficiary.gender;
@@ -261,7 +298,10 @@ export default function DetailModal({
     setSaveSuccess(null);
   };
 
-  const handleFieldChange = (field: keyof BeneficiaryFormData, value: string) => {
+  const handleFieldChange = (
+    field: keyof BeneficiaryFormData,
+    value: string,
+  ) => {
     setIsDirty(true);
     setSaveError(null);
     setSaveSuccess(null);
@@ -350,6 +390,9 @@ export default function DetailModal({
               form={form}
               onChange={handleFieldChange}
               managerName={managerName}
+              selectedStaffId={selectedStaffId}
+              staffList={staffList}
+              onStaffChange={handleStaffChange}
               onEditToggle={isEditing ? handleEditCancel : handleEditStart}
               onDelete={handleDeleteClick}
               onSave={handleSave}
@@ -371,7 +414,7 @@ export default function DetailModal({
             />
           )}
         </div>
-      </div >
+      </div>
 
       {showDeleteConfirm && (
         <div
@@ -428,8 +471,6 @@ export default function DetailModal({
   );
 }
 
-
-
 // 헬퍼 함수 추가
 function getSentimentClassName(sentiment: string): string {
   const capitalized = sentiment.charAt(0).toUpperCase() + sentiment.slice(1);
@@ -461,10 +502,7 @@ function calculateAgeFromBirthDate(value: string): number | null {
   return age;
 }
 
-function isFormEqual(
-  a: BeneficiaryFormData,
-  b: BeneficiaryFormData,
-) {
+function isFormEqual(a: BeneficiaryFormData, b: BeneficiaryFormData) {
   return (
     a.name === b.name &&
     a.phoneNumber === b.phoneNumber &&

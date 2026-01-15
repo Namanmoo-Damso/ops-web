@@ -5,7 +5,6 @@ export type SettingsAction =
     | { type: 'SET_RETRY_INTERVAL'; payload: number }
     | { type: 'SET_RISK_SENSITIVITY'; payload: 1 | 2 | 3 }
     | { type: 'TOGGLE_CONVERSATION_TOPIC'; payload: keyof SettingsState['conversationTopics'] }
-    | { type: 'TOGGLE_GUARDIAN_NOTIFICATION'; payload: keyof SettingsState['guardianNotifications'] }
     | { type: 'SET_SCHEDULED_START_TIME'; payload: string }
     | { type: 'SET_SCHEDULED_END_TIME'; payload: string }
     | { type: 'RESET_SETTINGS'; payload: SettingsState }
@@ -48,15 +47,6 @@ export function settingsReducer(state: SettingsState, action: SettingsAction): S
                 conversationTopics: {
                     ...state.conversationTopics,
                     [action.payload]: !state.conversationTopics[action.payload],
-                },
-            };
-
-        case 'TOGGLE_GUARDIAN_NOTIFICATION':
-            return {
-                ...state,
-                guardianNotifications: {
-                    ...state.guardianNotifications,
-                    [action.payload]: !state.guardianNotifications[action.payload],
                 },
             };
 

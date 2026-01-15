@@ -1,11 +1,16 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import DashboardLayout from '../../components/layouts/DashboardLayout';
 
 import { useApi } from '../../hooks/useApi';
+import { useStaffApi, type Staff } from '../../hooks/useStaffApi';
 import { apiClient, AuthError } from '../../lib/api-client';
-import { formatRelativeTime, getKoreanConsonant, KOREAN_CONSONANTS } from '../../lib/date-utils';
+import {
+  formatRelativeTime,
+  getKoreanConsonant,
+  KOREAN_CONSONANTS,
+} from '../../lib/date-utils';
 import type { DataListResponse } from '../../types/api';
 import DetailModal, {
   type BeneficiaryDetail,
@@ -14,7 +19,6 @@ import DetailModal, {
 } from './DetailModal';
 import StatsSummary from '../../components/ui/StatsSummary';
 import {
-
   RefreshIcon,
   UsersIcon,
   LinkOnIcon,
@@ -23,17 +27,53 @@ import {
 
 // Components
 import Input from '../../components/ui/Input';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../components/ui/Table';
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-type BeneficiaryDetailPayload = BeneficiaryDetail & {
+// API response type (has 'guardian' instead of 'emergencyContact')
+type BeneficiaryDetailApiPayload = Omit<
+  BeneficiaryDetail,
+  'emergencyContact'
+> & {
   id: string;
+  guardian: string | null;
 };
 
 type BeneficiaryDetailResponse = {
-  data: BeneficiaryDetailPayload;
+  data: BeneficiaryDetailApiPayload;
 };
+
+// Convert API response to frontend type
+function mapApiToDetail(
+  api: BeneficiaryDetailApiPayload,
+): BeneficiaryDetail & { id: string } {
+  return {
+    id: api.id,
+    name: api.name,
+    email: api.email,
+    phoneNumber: api.phoneNumber,
+    birthDate: api.birthDate,
+    address: api.address,
+    gender: api.gender,
+    type: api.type,
+    emergencyContact: api.guardian, // Map guardian to emergencyContact
+    diseases: api.diseases,
+    medication: api.medication,
+    notes: api.notes,
+    recentLogs: api.recentLogs,
+  };
+}
+
+// Mapped detail type for internal use
+type MappedBeneficiaryDetail = BeneficiaryDetail & { id: string };
 
 const EMPTY_DETAIL: BeneficiaryDetail = {
   name: '',
@@ -63,13 +103,32 @@ export default function BeneficiariesPage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [detailOverride, setDetailOverride] =
-    useState<BeneficiaryDetailPayload | null>(null);
+    useState<MappedBeneficiaryDetail | null>(null);
   const [activeConsonant, setActiveConsonant] = useState<string | null>(null);
   const [openInEditMode, setOpenInEditMode] = useState(false);
   const [reinviting, setReinviting] = useState(false);
+  const [staffList, setStaffList] = useState<Staff[]>([]);
 
   // Refs for scrolling to specific rows
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+
+  // Staff API hook
+  const staffApi = useStaffApi();
+
+  // Fetch staff list on mount
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const response = await staffApi.listStaff({ page: 1, pageSize: 100 });
+        if (response) {
+          setStaffList(response.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch staff list:', err);
+      }
+    };
+    fetchStaff();
+  }, []);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
   useEffect(() => {
@@ -79,7 +138,6 @@ export default function BeneficiariesPage() {
     );
     return () => window.clearTimeout(handle);
   }, [search]);
-
 
   useEffect(() => {
     setDeleteError(null);
@@ -101,12 +159,15 @@ export default function BeneficiariesPage() {
       birthDate: string | null;
       address: string | null;
       notes: string | null;
+      gender: string | null;
       isRegistered: boolean;
       wardId: string | null;
       createdAt: string;
       lastCallAt: string | null;
       totalCalls: number;
       lastMood: string | null;
+      assignedStaffId: string | null;
+      assignedStaffName: string | null;
     }>;
     stats?: {
       total: number;
@@ -114,7 +175,11 @@ export default function BeneficiariesPage() {
     };
   };
 
-  const { data: wardsData, loading, error } = useApi<MyWardsApiResponse>({
+  const {
+    data: wardsData,
+    loading,
+    error,
+  } = useApi<MyWardsApiResponse>({
     deps: [refreshKey],
     fetcher: (client, signal) => {
       return client.get<MyWardsApiResponse>('/v1/admin/my-wards', { signal });
@@ -134,7 +199,7 @@ export default function BeneficiariesPage() {
       if (!selectedId) throw new Error('No selected ID');
       return client.get<BeneficiaryDetailResponse>(
         `/v1/admin/beneficiaries/${selectedId}`,
-        { signal }
+        { signal },
       );
     },
   });
@@ -159,22 +224,46 @@ export default function BeneficiariesPage() {
   const handleUpdate = async (
     id: string,
     payload: BeneficiaryUpdatePayload,
-  ): Promise<BeneficiaryDetailPayload | null> => {
+  ): Promise<MappedBeneficiaryDetail | null> => {
     try {
       const result = await apiClient.put<BeneficiaryDetailResponse>(
         `/v1/admin/beneficiaries/${id}`,
-        payload
+        payload,
       );
 
-      setDetailOverride(result.data);
+      const mapped = mapApiToDetail(result.data);
+      setDetailOverride(mapped);
       setRefreshKey(prev => prev + 1);
-      return result.data;
+      return mapped;
     } catch (err) {
       if (err instanceof AuthError) throw err;
       console.error('Update beneficiary failed.', err);
       throw new Error('정보 수정에 실패했습니다. 잠시 후 다시 시도해주세요.');
     }
   };
+
+  const handleReassignStaff = useCallback(
+    async (
+      beneficiaryId: string,
+      newStaffId: string | null,
+    ): Promise<boolean> => {
+      try {
+        await apiClient.post(
+          `/v1/admin/beneficiaries/${beneficiaryId}/reassign`,
+          {
+            staffId: newStaffId,
+          },
+        );
+        setRefreshKey(prev => prev + 1);
+        return true;
+      } catch (err) {
+        if (err instanceof AuthError) throw err;
+        console.error('Reassign staff failed.', err);
+        return false;
+      }
+    },
+    [],
+  );
 
   const items = useMemo<BeneficiarySummary[]>(() => {
     const apiItems = Array.isArray(wardsData?.wards) ? wardsData.wards : [];
@@ -193,13 +282,14 @@ export default function BeneficiariesPage() {
         name: ward.name,
         phoneNumber: ward.phoneNumber || null,
         address: ward.address || null,
-        manager: null, // my-wards API에는 manager 필드가 없음
+        manager: ward.assignedStaffName || null,
+        managerId: ward.assignedStaffId || null,
         emergencyContact: null, // my-wards API에는 emergencyContactPhone 필드가 없음
         isRegistered: ward.isRegistered,
         status: 'NORMAL' as 'WARNING' | 'NORMAL' | 'CAUTION', // 기본값
         lastCall: ward.lastCallAt || null,
         age: age,
-        gender: null, // my-wards API에는 gender 필드가 없음
+        gender: ward.gender || null,
         type: null, // my-wards API에는 type 필드가 없음
       };
     });
@@ -250,8 +340,12 @@ export default function BeneficiariesPage() {
 
   // 정렬 적용 - 미연동 대상자는 항상 아래에 위치
   const filteredList = useMemo(() => {
-    const registered = statusFiltered.filter(item => item.isRegistered === true);
-    const unregistered = statusFiltered.filter(item => item.isRegistered === false);
+    const registered = statusFiltered.filter(
+      item => item.isRegistered === true,
+    );
+    const unregistered = statusFiltered.filter(
+      item => item.isRegistered === false,
+    );
 
     // 각 그룹 내에서 정렬
     const sortGroup = (group: BeneficiarySummary[]) => {
@@ -318,7 +412,7 @@ export default function BeneficiariesPage() {
     }
 
     const confirmed = window.confirm(
-      `${unregisteredWards.length}명의 미연동 대상자에게 초대 이메일을 다시 보내시겠습니까?`
+      `${unregisteredWards.length}명의 미연동 대상자에게 초대 이메일을 다시 보내시겠습니까?`,
     );
 
     if (!confirmed) return;
@@ -331,11 +425,12 @@ export default function BeneficiariesPage() {
 
       alert(`${unregisteredWards.length}명에게 초대 이메일을 발송했습니다.`);
     } catch (err) {
-      const message = err instanceof AuthError
-        ? '인증이 만료되었습니다. 다시 로그인해주세요.'
-        : err instanceof Error
-          ? err.message
-          : '재초대에 실패했습니다.';
+      const message =
+        err instanceof AuthError
+          ? '인증이 만료되었습니다. 다시 로그인해주세요.'
+          : err instanceof Error
+            ? err.message
+            : '재초대에 실패했습니다.';
       alert(message);
     } finally {
       setReinviting(false);
@@ -346,11 +441,12 @@ export default function BeneficiariesPage() {
     if (!selectedId) return null;
     const base = items.find(item => item.id === selectedId);
     if (!base) return null;
+    // Map API response to frontend type
     const detail =
       detailOverride?.id === selectedId
         ? detailOverride
         : detailResponse?.data?.id === selectedId
-          ? detailResponse.data
+          ? mapApiToDetail(detailResponse.data)
           : EMPTY_DETAIL;
     return { base, detail, detailLoading, detailError };
   }, [
@@ -370,42 +466,47 @@ export default function BeneficiariesPage() {
           title="전체 현황"
           icon={<UsersIcon size={24} />}
           items={[
-            { label: '연동된 대상자', value: `${linkStats.linked}명`, color: 'var(--color-primary)' },
+            {
+              label: '연동된 대상자',
+              value: `${linkStats.linked}명`,
+              color: 'var(--color-primary)',
+            },
             { label: '전체 등록 인원', value: `${linkStats.total}명` },
             {
               label: '연동 대기중',
               value: `${linkStats.pending}명`,
               color: linkStats.pending > 0 ? '#dc2626' : undefined,
-              extra: linkStats.pending > 0 ? (
-                <button
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    color: '#dc2626',
-                    backgroundColor: '#fee2e2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    transition: 'all 150ms ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fecaca';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fee2e2';
-                  }}
-                  onClick={handleReinviteAll}
-                  disabled={reinviting}
-                >
-                  <RefreshIcon size={14} color="#dc2626" />
-                  재초대
-                </button>
-              ) : undefined
+              extra:
+                linkStats.pending > 0 ? (
+                  <button
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '6px 14px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      color: '#dc2626',
+                      backgroundColor: '#fee2e2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      transition: 'all 150ms ease',
+                      whiteSpace: 'nowrap',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.backgroundColor = '#fecaca';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = '#fee2e2';
+                    }}
+                    onClick={handleReinviteAll}
+                    disabled={reinviting}
+                  >
+                    <RefreshIcon size={14} color="#dc2626" />
+                    재초대
+                  </button>
+                ) : undefined,
             },
           ]}
         />
@@ -462,12 +563,13 @@ export default function BeneficiariesPage() {
                     opacity: hasItems ? 1 : 0.3,
                     transition: 'all 150ms ease',
                   }}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={e => {
                     if (hasItems && !isActive) {
-                      e.currentTarget.style.backgroundColor = 'var(--color-accent-soft)';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--color-accent-soft)';
                     }
                   }}
-                  onMouseLeave={(e) => {
+                  onMouseLeave={e => {
                     if (hasItems && !isActive) {
                       e.currentTarget.style.backgroundColor = 'transparent';
                     }
@@ -480,14 +582,16 @@ export default function BeneficiariesPage() {
           </div>
 
           <div className="beneficiary-table-container" style={{ flex: 1 }}>
-            <div style={{
-              padding: '16px 20px',
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center',
-              borderBottom: '1px solid var(--color-border)',
-              overflowX: 'auto',
-            }}>
+            <div
+              style={{
+                padding: '16px 20px',
+                display: 'flex',
+                gap: '12px',
+                alignItems: 'center',
+                borderBottom: '1px solid var(--color-border)',
+                overflowX: 'auto',
+              }}
+            >
               {/* Filter Status Buttons (전체목록/미연동 대상자) */}
               <div
                 style={{
@@ -505,11 +609,16 @@ export default function BeneficiariesPage() {
                     padding: '10px 14px',
                     borderRadius: '10px',
                     border: 'none',
-                    backgroundColor: filterStatus === 'all' ? 'white' : 'transparent',
-                    color: filterStatus === 'all' ? 'var(--color-primary-dark)' : 'var(--color-text-muted)',
+                    backgroundColor:
+                      filterStatus === 'all' ? 'white' : 'transparent',
+                    color:
+                      filterStatus === 'all'
+                        ? 'var(--color-primary-dark)'
+                        : 'var(--color-text-muted)',
                     fontWeight: 700,
                     fontSize: '14px',
-                    boxShadow: filterStatus === 'all' ? 'var(--shadow-raised)' : 'none',
+                    boxShadow:
+                      filterStatus === 'all' ? 'var(--shadow-raised)' : 'none',
                     cursor: 'pointer',
                     transition: 'all 150ms ease',
                     whiteSpace: 'nowrap',
@@ -523,11 +632,18 @@ export default function BeneficiariesPage() {
                     padding: '10px 14px',
                     borderRadius: '10px',
                     border: 'none',
-                    backgroundColor: filterStatus === 'pending' ? 'white' : 'transparent',
-                    color: filterStatus === 'pending' ? 'var(--color-danger-main)' : 'var(--color-text-muted)',
+                    backgroundColor:
+                      filterStatus === 'pending' ? 'white' : 'transparent',
+                    color:
+                      filterStatus === 'pending'
+                        ? 'var(--color-danger-main)'
+                        : 'var(--color-text-muted)',
                     fontWeight: 700,
                     fontSize: '14px',
-                    boxShadow: filterStatus === 'pending' ? 'var(--shadow-raised)' : 'none',
+                    boxShadow:
+                      filterStatus === 'pending'
+                        ? 'var(--shadow-raised)'
+                        : 'none',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
@@ -543,7 +659,9 @@ export default function BeneficiariesPage() {
               {/* Search and Sort Filters */}
               <Input
                 value={search}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSearch(e.target.value)
+                }
                 placeholder="이름, 주소, 담당자 검색..."
                 aria-label="이름, 주소 또는 담당자 검색"
                 style={{ width: '240px', flexShrink: 0 }}
@@ -551,7 +669,7 @@ export default function BeneficiariesPage() {
 
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                onChange={e => setSortBy(e.target.value as SortOption)}
                 style={{
                   padding: '8px 12px',
                   borderRadius: '8px',
@@ -570,13 +688,25 @@ export default function BeneficiariesPage() {
             </div>
 
             {loading && (
-              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              <div
+                style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: 'var(--color-text-muted)',
+                }}
+              >
                 데이터를 불러오는 중입니다...
               </div>
             )}
 
             {error && !loading && (
-              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-danger-main)' }}>
+              <div
+                style={{
+                  padding: '32px',
+                  textAlign: 'center',
+                  color: 'var(--color-danger-main)',
+                }}
+              >
                 {error}
               </div>
             )}
@@ -592,19 +722,31 @@ export default function BeneficiariesPage() {
               </colgroup>
               <TableHeader className="beneficiary-table-header">
                 <TableRow>
-                  <TableHead className="beneficiary-table-head">이름 및 기본정보</TableHead>
-                  <TableHead className="beneficiary-table-head">연락처</TableHead>
-                  <TableHead className="beneficiary-table-head">담당자</TableHead>
-                  <TableHead className="beneficiary-table-head">최근 안부</TableHead>
-                  <TableHead className="beneficiary-table-head">정보 수정</TableHead>
-                  <TableHead className="beneficiary-table-head">연동현황</TableHead>
+                  <TableHead className="beneficiary-table-head">
+                    이름 및 기본정보
+                  </TableHead>
+                  <TableHead className="beneficiary-table-head">
+                    연락처
+                  </TableHead>
+                  <TableHead className="beneficiary-table-head">
+                    담당자
+                  </TableHead>
+                  <TableHead className="beneficiary-table-head">
+                    최근 안부
+                  </TableHead>
+                  <TableHead className="beneficiary-table-head">
+                    정보 수정
+                  </TableHead>
+                  <TableHead className="beneficiary-table-head">
+                    연동현황
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {displayList.map(item => (
                   <TableRow
                     key={item.id}
-                    ref={(el) => {
+                    ref={el => {
                       if (el) {
                         rowRefs.current.set(String(item.id), el);
                       } else {
@@ -614,29 +756,58 @@ export default function BeneficiariesPage() {
                     onClick={() => setSelectedId(String(item.id))}
                     selected={selectedId === String(item.id)}
                     className="beneficiary-table-row"
-                    style={!item.isRegistered ? { backgroundColor: 'rgba(148, 163, 184, 0.15)' } : undefined}
+                    style={
+                      !item.isRegistered
+                        ? { backgroundColor: 'rgba(148, 163, 184, 0.15)' }
+                        : undefined
+                    }
                   >
-                    <TableCell className="beneficiary-table-cell" style={{ textAlign: 'left' }}>
+                    <TableCell
+                      className="beneficiary-table-cell"
+                      style={{ textAlign: 'left' }}
+                    >
                       <div className="beneficiary-user-cell">
                         <ProfileCircle status={item.status} name={item.name} />
                         <div>
                           <div className="beneficiary-user-name">
                             {item.name}
                             {item.age && (
-                              <span style={{ fontWeight: 500, color: 'var(--color-text-muted)', marginLeft: '4px' }}>
-                                ({item.age}세{item.gender ? ', ' : ''}{item.gender === 'male' || item.gender === 'm' ? '남' : item.gender === 'female' || item.gender === 'f' ? '여' : ''})
+                              <span
+                                style={{
+                                  fontWeight: 500,
+                                  color: 'var(--color-text-muted)',
+                                  marginLeft: '4px',
+                                }}
+                              >
+                                ({item.age}세{item.gender ? ', ' : ''}
+                                {item.gender === 'male' || item.gender === 'm'
+                                  ? '남'
+                                  : item.gender === 'female' ||
+                                      item.gender === 'f'
+                                    ? '여'
+                                    : ''}
+                                )
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="beneficiary-table-cell">{item.phoneNumber ?? '-'}</TableCell>
-                    <TableCell className="beneficiary-table-cell">{item.manager ?? '-'}</TableCell>
-                    <TableCell className="beneficiary-table-cell ">{formatRelativeTime(item.lastCall || null)}</TableCell>
-                    <TableCell className="beneficiary-table-cell text-center" style={{ padding: '8px' }}>
+                    <TableCell className="beneficiary-table-cell">
+                      {item.phoneNumber ?? '-'}
+                    </TableCell>
+                    <TableCell className="beneficiary-table-cell">
+                      {item.manager ?? '-'}
+                    </TableCell>
+                    <TableCell className="beneficiary-table-cell ">
+                      {formatRelativeTime(item.lastCall || null)}
+                    </TableCell>
+                    <TableCell
+                      className="beneficiary-table-cell text-center"
+                      style={{ padding: '8px' }}
+                    >
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           setSelectedId(String(item.id));
                           setOpenInEditMode(true);
@@ -655,27 +826,57 @@ export default function BeneficiariesPage() {
                           cursor: 'pointer',
                           transition: 'all 150ms ease',
                         }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--color-primary-light)';
+                        onMouseEnter={e => {
+                          e.currentTarget.style.backgroundColor =
+                            'var(--color-primary-light)';
                         }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'var(--color-primary-soft)';
+                        onMouseLeave={e => {
+                          e.currentTarget.style.backgroundColor =
+                            'var(--color-primary-soft)';
                         }}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
                           <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
                           <path d="m15 5 4 4" />
                         </svg>
                       </button>
                     </TableCell>
-                    <TableCell className="beneficiary-table-cell" style={{ textAlign: 'center' }}>
+                    <TableCell
+                      className="beneficiary-table-cell"
+                      style={{ textAlign: 'center' }}
+                    >
                       {item.isRegistered ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#22c55e', fontWeight: 600, fontSize: '14px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#22c55e',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                          }}
+                        >
                           <LinkOnIcon size={18} color="#22c55e" />
                           연동됨
                         </span>
                       ) : (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontWeight: 600, fontSize: '14px' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#94a3b8',
+                            fontWeight: 600,
+                            fontSize: '14px',
+                          }}
+                        >
                           <LinkOffIcon size={18} color="#94a3b8" />
                           미연동
                         </span>
@@ -685,8 +886,17 @@ export default function BeneficiariesPage() {
                 ))}
                 {displayList.length === 0 && !loading && (
                   <TableRow>
-                    <TableCell colSpan={6} style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
-                      {search ? '검색 결과가 없습니다.' : '표시할 대상자가 없습니다.'}
+                    <TableCell
+                      colSpan={6}
+                      style={{
+                        textAlign: 'center',
+                        padding: '40px',
+                        color: 'var(--color-text-muted)',
+                      }}
+                    >
+                      {search
+                        ? '검색 결과가 없습니다.'
+                        : '표시할 대상자가 없습니다.'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -703,8 +913,14 @@ export default function BeneficiariesPage() {
             onDelete={() => handleDelete(String(selectedData.base.id))}
             deleting={deleteLoading}
             deleteError={deleteError}
-            onUpdate={payload => handleUpdate(String(selectedData.base.id), payload)}
+            onUpdate={payload =>
+              handleUpdate(String(selectedData.base.id), payload)
+            }
             initialEditMode={openInEditMode}
+            staffList={staffList}
+            onReassignStaff={newStaffId =>
+              handleReassignStaff(String(selectedData.base.id), newStaffId)
+            }
           />
         )}
       </div>
@@ -727,10 +943,5 @@ function ProfileCircle({
   else if (status === 'CAUTION') className += ' caution';
   else className += ' normal';
 
-  return (
-    <div className={className}>
-      {initial}
-    </div>
-  );
+  return <div className={className}>{initial}</div>;
 }
-

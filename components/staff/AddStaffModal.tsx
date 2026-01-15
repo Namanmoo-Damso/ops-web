@@ -8,6 +8,8 @@ export type NewStaffData = {
     name: string;
     phone: string;
     email: string;
+    team?: string;
+    jobTitle?: string;
 };
 
 interface AddStaffModalProps {
@@ -18,13 +20,13 @@ interface AddStaffModalProps {
 
 export default function AddStaffModal({ open, onClose, onAdd }: AddStaffModalProps) {
     const dialogRef = useRef<HTMLDivElement>(null);
-    const [form, setForm] = useState({ name: '', phone: '', email: '' });
+    const [form, setForm] = useState({ name: '', phone: '', email: '', team: '', jobTitle: '' });
     const [errors, setErrors] = useState({ name: '', phone: '', email: '' });
 
     // Reset form when modal opens
     useEffect(() => {
         if (open) {
-            setForm({ name: '', phone: '', email: '' });
+            setForm({ name: '', phone: '', email: '', team: '', jobTitle: '' });
             setErrors({ name: '', phone: '', email: '' });
         }
     }, [open]);
@@ -85,6 +87,8 @@ export default function AddStaffModal({ open, onClose, onAdd }: AddStaffModalPro
             name: form.name.trim(),
             phone: form.phone.trim(),
             email: form.email.trim(),
+            team: form.team.trim() || undefined,
+            jobTitle: form.jobTitle.trim() || undefined,
         });
         onClose();
     };
@@ -143,6 +147,26 @@ export default function AddStaffModal({ open, onClose, onAdd }: AddStaffModalPro
                                 placeholder="example@damso.kr"
                             />
                             {errors.email && <div className={styles.error}>{errors.email}</div>}
+                        </div>
+
+                        <div className={styles.field}>
+                            <label className={styles.label}>팀</label>
+                            <input
+                                className={styles.input}
+                                value={form.team}
+                                onChange={(e) => setForm(prev => ({ ...prev, team: e.target.value }))}
+                                placeholder="예: 돌봄1팀"
+                            />
+                        </div>
+
+                        <div className={styles.field}>
+                            <label className={styles.label}>직책</label>
+                            <input
+                                className={styles.input}
+                                value={form.jobTitle}
+                                onChange={(e) => setForm(prev => ({ ...prev, jobTitle: e.target.value }))}
+                                placeholder="예: 팀장, 사회복지사"
+                            />
                         </div>
                     </div>
                 </div>
