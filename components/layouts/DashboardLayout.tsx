@@ -93,6 +93,10 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
         phone_number: string;
         birth_date?: string | null;
         address?: string | null;
+        gender?: string | null;
+        diseases?: string | null;
+        medication?: string | null;
+        emergency_contact?: string | null;
         notes?: string | null;
       }) => {
         const token = localStorage.getItem('admin_access_token');
@@ -177,6 +181,10 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
                 phone_number: row.phone_number,
                 birth_date: row.birth_date || null,
                 address: row.address || null,
+                gender: row.gender || null,
+                diseases: row.diseases || null,
+                medication: row.medication || null,
+                emergency_contact: row.emergency_contact || null,
                 notes: row.notes || null,
               });
               success += 1;
@@ -240,7 +248,11 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
             phone_number: payload.phone_number,
             birth_date: payload.birth_date || null,
             address: payload.address || null,
-            notes: null,
+            gender: payload.gender || null,
+            diseases: payload.diseases || null,
+            medication: payload.medication || null,
+            emergency_contact: payload.emergency_contact || null,
+            notes: payload.notes || null,
           });
           alert('피보호자가 등록되었습니다.');
           window.location.reload();

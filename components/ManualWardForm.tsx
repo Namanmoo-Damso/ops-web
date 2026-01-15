@@ -1,7 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { palette } from '../app/theme';
+import { useRef, useState, useMemo } from 'react';
+import { palette, shadows } from '../app/theme';
+import {
+  SharedInput,
+  SharedSelect,
+  SharedTextArea,
+  SharedButton,
+} from './RegistrationShared';
 
 export type ManualWardPayload = {
   name: string;
@@ -31,13 +37,13 @@ type FieldKey =
 type ManualWardFormProps = {
   onSubmit: (payload: ManualWardPayload) => Promise<void> | void;
   onCancel: () => void;
+  loading: boolean;
 };
-
-const borderStyle = `1px solid ${palette.border}`;
 
 export default function ManualWardForm({
   onSubmit,
   onCancel,
+  loading,
 }: ManualWardFormProps) {
   const formatPhoneNumber = (raw: string) => {
     const digits = raw.replace(/\D/g, '').slice(0, 15);
@@ -61,66 +67,6 @@ export default function ManualWardForm({
   const [errors, setErrors] = useState<
     Partial<Record<FieldKey | 'global', string>>
   >({});
-  const [submitting, setSubmitting] = useState(false);
-
-  const fields: Array<{
-    key: FieldKey;
-    label: string;
-    required: boolean;
-    placeholder: string;
-    type?: 'input' | 'select' | 'textarea';
-    options?: Array<{ value: string; label: string }>;
-  }> = [
-    {
-      key: 'name',
-      label: '이름',
-      required: true,
-      placeholder: '홍길동',
-    },
-    {
-      key: 'email',
-      label: '이메일',
-      required: false,
-      placeholder: 'user@example.com',
-    },
-    {
-      key: 'phone_number',
-      label: '전화번호',
-      required: false,
-      placeholder: '010-1234-5678',
-    },
-    {
-      key: 'birth_date',
-      label: '생년월일',
-      required: false,
-      placeholder: '1990-01-01',
-    },
-    {
-      key: 'address',
-      label: '주소',
-      required: false,
-      placeholder: '서울특별시 ...',
-    },
-    {
-      key: 'gender',
-      label: '성별',
-      required: false,
-      placeholder: '',
-      type: 'select',
-      options: [
-        { value: '', label: '선택 안함' },
-        { value: 'male', label: '남성' },
-        { value: 'female', label: '여성' },
-      ],
-    },
-    {
-      key: 'notes',
-      label: '비고',
-      required: false,
-      placeholder: '참고사항을 입력하세요',
-      type: 'textarea',
-    },
-  ];
 
   const allowManualSubmit =
     manualForm.name.trim().length > 0 &&
@@ -211,478 +157,117 @@ export default function ManualWardForm({
     };
 
     try {
-      setSubmitting(true);
       await onSubmit(payload);
       setErrors({});
     } catch (error) {
       setErrors(prev => ({
         ...prev,
-        global:
-          (error as Error).message || '등록에 실패했습니다. 다시 시도해주세요.',
+        global: (error as Error).message || '등록에 실패했습니다. 다시 시도해주세요.',
       }));
-    } finally {
-      setSubmitting(false);
     }
   };
 
   return (
-    <div
-      style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}
-    >
-      {/* Grid Form Layout */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '10px',
-          flex: 1,
-        }}
-      >
-        {/* Row 1: Name + Gender */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: fieldErrors.name ? '1px solid #ef4444' : borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '45px',
-            }}
-          >
-            이름 <span style={{ color: palette.danger }}>*</span>
-          </span>
-          <input
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+      {/* Form Area */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+
+        {/* Row 1: 50/50 Split */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <SharedInput
+            label="이름"
             value={manualForm.name}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, name: e.target.value }))
-            }
+            onChange={e => setManualForm(prev => ({ ...prev, name: e.target.value }))}
             placeholder="홍길동"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
+            error={!!fieldErrors.name}
+            requiredMark
+          />
+          <SharedSelect
+            label="성별"
+            value={manualForm.gender}
+            onChange={e => setManualForm(prev => ({ ...prev, gender: e.target.value }))}
+            error={!!fieldErrors.gender}
+            requiredMark
+            options={[
+              { value: '', label: '선택 안함' },
+              { value: 'male', label: '남성' },
+              { value: 'female', label: '여성' },
+            ]}
           />
         </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '45px',
-            }}
-          >
-            성별
-          </span>
-          <select
-            value={manualForm.gender}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, gender: e.target.value }))
-            }
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          >
-            <option value="">선택 안함</option>
-            <option value="male">남성</option>
-            <option value="female">여성</option>
-          </select>
-        </div>
 
-        {/* Row 2: Birth Date + Phone */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: fieldErrors.birth_date ? '1px solid #ef4444' : borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '60px',
-            }}
-          >
-            생년월일
-          </span>
-          <input
+        {/* Row 2: 50/50 Split */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <SharedInput
+            label="전화번호"
+            value={manualForm.phone_number}
+            onChange={e => setManualForm(prev => ({ ...prev, phone_number: formatPhoneNumber(e.target.value) }))}
+            placeholder="010-1234-5678"
+            error={!!fieldErrors.phone_number}
+            requiredMark
+          />
+          <SharedInput
+            label="생년월일"
             type="date"
             value={manualForm.birth_date}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, birth_date: e.target.value }))
-            }
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          />
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: fieldErrors.phone_number
-              ? '1px solid #ef4444'
-              : borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '60px',
-            }}
-          >
-            전화번호
-          </span>
-          <input
-            value={manualForm.phone_number}
-            onChange={e =>
-              setManualForm(prev => ({
-                ...prev,
-                phone_number: formatPhoneNumber(e.target.value),
-              }))
-            }
-            placeholder="010-1234-5678"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
+            onChange={e => setManualForm(prev => ({ ...prev, birth_date: e.target.value }))}
+            error={!!fieldErrors.birth_date}
+            requiredMark
           />
         </div>
 
-        {/* Row 3: Email (full width) */}
-        <div
-          style={{
-            gridColumn: 'span 2',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: fieldErrors.email ? '1px solid #ef4444' : borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '60px',
-            }}
-          >
-            이메일
-          </span>
-          <input
-            value={manualForm.email}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, email: e.target.value }))
-            }
-            placeholder="user@example.com"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          />
-        </div>
+        {/* Full Width Fields */}
+        <SharedInput
+          label="이메일"
+          value={manualForm.email}
+          onChange={e => setManualForm(prev => ({ ...prev, email: e.target.value }))}
+          placeholder="user@example.com"
+          error={!!fieldErrors.email}
+          requiredMark
+        />
 
-        {/* Row 4: Address (full width) */}
-        <div
-          style={{
-            gridColumn: 'span 2',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '14px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '60px',
-            }}
-          >
-            주소
-          </span>
-          <input
-            value={manualForm.address}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, address: e.target.value }))
-            }
-            placeholder="서울특별시 ..."
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          />
-        </div>
+        <SharedInput
+          label="주소"
+          value={manualForm.address}
+          onChange={e => setManualForm(prev => ({ ...prev, address: e.target.value }))}
+          placeholder="서울특별시 ..."
+        />
 
-        {/* Row 5: Diseases (full width) */}
-        <div
-          style={{
-            gridColumn: 'span 2',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '15px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '65px',
-            }}
-          >
-            기저질환
-          </span>
-          <input
-            value={manualForm.diseases}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, diseases: e.target.value }))
-            }
-            placeholder="고혈압, 당뇨 등"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          />
-        </div>
+        <SharedInput
+          label="기저질환"
+          value={manualForm.diseases}
+          onChange={e => setManualForm(prev => ({ ...prev, diseases: e.target.value }))}
+          placeholder="고혈압, 당뇨 등"
+        />
 
-        {/* Row 6: Medication (full width) */}
-        <div
-          style={{
-            gridColumn: 'span 2',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '15px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '65px',
-            }}
-          >
-            복약정보
-          </span>
-          <input
-            value={manualForm.medication}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, medication: e.target.value }))
-            }
-            placeholder="혈압약, 당뇨약 등"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          />
-        </div>
+        <SharedInput
+          label="복약정보"
+          value={manualForm.medication}
+          onChange={e => setManualForm(prev => ({ ...prev, medication: e.target.value }))}
+          placeholder="혈압약, 당뇨약 등"
+        />
 
-        {/* Row 7: Emergency Contact (full width) */}
-        <div
-          style={{
-            gridColumn: 'span 2',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            border: borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '15px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '80px',
-            }}
-          >
-            비상연락처
-          </span>
-          <input
-            value={manualForm.emergency_contact}
-            onChange={e =>
-              setManualForm(prev => ({
-                ...prev,
-                emergency_contact: e.target.value,
-              }))
-            }
-            placeholder="010-5678-1234"
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-            }}
-          />
-        </div>
+        <SharedInput
+          label="비상 연락처"
+          value={manualForm.emergency_contact}
+          onChange={e => setManualForm(prev => ({ ...prev, emergency_contact: formatPhoneNumber(e.target.value) }))}
+          placeholder="010-5678-1234"
+        />
 
-        {/* Row 8: Notes (full width) */}
-        <div
-          style={{
-            gridColumn: 'span 2',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px',
-            border: borderStyle,
-            borderRadius: '12px',
-            padding: '10px 14px',
-            backgroundColor: palette.background,
-          }}
-        >
-          <span
-            style={{
-              fontSize: '15px',
-              fontWeight: 700,
-              color: '#4a5d23',
-              minWidth: '60px',
-              paddingTop: '4px',
-            }}
-          >
-            비고
-          </span>
-          <textarea
-            value={manualForm.notes}
-            onChange={e =>
-              setManualForm(prev => ({ ...prev, notes: e.target.value }))
-            }
-            placeholder="참고사항을 입력하세요"
-            rows={2}
-            style={{
-              flex: 1,
-              border: 'none',
-              borderLeft: '1px solid #e2e8f0',
-              paddingLeft: '10px',
-              fontSize: '16px',
-              fontWeight: 600,
-              color: palette.primaryDark,
-              backgroundColor: 'transparent',
-              outline: 'none',
-              resize: 'vertical',
-            }}
-          />
-        </div>
+        <SharedTextArea
+          label="비고"
+          value={manualForm.notes}
+          onChange={e => setManualForm(prev => ({ ...prev, notes: e.target.value }))}
+          placeholder="참고사항을 입력해주세요"
+          rows={3}
+        />
       </div>
 
-      <div style={{ fontSize: '14px', color: palette.textMuted }}>
-        이름과 이메일 또는 전화번호 중 하나는 반드시 입력해주세요.
-      </div>
       {errors.global && (
         <div
           style={{
-            backgroundColor: palette.dangerSoft,
-            color: palette.danger,
+            backgroundColor: palette.dangerSoft || '#fff1f2',
+            color: '#f97316',
             border: '1px solid #fecdd3',
             borderRadius: '8px',
             padding: '10px 12px',
@@ -693,71 +278,15 @@ export default function ManualWardForm({
         </div>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '8px',
-        }}
-      >
-        <button
-          onClick={onCancel}
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            border: borderStyle,
-            backgroundColor: palette.panel,
-            color: palette.primaryDark,
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 150ms ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = palette.background;
-            e.currentTarget.style.color = palette.primaryDark;
-            e.currentTarget.style.borderColor = palette.secondary;
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = palette.panel;
-            e.currentTarget.style.color = palette.primaryDark;
-            e.currentTarget.style.borderColor = palette.border;
-          }}
-        >
-          Cancel
-        </button>
-        <button
-          disabled={!allowManualSubmit || submitting}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+        <SharedButton
           onClick={handleSubmit}
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            border: 'none',
-            backgroundColor:
-              allowManualSubmit && !submitting
-                ? palette.primary
-                : palette.secondary,
-            color: palette.panel,
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor:
-              allowManualSubmit && !submitting ? 'pointer' : 'not-allowed',
-            transition: 'all 150ms ease',
-            boxShadow: allowManualSubmit
-              ? '0 10px 30px rgba(37,99,235,0.15)'
-              : 'none',
-          }}
-          onMouseEnter={e => {
-            if (!allowManualSubmit || submitting) return;
-            e.currentTarget.style.backgroundColor = palette.primaryDark;
-          }}
-          onMouseLeave={e => {
-            if (!allowManualSubmit || submitting) return;
-            e.currentTarget.style.backgroundColor = palette.primary;
-          }}
+          disabled={loading}
+          fullWidth
+          fontSize="20px"
         >
-          {submitting ? '등록 중...' : '추가하기'}
-        </button>
+          {loading ? '등록 중...' : '등록하기'}
+        </SharedButton>
       </div>
     </div>
   );

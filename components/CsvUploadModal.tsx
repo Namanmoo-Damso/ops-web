@@ -1,44 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { overlays, palette, shadows } from '../app/theme';
 import CsvUploadPanel, { CleanRow } from './CsvUploadPanel';
 import ManualWardForm, { ManualWardPayload } from './ManualWardForm';
 
-const IconClose = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <path
-      d="M18 6L6 18M6 6l12 12"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const IconInfo = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-    <path
-      d="M12 16v-4M12 8h.01"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
-const IconDownload = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-    <path
-      d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+import { IconArrowLeft, IconClose, IconInfo, IconDownload } from './Icons';
+import { SharedButton, ModalHeader } from './RegistrationShared';
 
 const IconChevron = ({ open }: { open: boolean }) => (
   <svg
@@ -243,6 +211,16 @@ export default function CsvUploadModal({
     ].join('\n'),
   );
   const [showGuide, setShowGuide] = useState(true);
+  const [uploadStage, setUploadStage] = useState<'select' | 'preview'>('select');
+
+  useEffect(() => {
+    if (open) {
+      setMode('upload');
+      setStep('form');
+      setShowGuide(true);
+      setUploadStage('select');
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -255,6 +233,7 @@ export default function CsvUploadModal({
     setKakaoHint(null);
     setKakaoEditOpen(false);
     setModeLocked(false);
+    setUploadStage('select');
     onClose();
   };
 
@@ -309,7 +288,14 @@ export default function CsvUploadModal({
       <div
         style={{
           width: '100%',
-          maxWidth: '480px',
+          maxWidth:
+            step === 'kakao'
+              ? '620px'
+              : mode === 'manual'
+                ? '620px'
+                : uploadStage === 'preview'
+                  ? '960px'
+                  : '480px',
           borderRadius: '16px',
           backgroundColor: palette.panel,
           boxShadow: shadows.deep,
@@ -319,55 +305,17 @@ export default function CsvUploadModal({
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
+          transition: 'all 300ms ease',
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '12px',
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: '20px',
-              fontWeight: 700,
-              color: palette.primaryDark,
-            }}
-          >
-            피보호자 등록
-          </h3>
-          <button
-            onClick={handleClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              border: 'none',
-              background: 'transparent',
-              display: 'grid',
-              placeItems: 'center',
-              color: palette.textSoft,
-              cursor: uploading ? 'not-allowed' : 'pointer',
-              transition: 'all 150ms ease',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.backgroundColor = palette.soft;
-              e.currentTarget.style.color = palette.textMuted;
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-              e.currentTarget.style.color = palette.textSoft;
-            }}
-          >
-            <IconClose />
-          </button>
-        </div>
+        <ModalHeader
+          title="대상자 등록"
+          onClose={handleClose}
+          IconClose={IconClose}
+        />
 
-        {step === 'form' && (
+        {step === 'form' && mode !== 'upload' || (mode === 'upload' && uploadStage === 'select') ? (
           <div
             style={{
               display: 'grid',
@@ -409,6 +357,26 @@ export default function CsvUploadModal({
               );
             })}
           </div>
+        ) : null}
+
+        {/* Guide Toggle Button (Only in CSV mode and Select stage) */}
+        {mode === 'upload' && step === 'form' && uploadStage === 'select' && (
+          <SharedButton
+            onClick={() => setShowGuide(!showGuide)}
+            variant="secondary"
+            fullWidth
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              border: `1px solid ${palette.border}`,
+              marginBottom: '14px',
+            }}
+          >
+            <IconArrowLeft />
+            입력 가이드 {showGuide ? '닫기' : '보기'}
+          </SharedButton>
         )}
 
         <div style={{ display: step === 'form' ? 'block' : 'none' }}>
@@ -416,6 +384,7 @@ export default function CsvUploadModal({
             <CsvUploadPanel
               onConfirm={handleCsvConfirm}
               onCancel={handleClose}
+              onStageChange={setUploadStage}
               uploading={uploading}
               uploadProgress={uploadProgress}
             />
@@ -423,6 +392,7 @@ export default function CsvUploadModal({
             <ManualWardForm
               onSubmit={handleManualSubmit}
               onCancel={handleClose}
+              loading={uploading}
             />
           )}
         </div>
@@ -444,7 +414,7 @@ export default function CsvUploadModal({
             >
               <div
                 style={{
-                  fontSize: '15px',
+                  fontSize: '18px',
                   fontWeight: 700,
                   color: palette.primaryDark,
                 }}
@@ -453,7 +423,7 @@ export default function CsvUploadModal({
               </div>
               <div
                 style={{
-                  fontSize: '13px',
+                  fontSize: '16px',
                   color: palette.textMuted,
                   lineHeight: 1.5,
                 }}
@@ -484,7 +454,7 @@ export default function CsvUploadModal({
               >
                 <div
                   style={{
-                    fontSize: '13px',
+                    fontSize: '16px',
                     fontWeight: 700,
                     color: palette.primaryDark,
                   }}
@@ -501,7 +471,7 @@ export default function CsvUploadModal({
                       ? palette.primary
                       : palette.background,
                     color: kakaoEditOpen ? palette.panel : palette.primaryDark,
-                    fontSize: '12px',
+                    fontSize: '14px',
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 150ms ease',
@@ -538,7 +508,7 @@ export default function CsvUploadModal({
                     borderRadius: '12px',
                     border: `1px solid ${palette.border}`,
                     backgroundColor: '#fff7c2',
-                    fontSize: '13px',
+                    fontSize: '16px',
                     color: palette.primaryDark,
                     lineHeight: 1.7,
                   }}
@@ -550,7 +520,7 @@ export default function CsvUploadModal({
                     border: `1px solid ${palette.border}`,
                     backgroundColor: palette.background,
                     padding: '18px',
-                    fontSize: '13px',
+                    fontSize: '16px',
                     color: '#1f2937',
                     lineHeight: 1.7,
                     whiteSpace: 'pre-line',
@@ -574,7 +544,7 @@ export default function CsvUploadModal({
                 border: 'none',
                 backgroundColor: '#FFE81D',
                 color: palette.primaryDark,
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 700,
                 cursor: uploading ? 'not-allowed' : 'pointer',
                 transition: 'all 150ms ease',
@@ -599,7 +569,7 @@ export default function CsvUploadModal({
                   color: palette.textMuted,
                   borderRadius: '10px',
                   padding: '10px 12px',
-                  fontSize: '12px',
+                  fontSize: '14px',
                 }}
               >
                 {kakaoHint}
@@ -622,7 +592,7 @@ export default function CsvUploadModal({
                   border: `1px solid ${palette.border}`,
                   backgroundColor: palette.panel,
                   color: palette.primaryDark,
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 600,
                   cursor: uploading ? 'not-allowed' : 'pointer',
                   transition: 'all 150ms ease',
@@ -654,7 +624,7 @@ export default function CsvUploadModal({
                       ? palette.secondary
                       : palette.primary,
                   color: palette.panel,
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 700,
                   cursor: uploading || !hasPending ? 'not-allowed' : 'pointer',
                   transition: 'all 150ms ease',
@@ -678,21 +648,26 @@ export default function CsvUploadModal({
         )}
       </div>
 
-      {/* Side Reference Guide Panel */}
-      {showGuide && step === 'form' && (
+      {/* Side Reference Guide Panel - transitions based on mode */}
+      {step === 'form' && (
         <div
           style={{
-            width: '100%',
-            maxWidth: '340px',
+            width: mode === 'upload' && showGuide && uploadStage === 'select' ? '360px' : '0px',
+            maxWidth: '360px',
             borderRadius: '16px',
             backgroundColor: palette.panel,
-            boxShadow: shadows.deep,
-            padding: '20px',
-            border: `1px solid ${palette.border}`,
+            padding: mode === 'upload' && showGuide && uploadStage === 'select' ? '20px' : '0px',
+            border:
+              mode === 'upload' && showGuide && uploadStage === 'select'
+                ? `1px solid ${palette.border}`
+                : 'none',
             height: 'min(680px, 85vh)',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
+            transition: 'all 300ms ease',
+            opacity: mode === 'upload' && showGuide && uploadStage === 'select' ? 1 : 0,
+            overflow: 'hidden',
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -738,35 +713,13 @@ export default function CsvUploadModal({
             </button>
           </div>
 
-          {/* Download Button */}
-          <a
-            href="/templates/ward_upload_template.csv"
-            download="ward_upload_template.csv"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              backgroundColor: palette.primary,
-              color: '#fff',
-              fontSize: '16px',
-              fontWeight: 600,
-              textDecoration: 'none',
-              marginBottom: '16px',
-            }}
-          >
-            <IconDownload />
-            템플릿 CSV 다운로드
-          </a>
-
           {/* Column Table */}
           <div
             style={{
               borderRadius: '8px',
               border: `1px solid ${palette.border}`,
               overflow: 'hidden',
-              marginBottom: '12px',
+              marginBottom: '16px',
             }}
           >
             <div
@@ -821,6 +774,37 @@ export default function CsvUploadModal({
               </div>
             ))}
           </div>
+
+          {/* Download Button - moved below table */}
+          <a
+            href="/templates/ward_upload_template.csv"
+            download="ward_upload_template.csv"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '16px',
+              borderRadius: '12px',
+              backgroundColor: '#fff',
+              border: `2px solid ${palette.primaryDark}`,
+              color: palette.primaryDark,
+              fontSize: '18px',
+              fontWeight: 800,
+              textDecoration: 'none',
+              marginBottom: '16px',
+              transition: 'all 150ms ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = palette.soft;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#fff';
+            }}
+          >
+            <IconDownload />
+            템플릿 CSV 다운로드
+          </a>
         </div>
       )}
     </div>
