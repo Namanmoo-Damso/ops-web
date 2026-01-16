@@ -9,6 +9,7 @@ import {
   Loader2,
   Save,
   Check,
+  X,
 } from 'lucide-react';
 import styles from '../DetailModal.module.css';
 import { SectionTitle } from '../../../components/ui';
@@ -279,6 +280,11 @@ export default function UsageInfoTab({
     setScheduleLoading(false);
   };
 
+  const handleCancelSchedule = () => {
+    setSchedule({ ...originalSchedule });
+    setSaveSuccess(false);
+  };
+
   // Computed stats for display
   const displayStats = useMemo(() => {
     if (!stats) {
@@ -467,7 +473,7 @@ export default function UsageInfoTab({
                         e.target.value === '' ? null : e.target.value,
                       )
                     }
-                    className={`${styles.usageTimeSelect} ${isDisabled ? styles.usageTimeSelectDisabled : ''}`}
+                    className={styles.usageTimeSelect}
                   >
                     <option value="">없음</option>
                     {timeSlots.map(slot => (
@@ -480,8 +486,19 @@ export default function UsageInfoTab({
               );
             })}
           </div>
-          {/* Save Button */}
+          {/* Save/Cancel Buttons */}
           <div className={styles.usageScheduleFooter}>
+            {hasScheduleChanges && (
+              <button
+                type="button"
+                onClick={handleCancelSchedule}
+                disabled={scheduleLoading}
+                className={styles.usageCancelBtn}
+              >
+                <X size={16} />
+                <span>취소</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleSaveSchedule}

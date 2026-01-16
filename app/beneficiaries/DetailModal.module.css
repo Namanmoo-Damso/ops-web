@@ -1486,6 +1486,7 @@
 .usageScheduleFooter {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding-top: 12px;
   border-top: 1px solid var(--beneficiary-border-color);
   margin-top: 8px;
@@ -1521,6 +1522,30 @@
 
 .usageSaveBtnSuccess:hover:not(:disabled) {
   background: #16a34a;
+}
+
+.usageCancelBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #f1f5f9;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 10px;
+  color: var(--beneficiary-heading);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.usageCancelBtn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.usageCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Calendar */
@@ -1615,7 +1640,8 @@
   flex-direction: column;
   gap: 12px;
   flex: 1;
-  min-height: 0; /* Enable flex shrinking */
+  min-height: 0;
+  /* Enable flex shrinking */
   overflow: hidden;
 }
 
@@ -1743,9 +1769,11 @@
   gap: 10px;
   flex: 1;
   overflow-y: auto;
-  max-height: 400px; /* Fixed height for scrolling */
+  max-height: 400px;
+  /* Fixed height for scrolling */
   min-height: 200px;
-  padding-right: 4px; /* Space for scrollbar */
+  padding-right: 4px;
+  /* Space for scrollbar */
 }
 
 .emptyLogs {
