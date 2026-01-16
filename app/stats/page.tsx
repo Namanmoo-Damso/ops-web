@@ -136,7 +136,7 @@ function formatTimeAgo(timestamp: string): string {
 
 // --- Page Component ---
 export default function StatsPage() {
-  const { getStats } = useDashboardApi();
+  const { getStats, getCareAlertStats } = useDashboardApi();
 
   // Period and date state - defaults to daily (today)
   const [period, setPeriod] = useState<StatsPeriodFilter>('daily');
@@ -151,6 +151,11 @@ export default function StatsPage() {
   // API data state
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [careAlertStats, setCareAlertStats] = useState<{
+    detected: number;
+    responded: number;
+    responseRate: number;
+  } | null>(null);
 
   // Handle period change - recalculate both start and end dates
   const handlePeriodChange = useCallback((newPeriod: StatsPeriodFilter) => {
@@ -179,9 +184,19 @@ export default function StatsPage() {
   useEffect(() => {
     const loadStats = async () => {
       setIsLoading(true);
-      const result = await getStats();
-      if (result) {
-        setStats(result);
+      const [statsResult, alertStatsResult] = await Promise.all([
+        getStats(),
+        getCareAlertStats('month'),
+      ]);
+      if (statsResult) {
+        setStats(statsResult);
+      }
+      if (alertStatsResult) {
+        setCareAlertStats({
+          detected: alertStatsResult.detected,
+          responded: alertStatsResult.responded,
+          responseRate: alertStatsResult.responseRate,
+        });
       }
       setIsLoading(false);
     };
@@ -283,8 +298,8 @@ export default function StatsPage() {
       ? stats.topKeywords
       : MOCK_KEYWORDS;
 
-  const riskCount = stats?.healthAlerts?.warning || MOCK_RISK_COUNT;
-  const riskResponseCount = MOCK_RISK_RESPONSE_COUNT;
+  const riskCount = careAlertStats?.detected ?? MOCK_RISK_COUNT;
+  const riskResponseCount = careAlertStats?.responded ?? MOCK_RISK_RESPONSE_COUNT;
   const riskReports = MOCK_RISK_REPORTS;
 
   return (
