@@ -81,6 +81,33 @@ export interface StatsResponse {
   fetchedAt: string;
 }
 
+export interface CareAlertLog {
+  id: string;
+  wardId: string;
+  wardName: string;
+  type: string;
+  alertType: string;
+  severity: string;
+  timestamp: string;
+  status: 'resolved' | 'pending';
+  acknowledgedAt: string | null;
+  roomName: string | null;
+}
+
+export interface CareAlertsResponse {
+  logs: CareAlertLog[];
+  total: number;
+  fetchedAt: string;
+}
+
+export interface CareAlertStatsResponse {
+  detected: number;
+  responded: number;
+  responseRate: number;
+  period: string;
+  fetchedAt: string;
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -168,6 +195,65 @@ export function useDashboardApi() {
     }
   }, []);
 
+  /**
+   * Get care alert logs for emergency dashboard
+   */
+  const getCareAlerts = useCallback(
+    async (options?: {
+      limit?: number;
+      hoursBack?: number;
+    }): Promise<CareAlertsResponse | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        if (options?.limit) params.set('limit', String(options.limit));
+        if (options?.hoursBack)
+          params.set('hoursBack', String(options.hoursBack));
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return await apiClient.get<CareAlertsResponse>(
+          `/v1/admin/dashboard/care-alerts${query}`,
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to fetch care alerts',
+        );
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  /**
+   * Get care alert statistics
+   */
+  const getCareAlertStats = useCallback(
+    async (
+      period?: 'today' | 'week' | 'month' | 'all',
+    ): Promise<CareAlertStatsResponse | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const query = period ? `?period=${period}` : '';
+        return await apiClient.get<CareAlertStatsResponse>(
+          `/v1/admin/dashboard/care-alert-stats${query}`,
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to fetch care alert stats',
+        );
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   return {
     loading,
     error,
@@ -175,6 +261,8 @@ export function useDashboardApi() {
     getTodaySummary,
     getStats,
     getRealtime,
+    getCareAlerts,
+    getCareAlertStats,
   };
 }
 
