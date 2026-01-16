@@ -23,7 +23,8 @@ function AlertItem({
 }) {
   const alertLabel =
     ALERT_TYPE_LABELS[alert.alertType || 'unknown'] || '위급 상황 감지';
-  const displayName = alert.wardName || alert.roomName;
+  // wardName만 표시, roomName은 숨김
+  const displayName = alert.wardName || '알 수 없음';
 
   const itemStyle: CSSProperties = {
     display: 'flex',

@@ -49,13 +49,59 @@ const saveVolume = (participantId: string, volume: number) => {
 
 export const FullScreenVideo = ({
   participant,
-  videoTrackRef,
+  videoTrackRef: externalVideoTrackRef,
   isDanger = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
   const [volume, setVolume] = useState(() => getStoredVolume(participant.id));
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const volumeControlRef = useRef<HTMLDivElement>(null);
+  const [resolvedTrackRef, setResolvedTrackRef] = useState<any>(
+    externalVideoTrackRef,
+  );
+
+  // If no external trackRef provided, find it from room context
+  useEffect(() => {
+    if (externalVideoTrackRef) {
+      setResolvedTrackRef(externalVideoTrackRef);
+      return;
+    }
+
+    if (!room || !participant.id) return;
+
+    // Find the participant in the room
+    const roomParticipant = room.remoteParticipants.get(participant.id);
+    if (!roomParticipant) {
+      console.warn(
+        '[FullScreenVideo] Participant not found in room:',
+        participant.id,
+      );
+      return;
+    }
+
+    // Find video track
+    const videoPublication = Array.from(
+      roomParticipant.trackPublications.values(),
+    ).find(pub => pub.kind === Track.Kind.Video && pub.track);
+
+    if (videoPublication) {
+      const trackRef = {
+        participant: roomParticipant,
+        publication: videoPublication,
+        source: videoPublication.source,
+      };
+      console.log('[FullScreenVideo] Resolved trackRef from room:', trackRef);
+      setResolvedTrackRef(trackRef);
+    } else {
+      console.warn(
+        '[FullScreenVideo] No video track found for participant:',
+        participant.id,
+      );
+    }
+  }, [room, participant.id, externalVideoTrackRef]);
+
+  // Use resolved trackRef for all operations
+  const videoTrackRef = resolvedTrackRef;
 
   // Save volume to storage when it changes
   useEffect(() => {
@@ -317,16 +363,33 @@ export const FullScreenVideo = ({
                 `}
               </style>
             )}
-            <TrackRefContext.Provider value={videoTrackRef}>
-              <VideoTrack
+            {videoTrackRef ? (
+              <TrackRefContext.Provider value={videoTrackRef}>
+                <VideoTrack
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    display: 'block',
+                  }}
+                />
+              </TrackRefContext.Provider>
+            ) : (
+              <div
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'cover',
-                  display: 'block',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: '#1a1a1a',
+                  color: '#666',
+                  fontSize: '14px',
                 }}
-              />
-            </TrackRefContext.Provider>
+              >
+                비디오 로딩 중...
+              </div>
+            )}
           </div>
 
           {/* Participant Name Label */}
