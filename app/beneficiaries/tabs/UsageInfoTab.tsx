@@ -66,28 +66,48 @@ const API_TO_DAY: Record<DayName, DayDisplay> = {
 // Schedule type with nullable values
 type DailySchedule = Record<DayDisplay, string | null>;
 
+// Initial empty schedule state
+const DEFAULT_SCHEDULE: DailySchedule = {
+  월: null,
+  화: null,
+  수: null,
+  목: null,
+  금: null,
+  토: null,
+  일: null,
+};
+
 // Exclude 'custom' for this component
 type UsagePeriodFilter = Exclude<PeriodFilter, 'custom'>;
 
-// Generate time slots (10-minute intervals)
+/**
+ * Generate time slots (10-minute intervals) within organization hours
+ * @param startTime Organization preferred start time (HH:mm)
+ * @param endTime Organization preferred end time (HH:mm)
+ */
 function generateTimeSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
   const [startH, startM] = startTime.split(':').map(Number);
   const [endH, endM] = endTime.split(':').map(Number);
 
-  let h = startH;
-  let m = startM;
+  // Convert to total minutes from midnight for easier calculation
+  const startTotalMinutes = startH * 60 + startM;
+  const endTotalMinutes = endH * 60 + endM;
 
-  while (h < endH || (h === endH && m < endM)) {
+  // 10-minute intervals, inclusive of start, exclusive of end (since a slot at endHM would end AFTER organization hours)
+  for (let t = startTotalMinutes; t < endTotalMinutes; t += 10) {
+    const h = Math.floor(t / 60);
+    const m = t % 60;
     slots.push(
       `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
     );
-    m += 10;
-    if (m >= 60) {
-      m = 0;
-      h++;
-    }
   }
+
+  // If start is exactly end, or for some reason empty, provide at least the start
+  if (slots.length === 0) {
+    slots.push(startTime);
+  }
+
   return slots;
 }
 
@@ -114,24 +134,9 @@ export default function UsageInfoTab({
   const [callDates, setCallDates] = useState<string[]>([]);
 
   // Schedule state - defaults to all null (no schedule)
-  const [schedule, setSchedule] = useState<DailySchedule>({
-    월: null,
-    화: null,
-    수: null,
-    목: null,
-    금: null,
-    토: null,
-    일: null,
-  });
-  const [originalSchedule, setOriginalSchedule] = useState<DailySchedule>({
-    월: null,
-    화: null,
-    수: null,
-    목: null,
-    금: null,
-    토: null,
-    일: null,
-  });
+  const [schedule, setSchedule] = useState<DailySchedule>(DEFAULT_SCHEDULE);
+  const [originalSchedule, setOriginalSchedule] =
+    useState<DailySchedule>(DEFAULT_SCHEDULE);
   const [applyAllTime, setApplyAllTime] = useState('09:00');
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -208,29 +213,35 @@ export default function UsageInfoTab({
   // Fetch schedule on mount
   const fetchSchedule = useCallback(async () => {
     setScheduleLoading(true);
-    const result = await getSchedule(String(beneficiaryId));
-    if (result) {
-      // Map API response to display format
-      const newSchedule: DailySchedule = {
-        월: null,
-        화: null,
-        수: null,
-        목: null,
-        금: null,
-        토: null,
-        일: null,
-      };
+    try {
+      const result = await getSchedule(String(beneficiaryId));
+      if (result && result.schedule) {
+        // Map API response to display format
+        const newSchedule: DailySchedule = { ...DEFAULT_SCHEDULE };
 
-      (Object.keys(result.schedule) as DayName[]).forEach(apiDay => {
-        const displayDay = API_TO_DAY[apiDay];
-        newSchedule[displayDay] = result.schedule[apiDay];
-      });
+        (Object.keys(result.schedule) as DayName[]).forEach((apiDay) => {
+          const displayDay = API_TO_DAY[apiDay];
+          if (displayDay) {
+            newSchedule[displayDay] = result.schedule[apiDay];
+          }
+        });
 
-      setSchedule(newSchedule);
-      setOriginalSchedule(newSchedule);
-      setServiceHours(result.organizationServiceHours);
+        setSchedule(newSchedule);
+        setOriginalSchedule(newSchedule);
+        setServiceHours(result.organizationServiceHours);
+      } else {
+        // Handle null response by resetting to default
+        setSchedule(DEFAULT_SCHEDULE);
+        setOriginalSchedule(DEFAULT_SCHEDULE);
+      }
+    } catch (err) {
+      console.error('Failed to fetch schedule:', err);
+      // Ensure we have a clean state on error
+      setSchedule(DEFAULT_SCHEDULE);
+      setOriginalSchedule(DEFAULT_SCHEDULE);
+    } finally {
+      setScheduleLoading(false);
     }
-    setScheduleLoading(false);
   }, [beneficiaryId, getSchedule]);
 
   useEffect(() => {
@@ -259,26 +270,49 @@ export default function UsageInfoTab({
     setScheduleLoading(true);
     setSaveSuccess(false);
 
-    // Convert display format to API format
-    const apiSchedule: Record<DayName, string | null> = {
-      sunday: schedule['일'],
-      monday: schedule['월'],
-      tuesday: schedule['화'],
-      wednesday: schedule['수'],
-      thursday: schedule['목'],
-      friday: schedule['금'],
-      saturday: schedule['토'],
-    };
+    try {
+      // Convert display format to API format
+      const apiSchedule: Record<DayName, string | null> = {
+        sunday: schedule['일'],
+        monday: schedule['월'],
+        tuesday: schedule['화'],
+        wednesday: schedule['수'],
+        thursday: schedule['목'],
+        friday: schedule['금'],
+        saturday: schedule['토'],
+      };
 
-    const result = await updateSchedule(String(beneficiaryId), apiSchedule);
-    if (result) {
-      setOriginalSchedule({ ...schedule });
-      setSaveSuccess(true);
-      // Hide success message after 3 seconds
-      setTimeout(() => setSaveSuccess(false), 3000);
+      const result = await updateSchedule(String(beneficiaryId), apiSchedule);
+      if (result) {
+        setOriginalSchedule({ ...schedule });
+        setSaveSuccess(true);
+      } else {
+        alert('스케줄 저장에 실패했습니다. 다시 시도해주세요.');
+      }
+    } catch (err) {
+      console.error('Failed to update schedule:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
+      alert(`스케줄 저장 중 오류가 발생했습니다: ${errorMessage}`);
+    } finally {
+      setScheduleLoading(false);
     }
-    setScheduleLoading(false);
   };
+
+  // Cleanup effect for success message
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (saveSuccess) {
+      timer = setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
+    }
+    return () => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
+  }, [saveSuccess]);
 
   const handleCancelSchedule = () => {
     setSchedule({ ...originalSchedule });

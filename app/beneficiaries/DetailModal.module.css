@@ -17,9 +17,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--beneficiary-modal-padding);
-  padding-left: calc(
-    var(--sidebar-width, 0px) + var(--beneficiary-modal-padding)
-  );
+  padding-left: calc(var(--sidebar-width, 0px) + var(--beneficiary-modal-padding));
   z-index: var(--beneficiary-modal-overlay-z);
 }
 
@@ -27,21 +25,15 @@
 @media (max-height: 700px) {
   .overlay {
     align-items: flex-start;
-    padding-top: calc(
-      var(--header-height, 64px) + var(--beneficiary-modal-padding)
-    );
+    padding-top: calc(var(--header-height, 64px) + var(--beneficiary-modal-padding));
   }
 }
 
 .dialog {
-  width: min(
-    var(--beneficiary-modal-max-width),
-    calc(100vw - var(--sidebar-width, 0px) - 48px)
-  );
-  max-width: min(
-    var(--beneficiary-modal-max-width),
-    calc(100vw - var(--sidebar-width, 0px) - 48px)
-  );
+  width: min(var(--beneficiary-modal-max-width),
+      calc(100vw - var(--sidebar-width, 0px) - 48px));
+  max-width: min(var(--beneficiary-modal-max-width),
+      calc(100vw - var(--sidebar-width, 0px) - 48px));
   background-color: #fbfdf9;
   border-radius: 32px;
   box-shadow: var(--beneficiary-dialog-shadow);
@@ -516,7 +508,7 @@
   font-size: 16px;
 }
 
-.card .infoRow + .infoRow {
+.card .infoRow+.infoRow {
   margin-top: 6px;
 }
 
@@ -1448,7 +1440,7 @@
   color: var(--beneficiary-heading);
 }
 
-/* Time Select (replacement for input) */
+/* Time Select (dropdown) */
 .usageTimeSelect {
   padding: 6px 8px;
   border: 1px solid var(--beneficiary-border-color);
@@ -1465,11 +1457,6 @@
   outline: none;
   border-color: var(--color-primary, #8fa963);
   box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.15);
-}
-
-.usageTimeSelectDisabled {
-  color: var(--beneficiary-muted);
-  background: #f1f5f9;
 }
 
 /* Disabled schedule row (no time set) */
