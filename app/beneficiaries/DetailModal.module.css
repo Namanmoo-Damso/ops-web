@@ -1448,6 +1448,106 @@
   color: var(--beneficiary-heading);
 }
 
+/* Time Select (replacement for input) */
+.usageTimeSelect {
+  padding: 6px 8px;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--beneficiary-heading);
+  background: #ffffff;
+  min-width: 100px;
+  cursor: pointer;
+}
+
+.usageTimeSelect:focus {
+  outline: none;
+  border-color: var(--color-primary, #8fa963);
+  box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.15);
+}
+
+.usageTimeSelectDisabled {
+  color: var(--beneficiary-muted);
+  background: #f1f5f9;
+}
+
+/* Disabled schedule row (no time set) */
+.usageScheduleRowDisabled {
+  opacity: 0.6;
+  background: #f1f5f9;
+}
+
+.usageScheduleRowDisabled .usageDayLabel {
+  color: var(--beneficiary-muted);
+}
+
+/* Schedule Footer with Save Button */
+.usageScheduleFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--beneficiary-border-color);
+  margin-top: 8px;
+}
+
+.usageSaveBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--color-primary, #8fa963);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.usageSaveBtn:hover:not(:disabled) {
+  background: var(--color-primary-dark, #6b8a3f);
+}
+
+.usageSaveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.usageSaveBtnSuccess {
+  background: #22c55e;
+}
+
+.usageSaveBtnSuccess:hover:not(:disabled) {
+  background: #16a34a;
+}
+
+.usageCancelBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #f1f5f9;
+  border: 1px solid var(--beneficiary-border-color);
+  border-radius: 10px;
+  color: var(--beneficiary-heading);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.usageCancelBtn:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.usageCancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Calendar */
 .usageCalendar {
   display: flex;
@@ -1540,7 +1640,8 @@
   flex-direction: column;
   gap: 12px;
   flex: 1;
-  min-height: 0; /* Enable flex shrinking */
+  min-height: 0;
+  /* Enable flex shrinking */
   overflow: hidden;
 }
 
@@ -1668,9 +1769,11 @@
   gap: 10px;
   flex: 1;
   overflow-y: auto;
-  max-height: 400px; /* Fixed height for scrolling */
+  max-height: 400px;
+  /* Fixed height for scrolling */
   min-height: 200px;
-  padding-right: 4px; /* Space for scrollbar */
+  padding-right: 4px;
+  /* Space for scrollbar */
 }
 
 .emptyLogs {

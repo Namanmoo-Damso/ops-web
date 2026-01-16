@@ -42,4 +42,7 @@ export type {
   StatsResponse,
 } from './useDashboardApi';
 export { useBeneficiaryStatsApi } from './useBeneficiaryStatsApi';
-export type { BeneficiaryUsageStats } from './useBeneficiaryStatsApi';
+export type {
+  BeneficiaryUsageStats,
+  BeneficiarySchedule,
+} from './useBeneficiaryStatsApi';
