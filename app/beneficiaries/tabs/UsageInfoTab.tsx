@@ -66,7 +66,6 @@ const API_TO_DAY: Record<DayName, DayDisplay> = {
 // Schedule type with nullable values
 type DailySchedule = Record<DayDisplay, string | null>;
 
-// Initial empty schedule state
 const DEFAULT_SCHEDULE: DailySchedule = {
   월: null,
   화: null,
@@ -80,22 +79,18 @@ const DEFAULT_SCHEDULE: DailySchedule = {
 // Exclude 'custom' for this component
 type UsagePeriodFilter = Exclude<PeriodFilter, 'custom'>;
 
-/**
- * Generate time slots (10-minute intervals) within organization hours
- * @param startTime Organization preferred start time (HH:mm)
- * @param endTime Organization preferred end time (HH:mm)
- */
+// Generate time slots (10-minute intervals)
 function generateTimeSlots(startTime: string, endTime: string): string[] {
   const slots: string[] = [];
   const [startH, startM] = startTime.split(':').map(Number);
   const [endH, endM] = endTime.split(':').map(Number);
 
-  // Convert to total minutes from midnight for easier calculation
-  const startTotalMinutes = startH * 60 + startM;
-  const endTotalMinutes = endH * 60 + endM;
+  const startTotal = startH * 60 + startM;
+  const endTotal = endH * 60 + endM;
 
-  // 10-minute intervals, inclusive of start, exclusive of end (since a slot at endHM would end AFTER organization hours)
-  for (let t = startTotalMinutes; t < endTotalMinutes; t += 10) {
+  // 10-minute intervals
+  // Review feedback: ensure last slot logic is consistent
+  for (let t = startTotal; t < endTotal; t += 10) {
     const h = Math.floor(t / 60);
     const m = t % 60;
     slots.push(
@@ -103,8 +98,8 @@ function generateTimeSlots(startTime: string, endTime: string): string[] {
     );
   }
 
-  // If start is exactly end, or for some reason empty, provide at least the start
-  if (slots.length === 0) {
+  // Fallback if empty (e.g. invalid range)
+  if (slots.length === 0 && startTime) {
     slots.push(startTime);
   }
 
@@ -216,27 +211,22 @@ export default function UsageInfoTab({
     try {
       const result = await getSchedule(String(beneficiaryId));
       if (result && result.schedule) {
-        // Map API response to display format
         const newSchedule: DailySchedule = { ...DEFAULT_SCHEDULE };
-
         (Object.keys(result.schedule) as DayName[]).forEach((apiDay) => {
           const displayDay = API_TO_DAY[apiDay];
           if (displayDay) {
             newSchedule[displayDay] = result.schedule[apiDay];
           }
         });
-
         setSchedule(newSchedule);
         setOriginalSchedule(newSchedule);
         setServiceHours(result.organizationServiceHours);
       } else {
-        // Handle null response by resetting to default
         setSchedule(DEFAULT_SCHEDULE);
         setOriginalSchedule(DEFAULT_SCHEDULE);
       }
-    } catch (err) {
-      console.error('Failed to fetch schedule:', err);
-      // Ensure we have a clean state on error
+    } catch (e) {
+      console.error('Fetch schedule failed', e);
       setSchedule(DEFAULT_SCHEDULE);
       setOriginalSchedule(DEFAULT_SCHEDULE);
     } finally {
@@ -271,7 +261,6 @@ export default function UsageInfoTab({
     setSaveSuccess(false);
 
     try {
-      // Convert display format to API format
       const apiSchedule: Record<DayName, string | null> = {
         sunday: schedule['일'],
         monday: schedule['월'],
@@ -287,30 +276,24 @@ export default function UsageInfoTab({
         setOriginalSchedule({ ...schedule });
         setSaveSuccess(true);
       } else {
-        alert('스케줄 저장에 실패했습니다. 다시 시도해주세요.');
+        alert('스케줄 저장에 실패했습니다.');
       }
     } catch (err) {
-      console.error('Failed to update schedule:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.';
-      alert(`스케줄 저장 중 오류가 발생했습니다: ${errorMessage}`);
+      console.error('Save failed', err);
+      alert('저장 중 오류가 발생했습니다.');
     } finally {
       setScheduleLoading(false);
     }
   };
 
-  // Cleanup effect for success message
+  // Cleanup for success message
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (saveSuccess) {
-      timer = setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
+      timer = setTimeout(() => setSaveSuccess(false), 3000);
     }
     return () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
+      if (timer) clearTimeout(timer);
     };
   }, [saveSuccess]);
 

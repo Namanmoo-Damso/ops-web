@@ -1440,7 +1440,7 @@
   color: var(--beneficiary-heading);
 }
 
-/* Time Select (dropdown) */
+/* Time Select (replacement for input) */
 .usageTimeSelect {
   padding: 6px 8px;
   border: 1px solid var(--beneficiary-border-color);
@@ -1457,6 +1457,11 @@
   outline: none;
   border-color: var(--color-primary, #8fa963);
   box-shadow: 0 0 0 2px rgba(143, 169, 99, 0.15);
+}
+
+.usageTimeSelectDisabled {
+  color: var(--beneficiary-muted);
+  background: #f1f5f9;
 }
 
 /* Disabled schedule row (no time set) */
