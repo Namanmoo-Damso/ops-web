@@ -36,10 +36,12 @@ export default function DashboardPage() {
     DailyOperationsData | undefined
   >(undefined);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [emergencyLogs, setEmergencyLogs] = useState<EmergencyLogItem[]>([]);
+  const [emergencyLoading, setEmergencyLoading] = useState(true);
 
   const { listBulletins, createBulletin, updateBulletin, deleteBulletin } =
     useBulletinsApi();
-  const { getTimeline, getTodaySummary } = useDashboardApi();
+  const { getTimeline, getTodaySummary, getCareAlerts } = useDashboardApi();
 
   // Load today's summary on mount
   const loadTodaySummary = useCallback(async () => {
@@ -97,11 +99,32 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load care alerts on mount
+  const loadCareAlerts = useCallback(async () => {
+    setEmergencyLoading(true);
+    const result = await getCareAlerts({ limit: 50, hoursBack: 24 });
+    if (result && result.logs) {
+      const items: EmergencyLogItem[] = result.logs.map(log => ({
+        id: log.id,
+        datetime: new Date(log.timestamp),
+        beneficiaryName: log.wardName,
+        type: log.type,
+        status: log.status,
+        manager: '',
+        summary: '',
+      }));
+      setEmergencyLogs(items);
+    }
+    setEmergencyLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadTodaySummary();
     loadBulletins();
     loadTimeline();
-  }, [loadTodaySummary, loadBulletins, loadTimeline]);
+    loadCareAlerts();
+  }, [loadTodaySummary, loadBulletins, loadTimeline, loadCareAlerts]);
 
   const handleAddBulletin = async (item: Omit<BulletinItem, 'id'>) => {
     const result = await createBulletin({
@@ -131,38 +154,6 @@ export default function DashboardPage() {
     // Refresh list
     await loadBulletins();
   };
-
-  const [emergencyLogs, setEmergencyLogs] = useState<EmergencyLogItem[]>([
-    {
-      id: '1',
-      datetime: new Date(2026, 0, 10, 14, 32),
-      beneficiaryName: '김순자',
-      type: '낙상 감지',
-      status: 'resolved',
-      manager: '박간호사',
-      summary:
-        '거실에서 낙상 감지됨. 즉시 방문하여 확인 결과 경미한 타박상. 보호자 연락 완료.',
-    },
-    {
-      id: '2',
-      datetime: new Date(2026, 0, 10, 11, 15),
-      beneficiaryName: '박영희',
-      type: '응답 없음',
-      status: 'pending',
-      manager: '',
-      summary: '',
-    },
-    {
-      id: '3',
-      datetime: new Date(2026, 0, 9, 16, 48),
-      beneficiaryName: '이철수',
-      type: '이상 발화',
-      status: 'resolved',
-      manager: '김담당',
-      summary:
-        '통화 중 반복적인 혼란 발화 감지. 방문 확인 결과 일시적 혼란 상태. 보호자 상담 진행.',
-    },
-  ]);
 
   const handleUpdateEmergency = (
     id: string,
@@ -201,7 +192,11 @@ export default function DashboardPage() {
         </section>
 
         {/* Emergency Log */}
-        <EmergencyLog logs={emergencyLogs} onUpdate={handleUpdateEmergency} />
+        <EmergencyLog
+          logs={emergencyLogs}
+          loading={emergencyLoading}
+          onUpdate={handleUpdateEmergency}
+        />
       </div>
     </DashboardLayout>
   );
