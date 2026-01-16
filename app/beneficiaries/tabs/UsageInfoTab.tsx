@@ -1,29 +1,94 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Copy, Phone, Timer, TrendingUp, Loader2 } from 'lucide-react';
+import {
+  Copy,
+  Phone,
+  Timer,
+  TrendingUp,
+  Loader2,
+  Save,
+  Check,
+} from 'lucide-react';
 import styles from '../DetailModal.module.css';
 import { SectionTitle } from '../../../components/ui';
-import { useBeneficiaryStatsApi, BeneficiaryUsageStats } from '../../../hooks';
+import {
+  useBeneficiaryStatsApi,
+  BeneficiaryUsageStats,
+  BeneficiarySchedule,
+} from '../../../hooks';
 import {
   type PeriodFilter,
   PERIOD_LABELS,
-  formatDateToInput,
   getDateRangeForPeriod,
   getStartOfMonth,
   getDaysInMonth,
   parseDateInput,
 } from '../../../lib/date-utils';
 
-// Days of the week
-const DAYS = ['월', '화', '수', '목', '금', '토', '일'] as const;
-type Day = (typeof DAYS)[number];
+// Days of the week - matching Korean display order (Mon-Sun)
+const DAYS_DISPLAY = ['월', '화', '수', '목', '금', '토', '일'] as const;
+type DayDisplay = (typeof DAYS_DISPLAY)[number];
 
-// Schedule type
-type DailySchedule = Record<Day, string>;
+// API day names (matching backend format)
+type DayName =
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday';
+
+// Mapping from display to API format
+const DAY_TO_API: Record<DayDisplay, DayName> = {
+  일: 'sunday',
+  월: 'monday',
+  화: 'tuesday',
+  수: 'wednesday',
+  목: 'thursday',
+  금: 'friday',
+  토: 'saturday',
+};
+
+// Mapping from API to display format
+const API_TO_DAY: Record<DayName, DayDisplay> = {
+  sunday: '일',
+  monday: '월',
+  tuesday: '화',
+  wednesday: '수',
+  thursday: '목',
+  friday: '금',
+  saturday: '토',
+};
+
+// Schedule type with nullable values
+type DailySchedule = Record<DayDisplay, string | null>;
 
 // Exclude 'custom' for this component
 type UsagePeriodFilter = Exclude<PeriodFilter, 'custom'>;
+
+// Generate time slots (10-minute intervals)
+function generateTimeSlots(startTime: string, endTime: string): string[] {
+  const slots: string[] = [];
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+
+  let h = startH;
+  let m = startM;
+
+  while (h < endH || (h === endH && m < endM)) {
+    slots.push(
+      `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`,
+    );
+    m += 10;
+    if (m >= 60) {
+      m = 0;
+      h++;
+    }
+  }
+  return slots;
+}
 
 interface UsageInfoTabProps {
   beneficiaryId: string | number;
@@ -36,26 +101,45 @@ export default function UsageInfoTab({
 }: UsageInfoTabProps) {
   // API hook
   const {
-    loading: statsLoading,
-    error: statsError,
+    loading: apiLoading,
+    error: apiError,
     getUsageStats,
+    getSchedule,
+    updateSchedule,
   } = useBeneficiaryStatsApi();
 
   // Stats state (from API)
   const [stats, setStats] = useState<BeneficiaryUsageStats | null>(null);
   const [callDates, setCallDates] = useState<string[]>([]);
 
-  // Schedule state
+  // Schedule state - defaults to all null (no schedule)
   const [schedule, setSchedule] = useState<DailySchedule>({
-    월: '09:00',
-    화: '09:00',
-    수: '09:00',
-    목: '09:00',
-    금: '09:00',
-    토: '10:00',
-    일: '10:00',
+    월: null,
+    화: null,
+    수: null,
+    목: null,
+    금: null,
+    토: null,
+    일: null,
+  });
+  const [originalSchedule, setOriginalSchedule] = useState<DailySchedule>({
+    월: null,
+    화: null,
+    수: null,
+    목: null,
+    금: null,
+    토: null,
+    일: null,
   });
   const [applyAllTime, setApplyAllTime] = useState('09:00');
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Organization service hours
+  const [serviceHours, setServiceHours] = useState({
+    startTime: '09:00',
+    endTime: '18:00',
+  });
 
   // Period and date state - defaults to last month (past data)
   const [period, setPeriod] = useState<UsagePeriodFilter>('month');
@@ -70,6 +154,17 @@ export default function UsageInfoTab({
   const [calendarMonth, setCalendarMonth] = useState(() =>
     getStartOfMonth(new Date()),
   );
+
+  // Generate time slots based on service hours
+  const timeSlots = useMemo(
+    () => generateTimeSlots(serviceHours.startTime, serviceHours.endTime),
+    [serviceHours],
+  );
+
+  // Check if schedule has changes
+  const hasScheduleChanges = useMemo(() => {
+    return DAYS_DISPLAY.some(day => schedule[day] !== originalSchedule[day]);
+  }, [schedule, originalSchedule]);
 
   // Handle period change - recalculate both start and end dates
   const handlePeriodChange = useCallback((newPeriod: UsagePeriodFilter) => {
@@ -96,7 +191,6 @@ export default function UsageInfoTab({
 
   // Fetch stats when dates change
   const fetchStats = useCallback(async () => {
-    // Validate dates before fetching
     if (!startDate || !endDate) return;
 
     const result = await getUsageStats(
@@ -108,23 +202,81 @@ export default function UsageInfoTab({
       setStats(result);
       setCallDates(result.callDates);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [beneficiaryId, startDate, endDate]);
+  }, [beneficiaryId, startDate, endDate, getUsageStats]);
+
+  // Fetch schedule on mount
+  const fetchSchedule = useCallback(async () => {
+    setScheduleLoading(true);
+    const result = await getSchedule(String(beneficiaryId));
+    if (result) {
+      // Map API response to display format
+      const newSchedule: DailySchedule = {
+        월: null,
+        화: null,
+        수: null,
+        목: null,
+        금: null,
+        토: null,
+        일: null,
+      };
+
+      (Object.keys(result.schedule) as DayName[]).forEach(apiDay => {
+        const displayDay = API_TO_DAY[apiDay];
+        newSchedule[displayDay] = result.schedule[apiDay];
+      });
+
+      setSchedule(newSchedule);
+      setOriginalSchedule(newSchedule);
+      setServiceHours(result.organizationServiceHours);
+    }
+    setScheduleLoading(false);
+  }, [beneficiaryId, getSchedule]);
 
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
 
-  const handleTimeChange = (day: Day, time: string) => {
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
+
+  const handleTimeChange = (day: DayDisplay, time: string | null) => {
     setSchedule(prev => ({ ...prev, [day]: time }));
+    setSaveSuccess(false);
   };
 
   const handleApplyAll = () => {
     const newSchedule: DailySchedule = {} as DailySchedule;
-    DAYS.forEach(day => {
+    DAYS_DISPLAY.forEach(day => {
       newSchedule[day] = applyAllTime;
     });
     setSchedule(newSchedule);
+    setSaveSuccess(false);
+  };
+
+  const handleSaveSchedule = async () => {
+    setScheduleLoading(true);
+    setSaveSuccess(false);
+
+    // Convert display format to API format
+    const apiSchedule: Record<DayName, string | null> = {
+      sunday: schedule['일'],
+      monday: schedule['월'],
+      tuesday: schedule['화'],
+      wednesday: schedule['수'],
+      thursday: schedule['목'],
+      friday: schedule['금'],
+      saturday: schedule['토'],
+    };
+
+    const result = await updateSchedule(String(beneficiaryId), apiSchedule);
+    if (result) {
+      setOriginalSchedule({ ...schedule });
+      setSaveSuccess(true);
+      // Hide success message after 3 seconds
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }
+    setScheduleLoading(false);
   };
 
   // Computed stats for display
@@ -216,7 +368,7 @@ export default function UsageInfoTab({
         </div>
         {/* Stats Row - Horizontal with icon on left */}
         <div className={styles.usageStatsRow}>
-          {statsLoading ? (
+          {apiLoading ? (
             <div
               style={{
                 display: 'flex',
@@ -228,7 +380,7 @@ export default function UsageInfoTab({
               <Loader2 size={20} className="animate-spin" />
               <span>통계 로딩 중...</span>
             </div>
-          ) : statsError ? (
+          ) : apiError ? (
             <div style={{ color: 'var(--error)', padding: '20px' }}>
               통계를 불러오지 못했습니다.
             </div>
@@ -277,12 +429,17 @@ export default function UsageInfoTab({
           <div className={styles.usageScheduleHeader}>
             <span className={styles.usageScheduleTitle}>안부전화 시간</span>
             <div className={styles.usageApplyAll}>
-              <input
-                type="time"
+              <select
                 value={applyAllTime}
                 onChange={e => setApplyAllTime(e.target.value)}
-                className={styles.usageTimeInput}
-              />
+                className={styles.usageTimeSelect}
+              >
+                {timeSlots.map(slot => (
+                  <option key={slot} value={slot}>
+                    {slot}
+                  </option>
+                ))}
+              </select>
               <button
                 type="button"
                 onClick={handleApplyAll}
@@ -294,17 +451,60 @@ export default function UsageInfoTab({
             </div>
           </div>
           <div className={styles.usageScheduleList}>
-            {DAYS.map(day => (
-              <div key={day} className={styles.usageScheduleRow}>
-                <span className={styles.usageDayLabel}>{day}요일</span>
-                <input
-                  type="time"
-                  value={schedule[day]}
-                  onChange={e => handleTimeChange(day, e.target.value)}
-                  className={styles.usageTimeInput}
-                />
-              </div>
-            ))}
+            {DAYS_DISPLAY.map(day => {
+              const isDisabled = schedule[day] === null;
+              return (
+                <div
+                  key={day}
+                  className={`${styles.usageScheduleRow} ${isDisabled ? styles.usageScheduleRowDisabled : ''}`}
+                >
+                  <span className={styles.usageDayLabel}>{day}요일</span>
+                  <select
+                    value={schedule[day] ?? ''}
+                    onChange={e =>
+                      handleTimeChange(
+                        day,
+                        e.target.value === '' ? null : e.target.value,
+                      )
+                    }
+                    className={`${styles.usageTimeSelect} ${isDisabled ? styles.usageTimeSelectDisabled : ''}`}
+                  >
+                    <option value="">없음</option>
+                    {timeSlots.map(slot => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+          {/* Save Button */}
+          <div className={styles.usageScheduleFooter}>
+            <button
+              type="button"
+              onClick={handleSaveSchedule}
+              disabled={scheduleLoading || !hasScheduleChanges}
+              className={`${styles.usageSaveBtn} ${saveSuccess ? styles.usageSaveBtnSuccess : ''}`}
+            >
+              {scheduleLoading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>저장 중...</span>
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <Check size={16} />
+                  <span>저장 완료</span>
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>저장</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
