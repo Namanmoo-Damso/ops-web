@@ -39,57 +39,97 @@ export function useCareAlert() {
   return context;
 }
 
-// Generate alert sound using Web Audio API
-function playAlertSound() {
-  try {
-    const audioContext = new (
-      window.AudioContext ||
-      (window as typeof window & { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext
-    )();
+// Play a single alert beep (two-tone)
+function playAlertBeep(audioContext: AudioContext) {
+  // First beep
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
 
-    // Create an oscillator for the alert beep
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
 
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+  oscillator.frequency.value = 880; // A5 note
+  oscillator.type = 'sine';
 
-    // Alert sound: two-tone beep
-    oscillator.frequency.value = 880; // A5 note
-    oscillator.type = 'sine';
+  gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(
+    0.01,
+    audioContext.currentTime + 0.2,
+  );
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.2);
+
+  // Second beep after short pause
+  setTimeout(() => {
+    const osc2 = audioContext.createOscillator();
+    const gain2 = audioContext.createGain();
+
+    osc2.connect(gain2);
+    gain2.connect(audioContext.destination);
+
+    osc2.frequency.value = 1100; // C#6 note - higher pitch
+    osc2.type = 'sine';
+
+    gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(
       0.01,
-      audioContext.currentTime + 0.3,
+      audioContext.currentTime + 0.2,
     );
 
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.3);
+    osc2.start(audioContext.currentTime);
+    osc2.stop(audioContext.currentTime + 0.2);
+  }, 120);
+}
 
-    // Second beep after short pause
-    setTimeout(() => {
-      const osc2 = audioContext.createOscillator();
-      const gain2 = audioContext.createGain();
+// Alarm controller for continuous sound
+class AlarmController {
+  private audioContext: AudioContext | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private isPlaying = false;
 
-      osc2.connect(gain2);
-      gain2.connect(audioContext.destination);
+  start() {
+    if (this.isPlaying) return;
 
-      osc2.frequency.value = 1100; // C#6 note - higher pitch
-      osc2.type = 'sine';
+    try {
+      this.audioContext = new (
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext
+      )();
 
-      gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gain2.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3,
-      );
+      this.isPlaying = true;
 
-      osc2.start(audioContext.currentTime);
-      osc2.stop(audioContext.currentTime + 0.3);
-    }, 150);
-  } catch (e) {
-    console.warn('[CareAlertContext] Failed to play alert sound:', e);
+      // Play immediately
+      playAlertBeep(this.audioContext);
+
+      // Repeat every 2 seconds
+      this.intervalId = setInterval(() => {
+        if (this.audioContext && this.isPlaying) {
+          playAlertBeep(this.audioContext);
+        }
+      }, 2000);
+    } catch (e) {
+      console.warn('[AlarmController] Failed to start alarm:', e);
+    }
+  }
+
+  stop() {
+    this.isPlaying = false;
+
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+
+    if (this.audioContext) {
+      this.audioContext.close().catch(() => {});
+      this.audioContext = null;
+    }
+  }
+
+  get playing() {
+    return this.isPlaying;
   }
 }
 
@@ -105,6 +145,26 @@ export function CareAlertProvider({
   const [activeAlerts, setActiveAlerts] = useState<CareAlert[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const alarmRef = useRef<AlarmController | null>(null);
+
+  // Initialize alarm controller
+  useEffect(() => {
+    alarmRef.current = new AlarmController();
+    return () => {
+      alarmRef.current?.stop();
+    };
+  }, []);
+
+  // Manage alarm based on active alerts and sound setting
+  useEffect(() => {
+    if (!alarmRef.current) return;
+
+    if (activeAlerts.length > 0 && soundEnabled) {
+      alarmRef.current.start();
+    } else {
+      alarmRef.current.stop();
+    }
+  }, [activeAlerts.length, soundEnabled]);
 
   const dismissAlert = useCallback((id: string) => {
     setActiveAlerts(prev => prev.filter(alert => alert.id !== id));
@@ -114,23 +174,14 @@ export function CareAlertProvider({
     setActiveAlerts([]);
   }, []);
 
-  const addAlert = useCallback(
-    (alert: CareAlert) => {
-      setActiveAlerts(prev => {
-        // Prevent duplicate alerts for the same room
-        const exists = prev.some(a => a.roomName === alert.roomName);
-        if (exists) return prev;
-
-        // Play sound for new alert
-        if (soundEnabled) {
-          playAlertSound();
-        }
-
-        return [alert, ...prev];
-      });
-    },
-    [soundEnabled],
-  );
+  const addAlert = useCallback((alert: CareAlert) => {
+    setActiveAlerts(prev => {
+      // Prevent duplicate alerts for the same room
+      const exists = prev.some(a => a.roomName === alert.roomName);
+      if (exists) return prev;
+      return [alert, ...prev];
+    });
+  }, []);
 
   const removeAlertByRoom = useCallback((roomName: string) => {
     setActiveAlerts(prev => prev.filter(alert => alert.roomName !== roomName));
