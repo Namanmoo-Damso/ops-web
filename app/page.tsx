@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { LiveKitRoom } from '@livekit/components-react';
 import SidebarLayout from '../components/SidebarLayout';
 import {
@@ -130,6 +130,75 @@ export default function Home() {
       return updated;
     });
   }, [activeRoomNamesKey]);
+
+  // Handle pending alert room from CareAlertNotification navigation
+  const selectRoomByName = useCallback(
+    (roomName: string) => {
+      // Find the connection for this room
+      const connectionExists = connections.some(c => c.roomName === roomName);
+      if (!connectionExists) {
+        console.warn('[Home] Room not found:', roomName);
+        return;
+      }
+
+      const roomParticipants = allParticipants[roomName];
+
+      if (roomParticipants && roomParticipants.length > 0) {
+        const firstParticipant = roomParticipants[0];
+        setSelectedParticipantForAudio(firstParticipant.id);
+        setSelectedRoomName(roomName);
+        setDetailParticipant(firstParticipant);
+        setShowFullScreenVideo(true);
+        setShowDetailSidebar(true);
+        console.log(
+          '[Home] Selected room from alert:',
+          roomName,
+          firstParticipant.name,
+        );
+      }
+    },
+    [connections, allParticipants],
+  );
+
+  // Check for pending alert room on mount and when connections change
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const pendingRoom = sessionStorage.getItem('pendingAlertRoom');
+    if (pendingRoom && connections.length > 0) {
+      // Small delay to ensure participants are loaded
+      const timer = setTimeout(() => {
+        selectRoomByName(pendingRoom);
+        sessionStorage.removeItem('pendingAlertRoom');
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [connections, selectRoomByName]);
+
+  // Listen for selectAlertRoom custom event from CareAlertNotification
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleSelectAlertRoom = (
+      event: CustomEvent<{ roomName: string }>,
+    ) => {
+      const { roomName } = event.detail;
+      console.log('[Home] Received selectAlertRoom event:', roomName);
+      selectRoomByName(roomName);
+      sessionStorage.removeItem('pendingAlertRoom');
+    };
+
+    window.addEventListener(
+      'selectAlertRoom',
+      handleSelectAlertRoom as EventListener,
+    );
+    return () => {
+      window.removeEventListener(
+        'selectAlertRoom',
+        handleSelectAlertRoom as EventListener,
+      );
+    };
+  }, [selectRoomByName]);
 
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;

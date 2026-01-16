@@ -1,7 +1,8 @@
 'use client';
 
 import { type CSSProperties } from 'react';
-import { AlertTriangle, X, Volume2, VolumeX } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { AlertTriangle, X, Volume2, VolumeX, MonitorPlay } from 'lucide-react';
 import { useCareAlert, type CareAlert } from '../contexts/CareAlertContext';
 
 const ALERT_TYPE_LABELS: Record<string, string> = {
@@ -14,12 +15,15 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
 function AlertItem({
   alert,
   onDismiss,
+  onNavigateToMonitor,
 }: {
   alert: CareAlert;
   onDismiss: () => void;
+  onNavigateToMonitor: () => void;
 }) {
   const alertLabel =
     ALERT_TYPE_LABELS[alert.alertType || 'unknown'] || '위급 상황 감지';
+  const displayName = alert.wardName || alert.roomName;
 
   const itemStyle: CSSProperties = {
     display: 'flex',
@@ -80,6 +84,22 @@ function AlertItem({
   const timeLabel =
     timeAgo < 60 ? '방금 전' : `${Math.floor(timeAgo / 60)}분 전`;
 
+  const monitorButtonStyle: CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 12px',
+    marginTop: '8px',
+    border: '1px solid var(--color-danger-main, #dc2626)',
+    borderRadius: '8px',
+    background: 'transparent',
+    color: 'var(--color-danger-main, #dc2626)',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 150ms ease',
+  };
+
   return (
     <div style={itemStyle}>
       <div style={iconContainerStyle}>
@@ -88,8 +108,24 @@ function AlertItem({
       <div style={contentStyle}>
         <p style={titleStyle}>{alertLabel}</p>
         <p style={descStyle}>
-          {alert.wardName || alert.roomName} · {timeLabel}
+          {displayName} · {timeLabel}
         </p>
+        <button
+          style={monitorButtonStyle}
+          onClick={onNavigateToMonitor}
+          onMouseEnter={e => {
+            e.currentTarget.style.backgroundColor =
+              'var(--color-danger-main, #dc2626)';
+            e.currentTarget.style.color = 'white';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = 'var(--color-danger-main, #dc2626)';
+          }}
+        >
+          <MonitorPlay size={14} />
+          모니터링 보기
+        </button>
       </div>
       <button
         style={closeButtonStyle}
@@ -109,7 +145,13 @@ function AlertItem({
   );
 }
 
-export default function CareAlertNotification() {
+export default function CareAlertNotification({
+  onSelectRoom,
+}: {
+  onSelectRoom?: (roomName: string) => void;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
   const {
     activeAlerts,
     dismissAlert,
@@ -117,6 +159,27 @@ export default function CareAlertNotification() {
     soundEnabled,
     setSoundEnabled,
   } = useCareAlert();
+
+  const handleNavigateToMonitor = (alert: CareAlert) => {
+    // Store the room name to select
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('pendingAlertRoom', alert.roomName);
+    }
+
+    // If not on monitoring page, navigate to it
+    if (pathname !== '/') {
+      router.push('/');
+    } else {
+      // Already on monitoring page, trigger via callback or dispatch event
+      onSelectRoom?.(alert.roomName);
+      // Also dispatch custom event for the monitoring page to listen
+      window.dispatchEvent(
+        new CustomEvent('selectAlertRoom', {
+          detail: { roomName: alert.roomName },
+        }),
+      );
+    }
+  };
 
   if (activeAlerts.length === 0) {
     return null;
@@ -229,6 +292,7 @@ export default function CareAlertNotification() {
             key={alert.id}
             alert={alert}
             onDismiss={() => dismissAlert(alert.id)}
+            onNavigateToMonitor={() => handleNavigateToMonitor(alert)}
           />
         ))}
         {activeAlerts.length > 5 && (
