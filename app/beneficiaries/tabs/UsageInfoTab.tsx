@@ -212,7 +212,7 @@ export default function UsageInfoTab({
       const result = await getSchedule(String(beneficiaryId));
       if (result && result.schedule) {
         const newSchedule: DailySchedule = { ...DEFAULT_SCHEDULE };
-        (Object.keys(result.schedule) as DayName[]).forEach((apiDay) => {
+        (Object.keys(result.schedule) as DayName[]).forEach(apiDay => {
           const displayDay = API_TO_DAY[apiDay];
           if (displayDay) {
             newSchedule[displayDay] = result.schedule[apiDay];
