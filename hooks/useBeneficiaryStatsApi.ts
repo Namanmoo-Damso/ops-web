@@ -19,6 +19,11 @@ export interface BeneficiaryUsageStats {
     averageDurationMinutes: number;
   };
   callDates: string[];
+  // 위기 대응 통계 (optional - 백엔드에서 제공하지 않을 수 있음)
+  emergencyStats?: {
+    detected: number;
+    responded: number;
+  };
 }
 
 export interface BeneficiarySchedule {

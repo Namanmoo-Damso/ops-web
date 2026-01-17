@@ -10,14 +10,11 @@ import {
   Save,
   Check,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 import styles from '../DetailModal.module.css';
 import { SectionTitle } from '../../../components/ui';
-import {
-  useBeneficiaryStatsApi,
-  BeneficiaryUsageStats,
-  BeneficiarySchedule,
-} from '../../../hooks';
+import { useBeneficiaryStatsApi, BeneficiaryUsageStats } from '../../../hooks';
 import {
   type PeriodFilter,
   PERIOD_LABELS,
@@ -108,13 +105,9 @@ function generateTimeSlots(startTime: string, endTime: string): string[] {
 
 interface UsageInfoTabProps {
   beneficiaryId: string | number;
-  beneficiaryName: string;
 }
 
-export default function UsageInfoTab({
-  beneficiaryId,
-  beneficiaryName,
-}: UsageInfoTabProps) {
+export default function UsageInfoTab({ beneficiaryId }: UsageInfoTabProps) {
   // API hook
   const {
     loading: apiLoading,
@@ -305,12 +298,20 @@ export default function UsageInfoTab({
   // Computed stats for display
   const displayStats = useMemo(() => {
     if (!stats) {
-      return { callCount: 0, totalMinutes: 0, avgMinutes: 0 };
+      return {
+        callCount: 0,
+        totalMinutes: 0,
+        avgMinutes: 0,
+        emergencyDetected: 0,
+        emergencyResponded: 0,
+      };
     }
     return {
       callCount: stats.summary.totalCalls,
       totalMinutes: stats.summary.totalDurationMinutes,
       avgMinutes: stats.summary.averageDurationMinutes,
+      emergencyDetected: stats.emergencyStats?.detected ?? 0,
+      emergencyResponded: stats.emergencyStats?.responded ?? 0,
     };
   }, [stats]);
 
@@ -438,6 +439,20 @@ export default function UsageInfoTab({
                     {Math.round((displayStats.avgMinutes % 1) * 60)}초
                   </span>
                   <span className={styles.usageStatLabel}>평균 통화 시간</span>
+                </div>
+              </div>
+              <div className={styles.usageStatDivider} />
+              <div className={styles.usageStatItemV}>
+                <AlertTriangle
+                  size={20}
+                  className={styles.usageStatIconDanger}
+                />
+                <div className={styles.usageStatTextGroup}>
+                  <span className={styles.usageStatValue}>
+                    {displayStats.emergencyResponded}건 /{' '}
+                    {displayStats.emergencyDetected}건
+                  </span>
+                  <span className={styles.usageStatLabel}>위기 대응/감지</span>
                 </div>
               </div>
             </>
