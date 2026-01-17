@@ -1,4 +1,4 @@
-import styles from '../../app/page.module.css';
+import styles from '../../app/monitoring/page.module.css';
 
 type JoinBannerProps = {
   onJoin: () => void;

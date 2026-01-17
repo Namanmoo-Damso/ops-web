@@ -135,25 +135,6 @@ const IconSettings = () => (
   </svg>
 );
 
-const IconMyWards = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-    <circle cx="9" cy="7" r="4" stroke="currentColor" strokeWidth="1.6" />
-    <path
-      d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-    <circle cx="17" cy="11" r="3" stroke="currentColor" strokeWidth="1.6" />
-    <path
-      d="M21 21v-1.5a3 3 0 0 0-3-3h-.5"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 const IconBeneficiaries = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
     <path
@@ -207,7 +188,7 @@ const IconEmergencyLogs = () => (
 /** Navigation items configuration */
 const navItems = [
   { href: '/dashboard', label: '대시보드', icon: IconDashboard },
-  { href: '/', label: '영상 모니터링', icon: IconMonitor },
+  { href: '/monitoring', label: '영상 모니터링', icon: IconMonitor },
   { href: '/locations', label: '지도 모니터링', icon: IconLocation },
   {
     href: '/beneficiaries',

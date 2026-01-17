@@ -2,7 +2,7 @@
 
 import { IconPeople, IconGrid, IconMinus, IconPlus } from '../Icons';
 import { Maximize, Minimize } from 'lucide-react';
-import styles from '../../app/page.module.css';
+import styles from '../../app/monitoring/page.module.css';
 
 type ControlBarProps = {
   showParticipantList: boolean;
