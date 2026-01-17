@@ -23,7 +23,7 @@ import {
   UsersIcon,
   LinkOnIcon,
   LinkOffIcon,
-} from '../my-wards/icons';
+} from '../../components/icons/shared-icons';
 
 // Components
 import Input from '../../components/ui/Input';

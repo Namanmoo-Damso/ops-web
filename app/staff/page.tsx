@@ -14,7 +14,7 @@ import {
   Trash2,
   Loader2,
 } from 'lucide-react';
-import { UsersIcon } from '../my-wards/icons';
+import { UsersIcon } from '../../components/icons/shared-icons';
 import StaffAssignmentModal, {
   Beneficiary,
   UnassignedWard,

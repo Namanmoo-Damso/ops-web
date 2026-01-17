@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { getInitials } from './VideoTiles';
 import { IconButton } from '../ui';
-import styles from '../../app/page.module.css';
+import styles from '../../app/monitoring/page.module.css';
 
 export type MockParticipant = {
   id: string;

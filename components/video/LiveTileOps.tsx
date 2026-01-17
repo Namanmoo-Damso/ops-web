@@ -2,7 +2,7 @@
 
 import { TrackRefContext, VideoTrack } from '@livekit/components-react';
 import { getInitials } from './VideoTiles';
-import styles from '../../app/page.module.css';
+import styles from '../../app/monitoring/page.module.css';
 
 export interface LiveTileOpsProps {
   trackRef: any;
