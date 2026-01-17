@@ -10,7 +10,16 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dangerRooms, setDangerRooms] = useState<Record<string, boolean>>({});
+  // Initialize dangerRooms with pending alert danger state from sessionStorage
+  const [dangerRooms, setDangerRooms] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return {};
+    const pendingRoom = sessionStorage.getItem('pendingAlertRoom');
+    const pendingDanger = sessionStorage.getItem('pendingAlertDanger');
+    if (pendingRoom && pendingDanger === 'true') {
+      return { [pendingRoom]: true };
+    }
+    return {};
+  });
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Fetch initial rooms list

@@ -162,9 +162,11 @@ export default function CareAlertNotification({
   } = useCareAlert();
 
   const handleNavigateToMonitor = (alert: CareAlert) => {
-    // Store the room name to select
+    // Store the room name and danger state to select
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('pendingAlertRoom', alert.roomName);
+      // Also store danger state so it persists across page navigation
+      sessionStorage.setItem('pendingAlertDanger', 'true');
     }
 
     // If not on monitoring page, navigate to it
@@ -176,7 +178,7 @@ export default function CareAlertNotification({
       // Also dispatch custom event for the monitoring page to listen
       window.dispatchEvent(
         new CustomEvent('selectAlertRoom', {
-          detail: { roomName: alert.roomName },
+          detail: { roomName: alert.roomName, isDanger: true },
         }),
       );
     }

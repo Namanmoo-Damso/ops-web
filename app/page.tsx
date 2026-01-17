@@ -170,6 +170,7 @@ export default function Home() {
       const timer = setTimeout(() => {
         selectRoomByName(pendingRoom);
         sessionStorage.removeItem('pendingAlertRoom');
+        sessionStorage.removeItem('pendingAlertDanger');
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -180,12 +181,13 @@ export default function Home() {
     if (typeof window === 'undefined') return;
 
     const handleSelectAlertRoom = (
-      event: CustomEvent<{ roomName: string }>,
+      event: CustomEvent<{ roomName: string; isDanger?: boolean }>,
     ) => {
       const { roomName } = event.detail;
       console.log('[Home] Received selectAlertRoom event:', roomName);
       selectRoomByName(roomName);
       sessionStorage.removeItem('pendingAlertRoom');
+      sessionStorage.removeItem('pendingAlertDanger');
     };
 
     window.addEventListener(
