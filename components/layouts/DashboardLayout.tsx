@@ -13,8 +13,6 @@ import { cn } from '../ui/utils';
 import AuthGuard from '../AuthGuard';
 import { useSessionMonitor } from '../../hooks/useSessionMonitor';
 import CsvUploadModal from '../CsvUploadModal';
-import { CareAlertProvider } from '../../contexts/CareAlertContext';
-import CareAlertNotification from '../CareAlertNotification';
 import { CleanRow } from '../CsvUploadPanel';
 import { ManualWardPayload } from '../ManualWardForm';
 import { Admin } from '../../types/models';
@@ -267,11 +265,12 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
       [createWard, uploading],
     );
 
-    const mainStyle: CSSProperties & { '--sidebar-width': string } = {
+    const mainStyle: CSSProperties & { '--sidebar-width': string; '--header-height': string } = {
       flex: 1,
       marginLeft: sidebarCollapsed ? 0 : SIDEBAR_WIDTH_VALUE,
       marginTop: HEADER_HEIGHT,
       '--sidebar-width': sidebarCollapsed ? '0px' : SIDEBAR_WIDTH_VALUE,
+      '--header-height': HEADER_HEIGHT, // Set CSS variable for fixed position components
       backgroundColor: colors.background.main,
       minHeight: `calc(100vh - ${HEADER_HEIGHT})`,
       height: noPadding ? `calc(100vh - ${HEADER_HEIGHT})` : undefined,
@@ -282,77 +281,72 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
 
     return (
       <AuthGuard>
-        <CareAlertProvider>
-          {/* Global Header */}
-          <Header
-            onRegisterClick={() => setCsvModalOpen(true)}
-            onNotificationsClick={() => {
-              // TODO: Implement notifications
-              console.log('Notifications clicked');
-            }}
-            sidebarCollapsed={sidebarCollapsed}
-            onSidebarToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          />
+        {/* Global Header */}
+        <Header
+          onRegisterClick={() => setCsvModalOpen(true)}
+          onNotificationsClick={() => {
+            // TODO: Implement notifications
+            console.log('Notifications clicked');
+          }}
+          sidebarCollapsed={sidebarCollapsed}
+          onSidebarToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
 
-          {/* Sidebar */}
-          <Sidebar collapsed={sidebarCollapsed} headerHeight={HEADER_HEIGHT} />
+        {/* Sidebar */}
+        <Sidebar collapsed={sidebarCollapsed} headerHeight={HEADER_HEIGHT} />
 
-          {/* Main Content */}
-          <main ref={ref} className={cn(className)} style={mainStyle}>
-            {/* Page Title Header */}
-            {title && (
-              <header
+        {/* Main Content */}
+        <main ref={ref} className={cn(className)} style={mainStyle}>
+          {/* Page Title Header */}
+          {title && (
+            <header
+              style={{
+                backgroundColor: colors.panel.main,
+                padding: `${spacing.xl} ${spacing['3xl']}`,
+                position: 'sticky',
+                top: 0,
+                zIndex: 40,
+              }}
+            >
+              <h1
                 style={{
-                  backgroundColor: colors.panel.main,
-                  padding: `${spacing.xl} ${spacing['3xl']}`,
-                  position: 'sticky',
-                  top: 0,
-                  zIndex: 40,
+                  margin: 0,
+                  fontSize: '22px',
+                  fontWeight: 700,
+                  color: colors.text.primary,
                 }}
               >
-                <h1
-                  style={{
-                    margin: 0,
-                    fontSize: '22px',
-                    fontWeight: 700,
-                    color: colors.text.primary,
-                  }}
-                >
-                  {title}
-                </h1>
-              </header>
-            )}
+                {title}
+              </h1>
+            </header>
+          )}
 
-            {/* Page Content */}
-            <div
-              style={
-                noPadding
-                  ? {
-                      flex: 1,
-                      minHeight: 0,
-                      display: 'flex',
-                      flexDirection: 'column',
-                    }
-                  : { padding: `${spacing['2xl']} ${spacing['3xl']}` }
-              }
-            >
-              {children}
-            </div>
-          </main>
+          {/* Page Content */}
+          <div
+            style={
+              noPadding
+                ? {
+                    flex: 1,
+                    minHeight: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }
+                : { padding: `${spacing['2xl']} ${spacing['3xl']}` }
+            }
+          >
+            {children}
+          </div>
+        </main>
 
-          {/* CSV Upload Modal */}
-          <CsvUploadModal
-            open={isCsvModalOpen}
-            onClose={() => setCsvModalOpen(false)}
-            onUpload={handleCsvUpload}
-            onManualSubmit={handleManualSubmit}
-            uploading={uploading}
-            uploadProgress={uploadProgress}
-          />
-
-          {/* Global Care Alert Notification */}
-          <CareAlertNotification />
-        </CareAlertProvider>
+        {/* CSV Upload Modal */}
+        <CsvUploadModal
+          open={isCsvModalOpen}
+          onClose={() => setCsvModalOpen(false)}
+          onUpload={handleCsvUpload}
+          onManualSubmit={handleManualSubmit}
+          uploading={uploading}
+          uploadProgress={uploadProgress}
+        />
       </AuthGuard>
     );
   },

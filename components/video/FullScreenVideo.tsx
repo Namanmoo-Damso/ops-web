@@ -4,12 +4,7 @@ import {
   VideoTrack,
   useRoomContext,
 } from '@livekit/components-react';
-import {
-  VideoQuality,
-  RoomEvent,
-  Track,
-  type TrackPublication,
-} from 'livekit-client';
+import { VideoQuality, RoomEvent, Track } from 'livekit-client';
 import type { MockParticipant } from './ParticipantSidebar';
 import Slider from '../ui/Slider';
 
@@ -17,17 +12,17 @@ type FullScreenVideoProps = {
   participant: MockParticipant;
   videoTrackRef: any;
   isDanger?: boolean;
+  isHeaderHidden?: boolean;
 };
 
-const VOLUME_STORAGE_KEY = 'participant-volume';
+const VOLUME_STORAGE_KEY = 'fullscreen-volume';
 
-const getStoredVolume = (participantId: string): number => {
+const getStoredVolume = (): number => {
   if (typeof window === 'undefined') return 0;
   try {
     const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
     if (stored) {
-      const volumes = JSON.parse(stored);
-      return volumes[participantId] ?? 0;
+      return Number(stored) || 0;
     }
   } catch {
     // ignore
@@ -35,13 +30,10 @@ const getStoredVolume = (participantId: string): number => {
   return 0;
 };
 
-const saveVolume = (participantId: string, volume: number) => {
+const saveVolume = (volume: number) => {
   if (typeof window === 'undefined') return;
   try {
-    const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
-    const volumes = stored ? JSON.parse(stored) : {};
-    volumes[participantId] = volume;
-    localStorage.setItem(VOLUME_STORAGE_KEY, JSON.stringify(volumes));
+    localStorage.setItem(VOLUME_STORAGE_KEY, String(volume));
   } catch {
     // ignore
   }
@@ -51,9 +43,10 @@ export const FullScreenVideo = ({
   participant,
   videoTrackRef: externalVideoTrackRef,
   isDanger = false,
+  isHeaderHidden = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
-  const [volume, setVolume] = useState(() => getStoredVolume(participant.id));
+  const [volume, setVolume] = useState(() => getStoredVolume());
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const volumeControlRef = useRef<HTMLDivElement>(null);
   const [resolvedTrackRef, setResolvedTrackRef] = useState<any>(
@@ -105,8 +98,8 @@ export const FullScreenVideo = ({
 
   // Save volume to storage when it changes
   useEffect(() => {
-    saveVolume(participant.id, volume);
-  }, [participant.id, volume]);
+    saveVolume(volume);
+  }, [volume]);
 
   // Close volume slider when clicking outside
   useEffect(() => {
@@ -128,22 +121,47 @@ export const FullScreenVideo = ({
     };
   }, [showVolumeSlider]);
 
-  // Apply volume to audio track
+  // Apply volume to all audio elements (RoomAudioRenderer creates audio elements in DOM)
   useEffect(() => {
-    const audioPublication = videoTrackRef?.participant
-      ?.getTrackPublications?.()
-      ?.find((pub: TrackPublication) => pub.kind === Track.Kind.Audio);
-    const audioTrack = audioPublication?.track;
+    const volumeValue = volume / 100;
 
-    if (audioTrack?.attachedElements) {
-      const volumeValue = volume / 100;
-      audioTrack.attachedElements.forEach((element: HTMLMediaElement) => {
-        if (element.volume !== volumeValue) {
-          element.volume = volumeValue;
-        }
+    const applyVolume = (element: HTMLMediaElement) => {
+      if (element.volume !== volumeValue) {
+        element.volume = volumeValue;
+      }
+    };
+
+    const applyToAll = () => {
+      document.querySelectorAll('audio, video').forEach(el => {
+        applyVolume(el as HTMLMediaElement);
       });
-    }
-  }, [volume, videoTrackRef]);
+    };
+
+    // Apply to existing elements
+    applyToAll();
+
+    // Watch for new audio/video elements
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node instanceof HTMLMediaElement) {
+            applyVolume(node);
+          }
+          if (node instanceof Element) {
+            node.querySelectorAll('audio, video').forEach(el => {
+              applyVolume(el as HTMLMediaElement);
+            });
+          }
+        });
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [volume]);
 
   // Request highest quality immediately
   useEffect(() => {
@@ -316,8 +334,8 @@ export const FullScreenVideo = ({
           inset: 0,
           left: '280px',
           right: '420px',
-          top: '80px', // navbar 아래로 조정 (작은 화면 대응)
-          zIndex: 50,
+          top: isHeaderHidden ? 0 : 'var(--header-height, 64px)',
+          zIndex: 65,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -392,163 +410,169 @@ export const FullScreenVideo = ({
             )}
           </div>
 
-          {/* Participant Name Label */}
+          {/* Participant Name Label and Volume Control */}
           <div
             style={{
               position: 'absolute',
               bottom: '24px',
               left: '24px',
-              padding: '12px 20px',
-              background: 'rgba(0, 0, 0, 0.8)',
-              backdropFilter: 'blur(12px)',
-              borderRadius: '16px',
-              fontSize: '16px',
-              fontWeight: 700,
-              color: '#ffffff',
+              right: '24px',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+              justifyContent: 'space-between',
             }}
           >
-            <span
-              style={{
-                width: '10px',
-                height: '10px',
-                borderRadius: '50%',
-                background: isDanger ? '#ef4444' : '#10b981',
-                animation: isDanger
-                  ? 'pulse 1s ease-in-out infinite'
-                  : undefined,
-              }}
-            />
-            {participant.name}
-          </div>
-        </div>
-      </div>
-
-      {/* Volume Control - Separate from video container to have higher z-index than backdrop */}
-      <div
-        ref={volumeControlRef}
-        style={{
-          position: 'fixed',
-          bottom: 'calc(4vh)',
-          left: '53%',
-          transform: 'translateX(calc(-50% + 70px))',
-          zIndex: 65,
-        }}
-      >
-        {/* Volume Slider Popup - Vertical */}
-        {showVolumeSlider && (
-          <div
-            onClick={e => e.stopPropagation()}
-            onMouseDown={e => e.stopPropagation()}
-            style={{
-              position: 'absolute',
-              bottom: '100px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '120px',
-              height: '32px',
-            }}
-          >
+            {/* Participant Name */}
             <div
               style={{
-                transform: 'rotate(-90deg)',
-                transformOrigin: 'center center',
-                width: '120px',
+                padding: '12px 20px',
+                background: 'rgba(0, 0, 0, 0.8)',
+                backdropFilter: 'blur(12px)',
+                borderRadius: '16px',
+                fontSize: '16px',
+                fontWeight: 700,
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
               }}
             >
-              <Slider
-                value={volume}
-                onChange={setVolume}
-                min={0}
-                max={100}
-                step={1}
-                aria-label="Volume"
+              <span
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  background: isDanger ? '#ef4444' : '#10b981',
+                  animation: isDanger
+                    ? 'pulse 1s ease-in-out infinite'
+                    : undefined,
+                }}
               />
+              {participant.name}
+            </div>
+
+            {/* Volume Control */}
+            <div
+              ref={volumeControlRef}
+              style={{
+                position: 'relative',
+              }}
+            >
+              {/* Volume Slider Popup - Vertical */}
+              {showVolumeSlider && (
+                <div
+                  onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    bottom: '100px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '120px',
+                    height: '32px',
+                  }}
+                >
+                  <div
+                    style={{
+                      transform: 'rotate(-90deg)',
+                      transformOrigin: 'center center',
+                      width: '120px',
+                    }}
+                  >
+                    <Slider
+                      value={volume}
+                      onChange={setVolume}
+                      min={0}
+                      max={100}
+                      step={1}
+                      aria-label="Volume"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Volume Button */}
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setShowVolumeSlider(!showVolumeSlider);
+                }}
+                onMouseDown={e => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
+                style={{
+                  padding: '12px',
+                  background: 'rgba(0, 0, 0, 0.8)',
+                  backdropFilter: 'blur(12px)',
+                  borderRadius: '12px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
+                  transition: 'background 0.2s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
+                }}
+                aria-label="Volume control"
+              >
+                {volume === 0 ? (
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <line x1="23" y1="9" x2="17" y2="15" />
+                    <line x1="17" y1="9" x2="23" y2="15" />
+                  </svg>
+                ) : volume < 50 ? (
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </svg>
+                ) : (
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Volume Button */}
-        <button
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            setShowVolumeSlider(!showVolumeSlider);
-          }}
-          onMouseDown={e => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          style={{
-            padding: '12px',
-            background: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '12px',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-            transition: 'background 0.2s ease',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.9)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.8)';
-          }}
-          aria-label="Volume control"
-        >
-          {volume === 0 ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <line x1="23" y1="9" x2="17" y2="15" />
-              <line x1="17" y1="9" x2="23" y2="15" />
-            </svg>
-          ) : volume < 50 ? (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-            </svg>
-          ) : (
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
-              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-            </svg>
-          )}
-        </button>
+        </div>
       </div>
     </>
   );
