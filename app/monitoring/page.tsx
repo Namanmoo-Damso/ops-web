@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { LiveKitRoom } from '@livekit/components-react';
+import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import SidebarLayout from '../../components/SidebarLayout';
 import {
   EmptyTile,
@@ -29,7 +30,8 @@ const PENDING_ALERT_DELAY_MS = 500;
 const safeGetSessionStorage = (key: string): string | null => {
   try {
     return typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
-  } catch {
+  } catch (error) {
+    console.warn('[sessionStorage] Failed to get item:', key, error);
     return null;
   }
 };
@@ -39,8 +41,8 @@ const safeClearSessionStorage = (...keys: string[]): void => {
     if (typeof window !== 'undefined') {
       keys.forEach(key => sessionStorage.removeItem(key));
     }
-  } catch {
-    // Silently ignore storage errors
+  } catch (error) {
+    console.warn('[sessionStorage] Failed to clear items:', keys, error);
   }
 };
 
@@ -59,7 +61,8 @@ export default function Home() {
     useState<MockParticipant | null>(null);
   const [selectedParticipantForAudio, setSelectedParticipantForAudio] =
     useState<string | null>(null);
-  const [selectedVideoTrackRef, setSelectedVideoTrackRef] = useState<any>(null);
+  const [selectedVideoTrackRef, setSelectedVideoTrackRef] =
+    useState<TrackReferenceOrPlaceholder | null>(null);
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isTakeoverActive, setIsTakeoverActive] = useState(false);
   const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
@@ -314,7 +317,10 @@ export default function Home() {
       key: string;
       connection?: RoomConnection;
       onParticipantsUpdate?: (participants: MockParticipant[]) => void;
-      onTileClick?: (participantId: string, videoTrackRef: any) => void;
+      onTileClick?: (
+        participantId: string,
+        videoTrackRef: TrackReferenceOrPlaceholder,
+      ) => void;
       selectedParticipantForAudio?: string | null;
       isDanger?: boolean;
     }> = [];
@@ -351,7 +357,10 @@ export default function Home() {
           });
         };
 
-        const onTileClick = (participantId: string, videoTrackRef: any) => {
+        const onTileClick = (
+          participantId: string,
+          videoTrackRef: TrackReferenceOrPlaceholder,
+        ) => {
           console.debug('[video] tile click', {
             participantId,
             roomName,
