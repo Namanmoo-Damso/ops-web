@@ -15,7 +15,6 @@ import {
 import styles from '../DetailModal.module.css';
 import { SectionTitle } from '../../../components/ui';
 import { useBeneficiaryStatsApi, BeneficiaryUsageStats } from '../../../hooks';
-import { useDashboardApi } from '../../../hooks';
 import {
   type PeriodFilter,
   PERIOD_LABELS,
