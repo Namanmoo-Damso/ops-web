@@ -609,21 +609,35 @@ export const ParticipantDetailSidebar = ({
                   onClick={async () => {
                     if (loadingDetail) return;
 
-                    // Use beneficiaryId if available, otherwise use participant.id as fallback
+                    const hasBeneficiaryId = !!participant.beneficiaryId;
                     const idToUse = participant.beneficiaryId || participant.id;
                     console.log('[DetailButton] Opening detail for:', {
                       participantId: participant.id,
                       participantName: participant.name,
                       beneficiaryId: participant.beneficiaryId,
                       idToUse,
+                      hasBeneficiaryId,
                     });
 
                     setLoadingDetail(true);
                     try {
-                      // Fetch beneficiary detail
-                      const url = `${API_BASE}/api/beneficiaries/${idToUse}`;
+                      // Get auth token
+                      const token = localStorage.getItem('admin_access_token');
+                      if (!token) {
+                        throw new Error('로그인이 필요합니다.');
+                      }
+
+                      // Use by-user endpoint when beneficiaryId is not available (participant.id is userId like kakao_xxx)
+                      const url = hasBeneficiaryId
+                        ? `${API_BASE}/v1/admin/beneficiaries/${idToUse}`
+                        : `${API_BASE}/v1/admin/beneficiaries/by-user/${encodeURIComponent(idToUse)}`;
                       console.log('[DetailButton] Fetching from:', url);
-                      const response = await fetch(url);
+
+                      const response = await fetch(url, {
+                        headers: {
+                          Authorization: `Bearer ${token}`,
+                        },
+                      });
 
                       if (!response.ok) {
                         const errorText = await response.text();
@@ -637,9 +651,9 @@ export const ParticipantDetailSidebar = ({
                         );
                       }
 
-                      const data = await response.json();
-                      console.log('[DetailButton] Received data:', data);
-                      setBeneficiaryDetail(data);
+                      const result = await response.json();
+                      console.log('[DetailButton] Received data:', result);
+                      setBeneficiaryDetail(result.data);
                       setShowDetailModal(true);
                     } catch (error) {
                       console.error(
@@ -816,8 +830,8 @@ export const ParticipantDetailSidebar = ({
               background: isTakeoverActive
                 ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
                 : isDanger
-                ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
-                : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
+                  : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
               color: '#ffffff',
               fontWeight: 800,
               padding: '18px',

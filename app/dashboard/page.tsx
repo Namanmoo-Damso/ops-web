@@ -7,10 +7,8 @@ import {
   DailyOperationsSummary,
   DailyOperationsData,
   OperationsTimeline,
-  EmergencyLog,
   BulletinBoard,
   BulletinItem,
-  EmergencyLogItem,
   HourlyCallData,
 } from '../../components/dashboard';
 import { useBulletinsApi, useDashboardApi } from '../../hooks';
@@ -36,12 +34,10 @@ export default function DashboardPage() {
     DailyOperationsData | undefined
   >(undefined);
   const [summaryLoading, setSummaryLoading] = useState(true);
-  const [emergencyLogs, setEmergencyLogs] = useState<EmergencyLogItem[]>([]);
-  const [emergencyLoading, setEmergencyLoading] = useState(true);
 
   const { listBulletins, createBulletin, updateBulletin, deleteBulletin } =
     useBulletinsApi();
-  const { getTimeline, getTodaySummary, getCareAlerts } = useDashboardApi();
+  const { getTimeline, getTodaySummary } = useDashboardApi();
 
   // Load today's summary on mount
   const loadTodaySummary = useCallback(async () => {
@@ -99,32 +95,11 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load care alerts on mount
-  const loadCareAlerts = useCallback(async () => {
-    setEmergencyLoading(true);
-    const result = await getCareAlerts({ limit: 50, hoursBack: 24 });
-    if (result && result.logs) {
-      const items: EmergencyLogItem[] = result.logs.map(log => ({
-        id: log.id,
-        datetime: new Date(log.timestamp),
-        beneficiaryName: log.wardName,
-        type: log.type,
-        status: log.status,
-        manager: '',
-        summary: '',
-      }));
-      setEmergencyLogs(items);
-    }
-    setEmergencyLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(() => {
     loadTodaySummary();
     loadBulletins();
     loadTimeline();
-    loadCareAlerts();
-  }, [loadTodaySummary, loadBulletins, loadTimeline, loadCareAlerts]);
+  }, [loadTodaySummary, loadBulletins, loadTimeline]);
 
   const handleAddBulletin = async (item: Omit<BulletinItem, 'id'>) => {
     const result = await createBulletin({
@@ -155,15 +130,6 @@ export default function DashboardPage() {
     await loadBulletins();
   };
 
-  const handleUpdateEmergency = (
-    id: string,
-    updates: { manager?: string; summary?: string },
-  ) => {
-    setEmergencyLogs(prev =>
-      prev.map(log => (log.id === id ? { ...log, ...updates } : log)),
-    );
-  };
-
   return (
     <DashboardLayout
       csvModalOpen={csvModalOpen}
@@ -190,13 +156,6 @@ export default function DashboardPage() {
             loading={timelineLoading}
           />
         </section>
-
-        {/* Emergency Log */}
-        <EmergencyLog
-          logs={emergencyLogs}
-          loading={emergencyLoading}
-          onUpdate={handleUpdateEmergency}
-        />
       </div>
     </DashboardLayout>
   );

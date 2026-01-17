@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { LiveKitRoom } from '@livekit/components-react';
 import SidebarLayout from '../components/SidebarLayout';
 import {
@@ -18,6 +18,30 @@ import { requestHighQuality, setRoomDanger } from '../utils/roomApi';
 import { API_BASE } from '../lib/api-client';
 import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
+
+// Constants
+const PENDING_ALERT_ROOM_KEY = 'pendingAlertRoom';
+const PENDING_ALERT_DANGER_KEY = 'pendingAlertDanger';
+const PENDING_ALERT_DELAY_MS = 500;
+
+// Safe sessionStorage operations
+const safeGetSessionStorage = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+};
+
+const safeClearSessionStorage = (...keys: string[]): void => {
+  try {
+    if (typeof window !== 'undefined') {
+      keys.forEach(key => sessionStorage.removeItem(key));
+    }
+  } catch {
+    // Silently ignore storage errors
+  }
+};
 
 export default function Home() {
   const [gridSize, setGridSize] = useState(3);
@@ -130,6 +154,73 @@ export default function Home() {
       return updated;
     });
   }, [activeRoomNamesKey]);
+
+  // Handle pending alert room from CareAlertNotification navigation
+  const selectRoomByName = useCallback(
+    (roomName: string) => {
+      // Find the connection for this room
+      const connectionExists = connections.some(c => c.roomName === roomName);
+      if (!connectionExists) {
+        console.warn('[Home] Room not found:', roomName);
+        return;
+      }
+
+      const roomParticipants = allParticipants[roomName];
+
+      if (roomParticipants && roomParticipants.length > 0) {
+        const firstParticipant = roomParticipants[0];
+        setSelectedParticipantForAudio(firstParticipant.id);
+        setSelectedRoomName(roomName);
+        setDetailParticipant(firstParticipant);
+        setShowFullScreenVideo(true);
+        setShowDetailSidebar(true);
+        console.log(
+          '[Home] Selected room from alert:',
+          roomName,
+          firstParticipant.name,
+        );
+      }
+    },
+    [connections, allParticipants],
+  );
+
+  // Check for pending alert room on mount and when connections change
+  useEffect(() => {
+    const pendingRoom = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
+    if (pendingRoom && connections.length > 0) {
+      // Small delay to ensure participants are loaded
+      const timer = setTimeout(() => {
+        selectRoomByName(pendingRoom);
+        safeClearSessionStorage(
+          PENDING_ALERT_ROOM_KEY,
+          PENDING_ALERT_DANGER_KEY,
+        );
+      }, PENDING_ALERT_DELAY_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [connections, selectRoomByName]);
+
+  // Listen for selectAlertRoom custom event from CareAlertNotification
+  useEffect(() => {
+    const handleSelectAlertRoom = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as { roomName?: string; isDanger?: boolean };
+      const roomName = detail?.roomName;
+
+      if (!roomName) {
+        console.warn('[Home] Invalid selectAlertRoom event data');
+        return;
+      }
+
+      selectRoomByName(roomName);
+      safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+    };
+
+    window.addEventListener('selectAlertRoom', handleSelectAlertRoom);
+    return () => {
+      window.removeEventListener('selectAlertRoom', handleSelectAlertRoom);
+    };
+  }, [selectRoomByName]);
 
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;

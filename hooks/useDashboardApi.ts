@@ -89,7 +89,7 @@ export interface CareAlertLog {
   alertType: string;
   severity: string;
   timestamp: string;
-  status: 'resolved' | 'pending';
+  status: 'resolved' | 'pending' | 'false_positive';
   acknowledgedAt: string | null;
   roomName: string | null;
 }

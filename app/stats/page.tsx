@@ -11,15 +11,10 @@ import {
 } from '../../components/ui/ChartSettings';
 import {
   Phone,
-  Clock,
-  TrendingUp,
-  AlertTriangle,
   MessageSquare,
   Calendar,
   BarChart3,
   PieChart,
-  ShieldAlert,
-  CheckCircle2,
   Download,
   Loader2,
 } from 'lucide-react';
@@ -46,6 +41,8 @@ import {
   type StatsPeriodFilter,
   STATS_PERIOD_LABELS,
 } from '../../lib/date-utils';
+import { EmergencyLog, EmergencyLogItem } from '../../components/dashboard';
+import '../../styles/dashboard.css';
 
 // --- Mock Data ---
 const MOCK_CALL_STATS = {
@@ -95,48 +92,9 @@ const MOCK_KEYWORDS = [
 const MOCK_RISK_COUNT: number = 3;
 const MOCK_RISK_RESPONSE_COUNT: number = 2;
 
-const MOCK_RISK_REPORTS = [
-  {
-    id: '1',
-    wardName: '김영숙',
-    description: '낙상 위험 감지 - 갑작스러운 움직임 패턴',
-    timestamp: '2026-01-10T08:32:00Z',
-  },
-  {
-    id: '2',
-    wardName: '이순자',
-    description: '우울 경향 감지 - 부정적 감정 표현 증가',
-    timestamp: '2026-01-09T14:15:00Z',
-  },
-  {
-    id: '3',
-    wardName: '박정희',
-    description: '약 복용 누락 가능성 - 복용 확인 미응답',
-    timestamp: '2026-01-08T19:45:00Z',
-  },
-];
-
-// --- Helper Functions ---
-function formatTimeAgo(timestamp: string): string {
-  const now = new Date();
-  const then = new Date(timestamp);
-  const diffMs = now.getTime() - then.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  // Handle future dates (negative diff)
-  if (diffMs < 0) return '예정';
-
-  if (diffDays > 0) return `${diffDays}일 전`;
-  if (diffHours > 0) return `${diffHours}시간 전`;
-  if (diffMinutes > 0) return `${diffMinutes}분 전`;
-  return '방금 전';
-}
-
 // --- Page Component ---
 export default function StatsPage() {
-  const { getStats, getCareAlertStats } = useDashboardApi();
+  const { getStats, getCareAlertStats, getCareAlerts } = useDashboardApi();
 
   // Period and date state - defaults to daily (today)
   const [period, setPeriod] = useState<StatsPeriodFilter>('daily');
@@ -156,6 +114,8 @@ export default function StatsPage() {
     responded: number;
     responseRate: number;
   } | null>(null);
+  const [emergencyLogs, setEmergencyLogs] = useState<EmergencyLogItem[]>([]);
+  const [emergencyLoading, setEmergencyLoading] = useState(true);
 
   // Handle period change - recalculate both start and end dates
   const handlePeriodChange = useCallback((newPeriod: StatsPeriodFilter) => {
@@ -184,9 +144,11 @@ export default function StatsPage() {
   useEffect(() => {
     const loadStats = async () => {
       setIsLoading(true);
-      const [statsResult, alertStatsResult] = await Promise.all([
+      setEmergencyLoading(true);
+      const [statsResult, alertStatsResult, alertsResult] = await Promise.all([
         getStats(),
         getCareAlertStats('month'),
+        getCareAlerts({ limit: 50, hoursBack: 168 }), // 7 days
       ]);
       if (statsResult) {
         setStats(statsResult);
@@ -198,11 +160,38 @@ export default function StatsPage() {
           responseRate: alertStatsResult.responseRate,
         });
       }
+      if (alertsResult && alertsResult.logs) {
+        const items: EmergencyLogItem[] = alertsResult.logs.map(log => ({
+          id: log.id,
+          datetime: new Date(log.timestamp),
+          beneficiaryName: log.wardName,
+          type: log.type,
+          status: log.status,
+          manager: '',
+          summary: '',
+        }));
+        setEmergencyLogs(items);
+      }
       setIsLoading(false);
+      setEmergencyLoading(false);
     };
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Handle emergency log update
+  const handleUpdateEmergency = (
+    id: string,
+    updates: {
+      manager?: string;
+      summary?: string;
+      status?: EmergencyLogItem['status'];
+    },
+  ) => {
+    setEmergencyLogs(prev =>
+      prev.map(log => (log.id === id ? { ...log, ...updates } : log)),
+    );
+  };
 
   // Chart display settings (axis labels, display options - not data manipulation)
   const [trendChartConfig, setTrendChartConfig] = useState<ChartDisplayConfig>({
@@ -299,8 +288,8 @@ export default function StatsPage() {
       : MOCK_KEYWORDS;
 
   const riskCount = careAlertStats?.detected ?? MOCK_RISK_COUNT;
-  const riskResponseCount = careAlertStats?.responded ?? MOCK_RISK_RESPONSE_COUNT;
-  const riskReports = MOCK_RISK_REPORTS;
+  const riskResponseCount =
+    careAlertStats?.responded ?? MOCK_RISK_RESPONSE_COUNT;
 
   return (
     <DashboardLayout>
@@ -582,63 +571,12 @@ export default function StatsPage() {
           </Card>
         </div>
 
-        {/* Risk Detection Section */}
-        <Card padding="lg">
-          <div className="stats-chart-header">
-            <ShieldAlert size={20} color="var(--color-danger-main)" />
-            <h3 className="stats-chart-title">위험 감지 현황</h3>
-          </div>
-
-          <div className="stats-risk-section">
-            {/* Risk Summary */}
-            <div className="stats-risk-summary">
-              <Card padding="lg" className="stats-risk-count-card">
-                <div
-                  className={`stats-risk-count ${riskCount === 0 ? 'safe' : ''}`}
-                >
-                  {riskCount}
-                </div>
-                <div className="stats-risk-label">
-                  {riskCount > 0 ? '위험 감지 건수' : '현재 안전합니다'}
-                </div>
-              </Card>
-            </div>
-
-            {/* Risk Reports List */}
-            <div className="stats-risk-report-list">
-              {riskReports.length === 0 ? (
-                <div className="stats-empty-state">
-                  <div className="stats-empty-icon">✅</div>
-                  <div className="stats-empty-title">
-                    위험 감지 내역이 없습니다
-                  </div>
-                  <div className="stats-empty-desc">
-                    모든 대상자가 안전한 상태입니다.
-                  </div>
-                </div>
-              ) : (
-                riskReports.map(report => (
-                  <div key={report.id} className="stats-risk-report-item">
-                    <div className="stats-risk-report-icon">
-                      <AlertTriangle size={18} />
-                    </div>
-                    <div className="stats-risk-report-content">
-                      <p className="stats-risk-report-title">
-                        {report.wardName}
-                      </p>
-                      <p className="stats-risk-report-desc">
-                        {report.description}
-                      </p>
-                    </div>
-                    <div className="stats-risk-report-time">
-                      {formatTimeAgo(report.timestamp)}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </Card>
+        {/* Emergency Log Section */}
+        <EmergencyLog
+          logs={emergencyLogs}
+          loading={emergencyLoading}
+          onUpdate={handleUpdateEmergency}
+        />
       </div>
     </DashboardLayout>
   );

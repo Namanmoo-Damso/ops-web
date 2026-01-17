@@ -6,11 +6,45 @@ type UseRoomSSEOptions = {
   enabled?: boolean;
 };
 
+// Constants
+const PENDING_ALERT_ROOM_KEY = 'pendingAlertRoom';
+const PENDING_ALERT_DANGER_KEY = 'pendingAlertDanger';
+const DANGER_STATE_TRUE = 'true';
+
+// Safe sessionStorage access
+const safeGetSessionStorage = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+};
+
+const safeClearSessionStorage = (key: string): void => {
+  try {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Silently ignore storage errors
+  }
+};
+
 export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dangerRooms, setDangerRooms] = useState<Record<string, boolean>>({});
+  // Initialize dangerRooms with pending alert danger state from sessionStorage
+  const [dangerRooms, setDangerRooms] = useState<Record<string, boolean>>(
+    () => {
+      const pendingRoom = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
+      const pendingDanger = safeGetSessionStorage(PENDING_ALERT_DANGER_KEY);
+      if (pendingRoom && pendingDanger === DANGER_STATE_TRUE) {
+        return { [pendingRoom]: true };
+      }
+      return {};
+    },
+  );
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Fetch initial rooms list

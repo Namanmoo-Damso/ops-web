@@ -184,9 +184,7 @@ export function formatDateKorean(
 }
 
 /**
- * Formats a date as "D/M(Day) HH시" (e.g., "10/1(금) 14시")
- * Note: The requested format was D/M but standard is usually M/D.
- * Keeping consistent with internal request "d/m(요) hh시".
+ * Formats a date as "M/D(Day) HH시" (e.g., "1/10(금) 14시")
  *
  * @param dateInput - Date object or string
  * @returns Formatted date-time string
@@ -197,8 +195,8 @@ export function formatDateWithHour(dateInput: Date | string): string {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const dayOfWeek = days[date.getDay()];
-  const hour = date.getHours();
-  return `${day}/${month}(${dayOfWeek}) ${hour}시`;
+  const hour = String(date.getHours()).padStart(2, '0');
+  return `${month}/${day}(${dayOfWeek}) ${hour}시`;
 }
 /**
  * Constant for inactivity threshold (24 hours in milliseconds)

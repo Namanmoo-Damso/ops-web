@@ -14,6 +14,7 @@ import { API_BASE } from '../lib/api-client';
 export interface CareAlert {
   id: string;
   roomName: string;
+  wardId?: string;
   wardName?: string;
   alertType?: string;
   timestamp: number;
@@ -213,14 +214,18 @@ export function CareAlertProvider({
             '[CareAlertProvider] Room danger event:',
             data.roomName,
             data.isDanger,
+            data.wardName,
           );
 
           if (data.isDanger) {
-            // Extract alert info from event name (e.g., "device_fall:wardId")
-            const alertType = data.name?.split(':')[0] || 'unknown';
+            // Use wardName and alertType from event data if available
+            const alertType =
+              data.alertType || data.name?.split(':')[0] || 'unknown';
             addAlert({
               id: `${data.roomName}-${Date.now()}`,
               roomName: data.roomName,
+              wardId: data.wardId,
+              wardName: data.wardName,
               alertType,
               timestamp: Date.now(),
             });
