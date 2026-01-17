@@ -19,6 +19,30 @@ import { API_BASE } from '../lib/api-client';
 import type { RoomConnection } from '../types/room';
 import styles from './page.module.css';
 
+// Constants
+const PENDING_ALERT_ROOM_KEY = 'pendingAlertRoom';
+const PENDING_ALERT_DANGER_KEY = 'pendingAlertDanger';
+const PENDING_ALERT_DELAY_MS = 500;
+
+// Safe sessionStorage operations
+const safeGetSessionStorage = (key: string): string | null => {
+  try {
+    return typeof window !== 'undefined' ? sessionStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+};
+
+const safeClearSessionStorage = (...keys: string[]): void => {
+  try {
+    if (typeof window !== 'undefined') {
+      keys.forEach(key => sessionStorage.removeItem(key));
+    }
+  } catch {
+    // Silently ignore storage errors
+  }
+};
+
 export default function Home() {
   const [gridSize, setGridSize] = useState(3);
   const [showParticipantList, setShowParticipantList] = useState(false);
@@ -162,43 +186,39 @@ export default function Home() {
 
   // Check for pending alert room on mount and when connections change
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const pendingRoom = sessionStorage.getItem('pendingAlertRoom');
+    const pendingRoom = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
     if (pendingRoom && connections.length > 0) {
       // Small delay to ensure participants are loaded
       const timer = setTimeout(() => {
         selectRoomByName(pendingRoom);
-        sessionStorage.removeItem('pendingAlertRoom');
-        sessionStorage.removeItem('pendingAlertDanger');
-      }, 500);
+        safeClearSessionStorage(
+          PENDING_ALERT_ROOM_KEY,
+          PENDING_ALERT_DANGER_KEY,
+        );
+      }, PENDING_ALERT_DELAY_MS);
       return () => clearTimeout(timer);
     }
   }, [connections, selectRoomByName]);
 
   // Listen for selectAlertRoom custom event from CareAlertNotification
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    const handleSelectAlertRoom = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as { roomName?: string; isDanger?: boolean };
+      const roomName = detail?.roomName;
 
-    const handleSelectAlertRoom = (
-      event: CustomEvent<{ roomName: string; isDanger?: boolean }>,
-    ) => {
-      const { roomName } = event.detail;
-      console.log('[Home] Received selectAlertRoom event:', roomName);
+      if (!roomName) {
+        console.warn('[Home] Invalid selectAlertRoom event data');
+        return;
+      }
+
       selectRoomByName(roomName);
-      sessionStorage.removeItem('pendingAlertRoom');
-      sessionStorage.removeItem('pendingAlertDanger');
+      safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
     };
 
-    window.addEventListener(
-      'selectAlertRoom',
-      handleSelectAlertRoom as EventListener,
-    );
+    window.addEventListener('selectAlertRoom', handleSelectAlertRoom);
     return () => {
-      window.removeEventListener(
-        'selectAlertRoom',
-        handleSelectAlertRoom as EventListener,
-      );
+      window.removeEventListener('selectAlertRoom', handleSelectAlertRoom);
     };
   }, [selectRoomByName]);
 

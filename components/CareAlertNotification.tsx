@@ -12,6 +12,25 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   unknown: '위급 상황 감지',
 };
 
+// Constants
+const PENDING_ALERT_ROOM_KEY = 'pendingAlertRoom';
+const PENDING_ALERT_DANGER_KEY = 'pendingAlertDanger';
+const DANGER_STATE_TRUE = 'true';
+const HOME_PATH = '/';
+
+// Safe sessionStorage access
+const safeSetSessionStorage = (key: string, value: string): void => {
+  try {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(key, value);
+    }
+  } catch {
+    console.warn(
+      `[CareAlertNotification] Failed to set sessionStorage[${key}]`,
+    );
+  }
+};
+
 function AlertItem({
   alert,
   onDismiss,
@@ -163,24 +182,28 @@ export default function CareAlertNotification({
 
   const handleNavigateToMonitor = (alert: CareAlert) => {
     // Store the room name and danger state to select
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('pendingAlertRoom', alert.roomName);
-      // Also store danger state so it persists across page navigation
-      sessionStorage.setItem('pendingAlertDanger', 'true');
-    }
+    safeSetSessionStorage(PENDING_ALERT_ROOM_KEY, alert.roomName);
+    safeSetSessionStorage(PENDING_ALERT_DANGER_KEY, DANGER_STATE_TRUE);
 
     // If not on monitoring page, navigate to it
-    if (pathname !== '/') {
-      router.push('/');
+    if (pathname !== HOME_PATH) {
+      router.push(HOME_PATH);
     } else {
       // Already on monitoring page, trigger via callback or dispatch event
       onSelectRoom?.(alert.roomName);
       // Also dispatch custom event for the monitoring page to listen
-      window.dispatchEvent(
-        new CustomEvent('selectAlertRoom', {
-          detail: { roomName: alert.roomName, isDanger: true },
-        }),
-      );
+      try {
+        window.dispatchEvent(
+          new CustomEvent('selectAlertRoom', {
+            detail: { roomName: alert.roomName, isDanger: true },
+          }),
+        );
+      } catch (err) {
+        console.warn(
+          '[CareAlertNotification] Failed to dispatch selectAlertRoom event:',
+          err,
+        );
+      }
     }
   };
 
