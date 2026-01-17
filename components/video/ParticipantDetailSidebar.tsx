@@ -32,12 +32,25 @@ type ParticipantDetailSidebarProps = {
   onToggleTakeover?: () => void;
   isDanger?: boolean;
   onClearDanger?: () => void;
+  detectionInfo?: DetectionInfo | null;
 };
 
 type Transcript = {
   role: 'agent' | 'user';
   text: string;
   timestamp: number;
+};
+
+type DetectionCriteria = {
+  name: string;
+  value: string;
+  level: 'low' | 'medium' | 'high';
+};
+
+type DetectionInfo = {
+  type: string;
+  severity: string;
+  criteria: DetectionCriteria[];
 };
 
 const hexToRgba = (hex: string, alpha = 1) => {
@@ -212,6 +225,53 @@ const highlightDangerKeywords = (text: string) => {
   return <>{highlightedText}</>;
 };
 
+// Alert type labels in Korean
+const ALERT_TYPE_LABELS: Record<string, string> = {
+  device_fall: '기기 낙상',
+  person_fall: '낙상',
+  loud_voice: '큰 소리/비명',
+  emotion: '감정 분석',
+};
+
+// Detection value labels in Korean (for criteria display)
+const DETECTION_VALUE_LABELS: Record<string, string> = {
+  // DeviceFallType
+  freefall_impact: '자유낙하 충격',
+  impact: '충격',
+  rotation_impact: '회전 충격',
+  combination: '복합',
+  // PersonFallType
+  rapid_descent: '급격한 하강',
+  face_disappeared: '얼굴 사라짐',
+  size_change: '크기 변화',
+  // EmotionType
+  neutral: '중립',
+  happy: '행복',
+  sad: '슬픔',
+  angry: '분노',
+  fearful: '공포',
+  disgusted: '혐오',
+  surprised: '놀람',
+};
+
+// Severity labels in Korean
+const SEVERITY_LABELS: Record<string, string> = {
+  low: '낮음',
+  medium: '보통',
+  high: '높음',
+  critical: '심각',
+};
+
+// Level color mapping
+const LEVEL_COLORS: Record<
+  string,
+  { bg: string; text: string; border: string }
+> = {
+  low: { bg: '#fef9c3', text: '#854d0e', border: '#fde047' },
+  medium: { bg: '#fed7aa', text: '#9a3412', border: '#fdba74' },
+  high: { bg: '#fecaca', text: '#dc2626', border: '#f87171' },
+};
+
 export const ParticipantDetailSidebar = ({
   participant,
   onClose,
@@ -221,6 +281,7 @@ export const ParticipantDetailSidebar = ({
   onToggleTakeover,
   isDanger = false,
   onClearDanger,
+  detectionInfo,
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
@@ -234,6 +295,13 @@ export const ParticipantDetailSidebar = ({
   const [beneficiaryDetail, setBeneficiaryDetail] =
     useState<BeneficiaryDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+
+  // Detection info from DataChannel (agent alert_response)
+  const [localDetectionInfo, setLocalDetectionInfo] =
+    useState<DetectionInfo | null>(null);
+
+  // Use prop if provided, otherwise use local state from DataChannel
+  const activeDetectionInfo = detectionInfo ?? localDetectionInfo;
 
   // Fetch initial transcripts from API
   useEffect(() => {
@@ -318,6 +386,7 @@ export const ParticipantDetailSidebar = ({
       payload: Uint8Array,
       participant?: any,
       kind?: DataPacket_Kind,
+      topic?: string,
     ) => {
       try {
         const strData = new TextDecoder().decode(payload);
@@ -326,6 +395,8 @@ export const ParticipantDetailSidebar = ({
           strData,
           'kind:',
           kind,
+          'topic:',
+          topic,
           'participant:',
           participant?.identity,
         );
@@ -338,6 +409,12 @@ export const ParticipantDetailSidebar = ({
             text: data.text,
             timestamp: data.timestamp || Date.now(),
           });
+        }
+
+        // Handle alert_response from agent with detectionInfo
+        if (topic === 'alert_response' && data.detectionInfo) {
+          console.log('[Sidebar] Received detection info:', data.detectionInfo);
+          setLocalDetectionInfo(data.detectionInfo);
         }
       } catch (e) {
         console.error('[Sidebar] Failed to parse data packet:', e);
@@ -377,14 +454,14 @@ export const ParticipantDetailSidebar = ({
         }}
       />
 
-      {/* Floating Sidebar */}
+      {/* Floating Sidebar - positioned below navbar */}
       <div
         style={{
           position: 'fixed',
           right: 0,
-          top: 0,
+          top: 'var(--header-height, 64px)',
           width: 'min(420px, 90vw)',
-          height: '100vh',
+          height: 'calc(100vh - var(--header-height, 64px))',
           background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
           borderLeft: '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
@@ -496,59 +573,78 @@ export const ParticipantDetailSidebar = ({
                     위급 상황 감지됨
                   </div>
                   <div style={{ fontSize: '15px', color: '#991b1b' }}>
-                    대화 내용 및 분석 결과를 확인하고 즉시 대응하세요
+                    {activeDetectionInfo
+                      ? `${ALERT_TYPE_LABELS[activeDetectionInfo.type] || activeDetectionInfo.type} · ${SEVERITY_LABELS[activeDetectionInfo.severity] || activeDetectionInfo.severity}`
+                      : '대화 내용 및 분석 결과를 확인하고 즉시 대응하세요'}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Risk Level Indicator - always shown */}
-          {!isDanger && (
-            <div
-              style={{
-                background: isWarning
-                  ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
-                  : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
-                border: `2px solid ${isWarning ? '#f59e0b' : '#10b981'}`,
-                borderRadius: '16px',
-                padding: '12px 20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}
-            >
-              <div
-                style={{
-                  width: '14px',
-                  height: '14px',
-                  borderRadius: '50%',
-                  background: isWarning ? '#f59e0b' : '#10b981',
-                  boxShadow: isWarning
-                    ? '0 0 12px rgba(245, 158, 11, 0.6)'
-                    : '0 0 12px rgba(16, 185, 129, 0.6)',
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <span
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 700,
-                    color: isWarning ? '#92400e' : '#065f46',
-                  }}
-                >
-                  {isWarning ? '주의 필요' : '정상 상태'}
-                </span>
-                <span
-                  style={{
-                    fontSize: '14px',
-                    color: isWarning ? '#b45309' : '#047857',
-                    marginLeft: '8px',
-                  }}
-                >
-                  실시간 모니터링 중
-                </span>
-              </div>
+              {/* Detection Criteria - shown when detectionInfo is available */}
+              {activeDetectionInfo &&
+                activeDetectionInfo.criteria.length > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      marginTop: '4px',
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.6)',
+                      borderRadius: '10px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '16px',
+                        fontWeight: 700,
+                        color: '#991b1b',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      감지 기준
+                    </div>
+                    {activeDetectionInfo.criteria.map((criterion, idx) => {
+                      const colors =
+                        LEVEL_COLORS[criterion.level] || LEVEL_COLORS.medium;
+                      return (
+                        <div
+                          key={idx}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: '16px',
+                              color: '#7f1d1d',
+                              fontWeight: 500,
+                            }}
+                          >
+                            {criterion.name}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '16px',
+                              fontWeight: 700,
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              background: colors.bg,
+                              color: colors.text,
+                              border: `1px solid ${colors.border}`,
+                            }}
+                          >
+                            {DETECTION_VALUE_LABELS[criterion.value] ||
+                              criterion.value}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
             </div>
           )}
 
@@ -609,13 +705,30 @@ export const ParticipantDetailSidebar = ({
                   onClick={async () => {
                     if (loadingDetail) return;
 
+                    // Try multiple strategies to find the beneficiary
                     const hasBeneficiaryId = !!participant.beneficiaryId;
-                    const idToUse = participant.beneficiaryId || participant.id;
+
+                    // Extract wardId from roomName if available (format: room_ward_{wardId}_xxx or similar)
+                    let wardIdFromRoom: string | undefined;
+                    if (roomName) {
+                      // Try to extract wardId from room name patterns
+                      const roomMatch = roomName.match(/ward[_-]([a-f0-9-]+)/i);
+                      if (roomMatch) {
+                        wardIdFromRoom = roomMatch[1];
+                      }
+                    }
+
+                    const idToUse =
+                      participant.beneficiaryId ||
+                      wardIdFromRoom ||
+                      participant.id;
                     console.log('[DetailButton] Opening detail for:', {
                       participantId: participant.id,
                       participantName: participant.name,
                       beneficiaryId: participant.beneficiaryId,
+                      wardIdFromRoom,
                       idToUse,
+                      roomName,
                       hasBeneficiaryId,
                     });
 
@@ -627,31 +740,88 @@ export const ParticipantDetailSidebar = ({
                         throw new Error('로그인이 필요합니다.');
                       }
 
-                      // Use by-user endpoint when beneficiaryId is not available (participant.id is userId like kakao_xxx)
-                      const url = hasBeneficiaryId
-                        ? `${API_BASE}/v1/admin/beneficiaries/${idToUse}`
-                        : `${API_BASE}/v1/admin/beneficiaries/by-user/${encodeURIComponent(idToUse)}`;
-                      console.log('[DetailButton] Fetching from:', url);
+                      let result = null;
+                      let lastError = null;
 
-                      const response = await fetch(url, {
-                        headers: {
-                          Authorization: `Bearer ${token}`,
-                        },
-                      });
-
-                      if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(
-                          '[DetailButton] API Error:',
-                          response.status,
-                          errorText,
+                      // Strategy 1: Use beneficiaryId directly if available
+                      if (hasBeneficiaryId) {
+                        const url = `${API_BASE}/v1/admin/beneficiaries/${participant.beneficiaryId}`;
+                        console.log(
+                          '[DetailButton] Trying beneficiaryId:',
+                          url,
                         );
+                        const response = await fetch(url, {
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (response.ok) {
+                          result = await response.json();
+                        } else {
+                          lastError = response.status;
+                        }
+                      }
+
+                      // Strategy 2: Try by-ward endpoint using wardIdFromRoom
+                      if (!result && wardIdFromRoom) {
+                        const url = `${API_BASE}/v1/admin/beneficiaries/by-ward/${encodeURIComponent(wardIdFromRoom)}`;
+                        console.log('[DetailButton] Trying by-ward:', url);
+                        const response = await fetch(url, {
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (response.ok) {
+                          result = await response.json();
+                        } else {
+                          lastError = response.status;
+                        }
+                      }
+
+                      // Strategy 3: Try by-user endpoint with participant.id
+                      if (!result && participant.id) {
+                        const url = `${API_BASE}/v1/admin/beneficiaries/by-user/${encodeURIComponent(participant.id)}`;
+                        console.log('[DetailButton] Trying by-user:', url);
+                        const response = await fetch(url, {
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (response.ok) {
+                          result = await response.json();
+                        } else {
+                          lastError = response.status;
+                        }
+                      }
+
+                      // Strategy 4: Try using participant name to search
+                      if (!result && participant.name) {
+                        const url = `${API_BASE}/v1/admin/beneficiaries?search=${encodeURIComponent(participant.name)}&limit=1`;
+                        console.log(
+                          '[DetailButton] Trying search by name:',
+                          url,
+                        );
+                        const response = await fetch(url, {
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (response.ok) {
+                          const searchResult = await response.json();
+                          if (
+                            searchResult.data &&
+                            searchResult.data.length > 0
+                          ) {
+                            // Fetch full detail for the first match
+                            const detailUrl = `${API_BASE}/v1/admin/beneficiaries/${searchResult.data[0].id}`;
+                            const detailResponse = await fetch(detailUrl, {
+                              headers: { Authorization: `Bearer ${token}` },
+                            });
+                            if (detailResponse.ok) {
+                              result = await detailResponse.json();
+                            }
+                          }
+                        }
+                      }
+
+                      if (!result) {
                         throw new Error(
-                          `Failed to fetch beneficiary detail: ${response.status}`,
+                          `대상자 정보를 찾을 수 없습니다. (마지막 에러: ${lastError || 'unknown'})`,
                         );
                       }
 
-                      const result = await response.json();
                       console.log('[DetailButton] Received data:', result);
                       setBeneficiaryDetail(result.data);
                       setShowDetailModal(true);
@@ -661,11 +831,7 @@ export const ParticipantDetailSidebar = ({
                         error,
                       );
                       alert(
-                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant ID: ${
-                          participant.id
-                        }\nBeneficiary ID: ${
-                          participant.beneficiaryId || 'N/A'
-                        }\n\n${
+                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant: ${participant.name}\nRoom: ${roomName || 'N/A'}\n\n${
                           error instanceof Error ? error.message : String(error)
                         }`,
                       );
@@ -697,7 +863,7 @@ export const ParticipantDetailSidebar = ({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '13px',
+                    fontSize: '16px',
                     fontWeight: 700,
                     color: '#64748b',
                   }}
@@ -735,7 +901,7 @@ export const ParticipantDetailSidebar = ({
                   <div
                     style={{
                       textAlign: 'center',
-                      fontSize: '12px',
+                      fontSize: '16px',
                       color: '#9ca3af',
                       padding: '16px 0',
                     }}
@@ -898,7 +1064,7 @@ export const ParticipantDetailSidebar = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px',
-                fontSize: '14px',
+                fontSize: '16px',
                 transition: 'all 0.2s',
               }}
               onClick={() => {
@@ -925,7 +1091,7 @@ export const ParticipantDetailSidebar = ({
           {!isDanger && (
             <p
               style={{
-                fontSize: '13px',
+                fontSize: '16px',
                 textAlign: 'center',
                 color: '#94a3b8',
                 marginTop: '4px',

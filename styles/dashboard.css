@@ -990,3 +990,94 @@
   background-color: var(--color-warning-soft);
   color: var(--color-warning-dark);
 }
+
+/* --- Emergency Logs Page Styles --- */
+.emergency-logs-search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  min-width: 240px;
+  max-width: 320px;
+}
+
+.emergency-logs-search-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.emergency-logs-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  width: 100%;
+}
+
+.emergency-logs-search-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* Severity Badge Styles */
+.emergency-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.emergency-severity-badge.severity-low {
+  background-color: var(--color-info-soft, #e0f2fe);
+  color: var(--color-info-dark, #0369a1);
+}
+
+.emergency-severity-badge.severity-medium {
+  background-color: var(--color-warning-soft, #fef3c7);
+  color: var(--color-warning-dark, #92400e);
+}
+
+.emergency-severity-badge.severity-high {
+  background-color: var(--color-danger-soft, #fee2e2);
+  color: var(--color-danger-main, #dc2626);
+}
+
+.emergency-severity-badge.severity-critical {
+  background-color: #fecaca;
+  color: #991b1b;
+  animation: pulseBadge 2s ease-in-out infinite;
+}
+
+@keyframes pulseBadge {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Severity text colors for detail modal */
+.severity-text-low {
+  color: var(--color-info-dark, #0369a1);
+}
+
+.severity-text-medium {
+  color: var(--color-warning-dark, #92400e);
+}
+
+.severity-text-high {
+  color: var(--color-danger-main, #dc2626);
+}
+
+.severity-text-critical {
+  color: #991b1b;
+  font-weight: 800;
+}

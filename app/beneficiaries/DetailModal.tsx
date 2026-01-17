@@ -401,10 +401,7 @@ export default function DetailModal({
           )}
 
           {activeTab === 'usage' && (
-            <UsageInfoTab
-              beneficiaryId={beneficiary.id}
-              beneficiaryName={beneficiary.name}
-            />
+            <UsageInfoTab beneficiaryId={beneficiary.id} />
           )}
 
           {activeTab === 'logs' && (

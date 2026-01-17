@@ -35,13 +35,11 @@ import {
 } from 'recharts';
 import { useDashboardApi, StatsResponse } from '../../hooks';
 import {
-  formatDateToInput,
   parseDateInput,
   getDateRangeForStatsPeriod,
   type StatsPeriodFilter,
   STATS_PERIOD_LABELS,
 } from '../../lib/date-utils';
-import { EmergencyLog, EmergencyLogItem } from '../../components/dashboard';
 import '../../styles/dashboard.css';
 
 // --- Mock Data ---
@@ -94,7 +92,7 @@ const MOCK_RISK_RESPONSE_COUNT: number = 2;
 
 // --- Page Component ---
 export default function StatsPage() {
-  const { getStats, getCareAlertStats, getCareAlerts } = useDashboardApi();
+  const { getStats, getCareAlertStats } = useDashboardApi();
 
   // Period and date state - defaults to daily (today)
   const [period, setPeriod] = useState<StatsPeriodFilter>('daily');
@@ -114,8 +112,6 @@ export default function StatsPage() {
     responded: number;
     responseRate: number;
   } | null>(null);
-  const [emergencyLogs, setEmergencyLogs] = useState<EmergencyLogItem[]>([]);
-  const [emergencyLoading, setEmergencyLoading] = useState(true);
 
   // Handle period change - recalculate both start and end dates
   const handlePeriodChange = useCallback((newPeriod: StatsPeriodFilter) => {
@@ -144,11 +140,9 @@ export default function StatsPage() {
   useEffect(() => {
     const loadStats = async () => {
       setIsLoading(true);
-      setEmergencyLoading(true);
-      const [statsResult, alertStatsResult, alertsResult] = await Promise.all([
+      const [statsResult, alertStatsResult] = await Promise.all([
         getStats(),
         getCareAlertStats('month'),
-        getCareAlerts({ limit: 50, hoursBack: 168 }), // 7 days
       ]);
       if (statsResult) {
         setStats(statsResult);
@@ -160,38 +154,11 @@ export default function StatsPage() {
           responseRate: alertStatsResult.responseRate,
         });
       }
-      if (alertsResult && alertsResult.logs) {
-        const items: EmergencyLogItem[] = alertsResult.logs.map(log => ({
-          id: log.id,
-          datetime: new Date(log.timestamp),
-          beneficiaryName: log.wardName,
-          type: log.type,
-          status: log.status,
-          manager: '',
-          summary: '',
-        }));
-        setEmergencyLogs(items);
-      }
       setIsLoading(false);
-      setEmergencyLoading(false);
     };
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Handle emergency log update
-  const handleUpdateEmergency = (
-    id: string,
-    updates: {
-      manager?: string;
-      summary?: string;
-      status?: EmergencyLogItem['status'];
-    },
-  ) => {
-    setEmergencyLogs(prev =>
-      prev.map(log => (log.id === id ? { ...log, ...updates } : log)),
-    );
-  };
 
   // Chart display settings (axis labels, display options - not data manipulation)
   const [trendChartConfig, setTrendChartConfig] = useState<ChartDisplayConfig>({
@@ -570,13 +537,6 @@ export default function StatsPage() {
             </div>
           </Card>
         </div>
-
-        {/* Emergency Log Section */}
-        <EmergencyLog
-          logs={emergencyLogs}
-          loading={emergencyLoading}
-          onUpdate={handleUpdateEmergency}
-        />
       </div>
     </DashboardLayout>
   );
