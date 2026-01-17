@@ -178,6 +178,7 @@ export default function CareAlertNotification({
     dismissAllAlerts,
     soundEnabled,
     setSoundEnabled,
+    suspended,
   } = useCareAlert();
 
   const handleNavigateToMonitor = (alert: CareAlert) => {
@@ -207,13 +208,15 @@ export default function CareAlertNotification({
     }
   };
 
-  if (activeAlerts.length === 0) {
+  // Hide notifications when suspended (detail sidebar is open) or no alerts
+  if (suspended || activeAlerts.length === 0) {
     return null;
   }
 
+  // Use CSS variable for header height - it's defined globally on :root
   const containerStyle: CSSProperties = {
     position: 'fixed',
-    top: '80px',
+    top: 'calc(var(--header-height, 64px) + 16px)',
     right: '24px',
     zIndex: 10000,
     display: 'flex',

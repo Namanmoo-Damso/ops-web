@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { LiveKitRoom } from '@livekit/components-react';
 import SidebarLayout from '../components/SidebarLayout';
 import {
@@ -63,6 +63,8 @@ export default function Home() {
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isTakeoverActive, setIsTakeoverActive] = useState(false);
   const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
+  // Use ref for pending room tracking - refs are synchronous, avoiding race conditions
+  const pendingAlertRoomRef = useRef<string | null>(null);
   // Danger state from room metadata (persisted in LiveKit)
   const [dangerStates, setDangerStates] = useState<
     Record<string, RoomDangerState>
@@ -72,6 +74,23 @@ export default function Home() {
   const toggleMonitoringFullscreen = () => {
     setIsMonitoringFullscreen(prev => !prev);
   };
+
+  // Update CSS variable when fullscreen mode changes so fixed-position components can adjust
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      '--header-height',
+      isMonitoringFullscreen ? '0px' : '64px'
+    );
+  }, [isMonitoringFullscreen]);
+
+  // Notify CareAlertContext when detail sidebar visibility changes
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('detailSidebarStateChange', {
+        detail: { isOpen: showDetailSidebar },
+      }),
+    );
+  }, [showDetailSidebar]);
 
   // Callback to update danger state from room metadata
   const handleDangerStateChange = useCallback(
@@ -109,13 +128,28 @@ export default function Home() {
     return participants;
   }, [allParticipants, selectedRoomName]);
 
-  // Close detail sidebar if the selected participant leaves
+  // Close detail sidebar if the selected participant leaves (but not during pending alert room selection)
   useEffect(() => {
+    // Skip this check if we're waiting for a pending room to fully load
+    if (pendingAlertRoomRef.current) return;
     if (!detailParticipant || !selectedParticipantForAudio) return;
 
     const participantExists = participantList.some(
       p => p.id === selectedParticipantForAudio,
     );
+
+    // If participant doesn't exist but room is selected, try to update with new participant
+    if (!participantExists && selectedRoomName) {
+      const roomParticipants = allParticipants[selectedRoomName];
+      if (roomParticipants && roomParticipants.length > 0) {
+        // Participant ID changed but room still has participants - update to first participant
+        const newParticipant = roomParticipants[0];
+        setSelectedParticipantForAudio(newParticipant.id);
+        setDetailParticipant(newParticipant);
+        console.log('[Home] Updated participant after refresh:', newParticipant.name);
+        return;
+      }
+    }
 
     if (!participantExists) {
       setShowDetailSidebar(false);
@@ -125,7 +159,7 @@ export default function Home() {
       setSelectedVideoTrackRef(null);
       setShowFullScreenVideo(false);
     }
-  }, [participantList, detailParticipant, selectedParticipantForAudio]);
+  }, [participantList, detailParticipant, selectedParticipantForAudio, selectedRoomName, allParticipants]);
 
   // Ensure takeover is reset when sidebar closes unexpectedly
   useEffect(() => {
@@ -207,21 +241,49 @@ export default function Home() {
     [connections, allParticipants],
   );
 
-  // Check for pending alert room on mount and when connections change
+  // Check for pending alert room on mount and when connections/participants change
   useEffect(() => {
     const pendingRoom = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
-    if (pendingRoom && connections.length > 0) {
-      // Small delay to ensure participants are loaded
-      const timer = setTimeout(() => {
-        selectRoomByName(pendingRoom);
-        safeClearSessionStorage(
-          PENDING_ALERT_ROOM_KEY,
-          PENDING_ALERT_DANGER_KEY,
-        );
-      }, PENDING_ALERT_DELAY_MS);
-      return () => clearTimeout(timer);
+    if (!pendingRoom || connections.length === 0) {
+      // Clear tracking if no pending room
+      if (!pendingRoom && pendingAlertRoomRef.current) {
+        pendingAlertRoomRef.current = null;
+      }
+      return;
     }
-  }, [connections, selectRoomByName]);
+
+    // Start tracking pending room (set immediately - no waiting for re-render)
+    pendingAlertRoomRef.current = pendingRoom;
+
+    // Check if room exists in connections
+    const connectionExists = connections.some(c => c.roomName === pendingRoom);
+    if (!connectionExists) {
+      console.warn('[Home] Pending alert room not found in connections:', pendingRoom);
+      safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+      pendingAlertRoomRef.current = null;
+      return;
+    }
+
+    // Check if participants are available for this room
+    const roomParticipants = allParticipants[pendingRoom];
+    // Wait until we have a participant with a real name (not just "user")
+    const hasRealParticipant = roomParticipants && roomParticipants.length > 0 && 
+      roomParticipants.some(p => p.name && p.name !== 'user');
+    
+    if (hasRealParticipant) {
+      // Participants are ready with real data, select the room
+      const realParticipant = roomParticipants.find(p => p.name && p.name !== 'user') || roomParticipants[0];
+      setSelectedParticipantForAudio(realParticipant.id);
+      setSelectedRoomName(pendingRoom);
+      setDetailParticipant(realParticipant);
+      setShowFullScreenVideo(true);
+      setShowDetailSidebar(true);
+      safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+      pendingAlertRoomRef.current = null;
+      console.log('[Home] Successfully selected pending alert room:', pendingRoom, realParticipant.name);
+    }
+    // If participants not yet loaded with real data, this effect will re-run when allParticipants changes
+  }, [connections, allParticipants]);
 
   // Listen for selectAlertRoom custom event from CareAlertNotification
   useEffect(() => {
@@ -480,6 +542,7 @@ export default function Home() {
                     participant={detailParticipant}
                     videoTrackRef={selectedVideoTrackRef}
                     isDanger={dangerStates[slot.connection.roomName]?.isDanger ?? false}
+                    isHeaderHidden={isMonitoringFullscreen}
                   />
                   <ParticipantDetailSidebar
                     participant={detailParticipant}
@@ -491,6 +554,7 @@ export default function Home() {
                     isDanger={dangerStates[slot.connection.roomName]?.isDanger ?? false}
                     dangerCode={dangerStates[slot.connection.roomName]?.dangerCode}
                     onClearDanger={handleClearDanger}
+                    isHeaderHidden={isMonitoringFullscreen}
                   />
                 </>
               )}

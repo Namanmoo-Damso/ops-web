@@ -265,11 +265,12 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
       [createWard, uploading],
     );
 
-    const mainStyle: CSSProperties & { '--sidebar-width': string } = {
+    const mainStyle: CSSProperties & { '--sidebar-width': string; '--header-height': string } = {
       flex: 1,
       marginLeft: sidebarCollapsed ? 0 : SIDEBAR_WIDTH_VALUE,
       marginTop: HEADER_HEIGHT,
       '--sidebar-width': sidebarCollapsed ? '0px' : SIDEBAR_WIDTH_VALUE,
+      '--header-height': HEADER_HEIGHT, // Set CSS variable for fixed position components
       backgroundColor: colors.background.main,
       minHeight: `calc(100vh - ${HEADER_HEIGHT})`,
       height: noPadding ? `calc(100vh - ${HEADER_HEIGHT})` : undefined,

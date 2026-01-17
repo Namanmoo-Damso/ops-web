@@ -34,6 +34,7 @@ type ParticipantDetailSidebarProps = {
   dangerCode?: string; // 4-bit: 1000=deviceFall, 0100=personFall, 0010=loudVoice, 0001=emotion
   onClearDanger?: () => void;
   detectionInfo?: DetectionInfo | null;
+  isHeaderHidden?: boolean;
 };
 
 type Transcript = {
@@ -355,10 +356,12 @@ export const ParticipantDetailSidebar = ({
   dangerCode,
   onClearDanger,
   detectionInfo,
+  isHeaderHidden = false,
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null); // Ref for chat scroll container
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
   const [initialLoaded, setInitialLoaded] = useState(false);
   const room = useRoomContext();
@@ -508,8 +511,9 @@ export const ParticipantDetailSidebar = ({
 
   // Auto-scroll to latest message
   useEffect(() => {
-    if (transcriptEndRef.current) {
-      transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      // Scroll only the chat container, not the entire panel
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [transcripts]);
 
@@ -538,9 +542,9 @@ export const ParticipantDetailSidebar = ({
         style={{
           position: 'fixed',
           right: 0,
-          top: 'var(--header-height, 64px)',
+          top: isHeaderHidden ? 0 : 'var(--header-height, 64px)',
           width: 'min(420px, 90vw)',
-          height: 'calc(100vh - var(--header-height, 64px))',
+          height: isHeaderHidden ? '100vh' : 'calc(100vh - var(--header-height, 64px))',
           background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
           borderLeft: '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
@@ -965,6 +969,7 @@ export const ParticipantDetailSidebar = ({
               style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
             >
               <div
+                ref={chatContainerRef}
                 style={{
                   background: '#F7F9F2',
                   borderRadius: '16px',

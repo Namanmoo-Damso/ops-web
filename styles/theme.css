@@ -152,6 +152,9 @@
    --sidebar-width: 220px;
    --sidebar-width-collapsed: 64px;
 
+   /* Header */
+   --header-height: 64px;
+
    /* ========================================
      Breakpoints (for reference)
      ======================================== */

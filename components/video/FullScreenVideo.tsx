@@ -12,6 +12,7 @@ type FullScreenVideoProps = {
   participant: MockParticipant;
   videoTrackRef: any;
   isDanger?: boolean;
+  isHeaderHidden?: boolean;
 };
 
 const VOLUME_STORAGE_KEY = 'fullscreen-volume';
@@ -42,6 +43,7 @@ export const FullScreenVideo = ({
   participant,
   videoTrackRef: externalVideoTrackRef,
   isDanger = false,
+  isHeaderHidden = false,
 }: FullScreenVideoProps) => {
   const room = useRoomContext();
   const [volume, setVolume] = useState(() => getStoredVolume());
@@ -332,7 +334,7 @@ export const FullScreenVideo = ({
           inset: 0,
           left: '280px',
           right: '420px',
-          top: '80px', // navbar 아래로 조정 (작은 화면 대응)
+          top: isHeaderHidden ? 0 : 'var(--header-height, 64px)',
           zIndex: 65,
           display: 'flex',
           alignItems: 'center',

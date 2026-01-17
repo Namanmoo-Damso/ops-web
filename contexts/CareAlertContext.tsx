@@ -26,6 +26,7 @@ interface CareAlertContextType {
   dismissAllAlerts: () => void;
   soundEnabled: boolean;
   setSoundEnabled: (enabled: boolean) => void;
+  suspended: boolean; // True when ParticipantDetailSidebar is open
 }
 
 const CareAlertContext = createContext<CareAlertContextType | undefined>(
@@ -145,6 +146,7 @@ export function CareAlertProvider({
 }: CareAlertProviderProps) {
   const [activeAlerts, setActiveAlerts] = useState<CareAlert[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [suspended, setSuspended] = useState(false); // True when detail sidebar is open
   const eventSourceRef = useRef<EventSource | null>(null);
   const alarmRef = useRef<AlarmController | null>(null);
 
@@ -156,16 +158,31 @@ export function CareAlertProvider({
     };
   }, []);
 
-  // Manage alarm based on active alerts and sound setting
+  // Manage alarm based on active alerts, sound setting, and suspended state
   useEffect(() => {
     if (!alarmRef.current) return;
 
-    if (activeAlerts.length > 0 && soundEnabled) {
+    // Only play alarm if there are alerts, sound is enabled, AND not suspended
+    if (activeAlerts.length > 0 && soundEnabled && !suspended) {
       alarmRef.current.start();
     } else {
       alarmRef.current.stop();
     }
-  }, [activeAlerts.length, soundEnabled]);
+  }, [activeAlerts.length, soundEnabled, suspended]);
+
+  // Listen for sidebar state changes from page.tsx
+  useEffect(() => {
+    const handleSidebarStateChange = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const { isOpen } = event.detail as { isOpen: boolean };
+      setSuspended(isOpen);
+    };
+
+    window.addEventListener('detailSidebarStateChange', handleSidebarStateChange);
+    return () => {
+      window.removeEventListener('detailSidebarStateChange', handleSidebarStateChange);
+    };
+  }, []);
 
   const dismissAlert = useCallback((id: string) => {
     setActiveAlerts(prev => prev.filter(alert => alert.id !== id));
@@ -258,6 +275,7 @@ export function CareAlertProvider({
         dismissAllAlerts,
         soundEnabled,
         setSoundEnabled,
+        suspended,
       }}
     >
       {children}
