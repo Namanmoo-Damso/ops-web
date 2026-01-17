@@ -31,6 +31,7 @@ type ParticipantDetailSidebarProps = {
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
   isDanger?: boolean;
+  dangerCode?: string; // 4-bit: 1000=deviceFall, 0100=personFall, 0010=loudVoice, 0001=emotion
   onClearDanger?: () => void;
   detectionInfo?: DetectionInfo | null;
 };
@@ -272,6 +273,77 @@ const LEVEL_COLORS: Record<
   high: { bg: '#fecaca', text: '#dc2626', border: '#f87171' },
 };
 
+// Convert 4-bit danger code to DetectionInfo
+// Format: 1000=deviceFall, 0100=personFall, 0010=loudVoice, 0001=emotion
+const dangerCodeToDetectionInfo = (dangerCode: string): DetectionInfo | null => {
+  if (!dangerCode || dangerCode === '0000') return null;
+
+  // Parse the 4-bit code
+  const deviceFall = dangerCode[0] === '1';
+  const personFall = dangerCode[1] === '1';
+  const loudVoice = dangerCode[2] === '1';
+  const emotion = dangerCode[3] === '1';
+
+  // Determine primary alert type (priority: personFall > deviceFall > loudVoice > emotion)
+  let type = 'unknown';
+  let severity = 'high';
+
+  if (personFall) {
+    type = 'person_fall';
+    severity = 'critical';
+  } else if (deviceFall) {
+    type = 'device_fall';
+    severity = 'high';
+  } else if (loudVoice) {
+    type = 'loud_voice';
+    severity = 'high';
+  } else if (emotion) {
+    type = 'emotion';
+    severity = 'medium';
+  }
+
+  // Build criteria list based on active flags
+  const criteria: DetectionCriteria[] = [];
+
+  if (deviceFall) {
+    criteria.push({
+      name: '감지 유형',
+      value: 'impact',
+      level: 'high',
+    });
+  }
+
+  if (personFall) {
+    criteria.push({
+      name: '감지 유형',
+      value: 'face_disappeared',
+      level: 'high',
+    });
+  }
+
+  if (loudVoice) {
+    criteria.push({
+      name: '음성 상태',
+      value: '큰 소리 감지',
+      level: 'high',
+    });
+  }
+
+  if (emotion) {
+    criteria.push({
+      name: '감정 상태',
+      value: '부정적 감정',
+      level: 'medium',
+    });
+  }
+
+  return {
+    type,
+    severity,
+    criteria,
+  };
+};
+
 export const ParticipantDetailSidebar = ({
   participant,
   onClose,
@@ -280,6 +352,7 @@ export const ParticipantDetailSidebar = ({
   isTakeoverActive = false,
   onToggleTakeover,
   isDanger = false,
+  dangerCode,
   onClearDanger,
   detectionInfo,
 }: ParticipantDetailSidebarProps) => {
@@ -300,8 +373,14 @@ export const ParticipantDetailSidebar = ({
   const [localDetectionInfo, setLocalDetectionInfo] =
     useState<DetectionInfo | null>(null);
 
-  // Use prop if provided, otherwise use local state from DataChannel
-  const activeDetectionInfo = detectionInfo ?? localDetectionInfo;
+  // Convert dangerCode to DetectionInfo if available
+  const dangerCodeDetectionInfo = dangerCode
+    ? dangerCodeToDetectionInfo(dangerCode)
+    : null;
+
+  // Priority: prop detectionInfo > dangerCode-based > local state from DataChannel
+  const activeDetectionInfo =
+    detectionInfo ?? dangerCodeDetectionInfo ?? localDetectionInfo;
 
   // Fetch initial transcripts from API
   useEffect(() => {

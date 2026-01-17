@@ -12,6 +12,7 @@ import {
   RoomTracks,
   TakeoverAudioController,
   type MockParticipant,
+  type RoomDangerState,
 } from '../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../hooks';
 import { requestHighQuality, setRoomDanger } from '../utils/roomApi';
@@ -62,10 +63,32 @@ export default function Home() {
   const [showFullScreenVideo, setShowFullScreenVideo] = useState(false);
   const [isTakeoverActive, setIsTakeoverActive] = useState(false);
   const [isMonitoringFullscreen, setIsMonitoringFullscreen] = useState(false);
+  // Danger state from room metadata (persisted in LiveKit)
+  const [dangerStates, setDangerStates] = useState<
+    Record<string, RoomDangerState>
+  >({});
+
   // Toggle fullscreen mode (hides sidebar and navbar)
   const toggleMonitoringFullscreen = () => {
     setIsMonitoringFullscreen(prev => !prev);
   };
+
+  // Callback to update danger state from room metadata
+  const handleDangerStateChange = useCallback(
+    (roomName: string, state: RoomDangerState) => {
+      setDangerStates(prev => {
+        // Only update if changed to avoid re-renders
+        if (
+          prev[roomName]?.isDanger === state.isDanger &&
+          prev[roomName]?.dangerCode === state.dangerCode
+        ) {
+          return prev;
+        }
+        return { ...prev, [roomName]: state };
+      });
+    },
+    [],
+  );
 
   // Collect participants from all rooms or selected room (from LiveKit tiles only)
   const participantList = useMemo(() => {
@@ -114,7 +137,7 @@ export default function Home() {
     }
   }, [showDetailSidebar, isTakeoverActive]);
 
-  const { rooms, error, dangerRooms } = useRoomSSE({
+  const { rooms, error } = useRoomSSE({
     apiBase: API_BASE,
     enabled: !!API_BASE,
   });
@@ -314,7 +337,7 @@ export default function Home() {
           onParticipantsUpdate,
           onTileClick,
           selectedParticipantForAudio,
-          isDanger: dangerRooms[roomName] ?? false,
+          isDanger: dangerStates[roomName]?.isDanger ?? false,
         });
       } else {
         result.push({
@@ -331,7 +354,7 @@ export default function Home() {
     gridSize,
     selectedParticipantForAudio,
     showFullScreenVideo,
-    dangerRooms,
+    dangerStates,
   ]);
 
   const handleCloseSidebar = () => {
@@ -437,6 +460,9 @@ export default function Home() {
               roomName={slot.connection.roomName}
               onParticipantsUpdate={slot.onParticipantsUpdate}
               onTileClick={slot.onTileClick}
+              onDangerStateChange={state =>
+                handleDangerStateChange(slot.connection!.roomName, state)
+              }
               selectedParticipantForAudio={slot.selectedParticipantForAudio}
               focusedParticipantId={
                 showFullScreenVideo ? selectedParticipantForAudio : null
@@ -453,7 +479,7 @@ export default function Home() {
                   <FullScreenVideo
                     participant={detailParticipant}
                     videoTrackRef={selectedVideoTrackRef}
-                    isDanger={dangerRooms[slot.connection.roomName] ?? false}
+                    isDanger={dangerStates[slot.connection.roomName]?.isDanger ?? false}
                   />
                   <ParticipantDetailSidebar
                     participant={detailParticipant}
@@ -462,7 +488,8 @@ export default function Home() {
                     isTakeoverActive={isTakeoverActive}
                     onToggleTakeover={handleToggleTakeover}
                     onClose={handleCloseSidebar}
-                    isDanger={dangerRooms[slot.connection.roomName] ?? false}
+                    isDanger={dangerStates[slot.connection.roomName]?.isDanger ?? false}
+                    dangerCode={dangerStates[slot.connection.roomName]?.dangerCode}
                     onClearDanger={handleClearDanger}
                   />
                 </>

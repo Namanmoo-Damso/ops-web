@@ -5,16 +5,23 @@ import {
   RoomAudioRenderer,
   TrackRefContext,
   useTracks,
+  useRoomInfo,
 } from '@livekit/components-react';
 import { Track, RemoteTrackPublication } from 'livekit-client';
 import { LiveTileOps } from './LiveTileOps';
 import { EmptyTile } from './VideoTiles';
 import type { MockParticipant } from './ParticipantSidebar';
 
+export interface RoomDangerState {
+  isDanger: boolean;
+  dangerCode: string;
+}
+
 export interface RoomTracksProps {
   roomName: string;
   onParticipantsUpdate?: (participants: MockParticipant[]) => void;
   onTileClick?: (participantId: string, videoTrackRef: any) => void;
+  onDangerStateChange?: (state: RoomDangerState) => void;
   selectedParticipantForAudio?: string | null;
   focusedParticipantId?: string | null;
   isFullscreenActive?: boolean;
@@ -36,11 +43,36 @@ export const RoomTracks = ({
   roomName,
   onParticipantsUpdate,
   onTileClick,
+  onDangerStateChange,
   selectedParticipantForAudio,
   focusedParticipantId,
   isFullscreenActive,
   isDanger,
 }: RoomTracksProps) => {
+  // Get room metadata for danger state
+  const roomInfo = useRoomInfo();
+
+  // Parse danger state from room metadata and notify parent
+  useEffect(() => {
+    if (!onDangerStateChange) return;
+
+    let dangerState: RoomDangerState = { isDanger: false, dangerCode: '0000' };
+
+    if (roomInfo.metadata) {
+      try {
+        const metadata = JSON.parse(roomInfo.metadata);
+        dangerState = {
+          isDanger: metadata.isDanger ?? false,
+          dangerCode: metadata.dangerCode ?? '0000',
+        };
+      } catch {
+        // Invalid metadata JSON, use defaults
+      }
+    }
+
+    onDangerStateChange(dangerState);
+  }, [roomInfo.metadata, onDangerStateChange]);
+
   const allTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },

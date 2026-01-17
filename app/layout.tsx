@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { IBM_Plex_Mono, Space_Grotesk } from 'next/font/google';
 import { AuthProvider } from '../contexts/AuthContext';
+import GlobalCareAlert from '../components/GlobalCareAlert';
 import './globals.css';
 
 const spaceGrotesk = Space_Grotesk({
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${spaceGrotesk.variable} ${plexMono.variable}`}>
         <AuthProvider>
-          {children}
+          <GlobalCareAlert>
+            {children}
+          </GlobalCareAlert>
         </AuthProvider>
       </body>
     </html>
