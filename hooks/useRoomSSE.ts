@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import type { Room, RoomsSummary, AppEvent } from '../types/room';
+import type { Room, RoomsSummary, AppEvent, RoomParticipant } from '../types/room';
 
 type UseRoomSSEOptions = {
   apiBase: string | undefined;
@@ -11,6 +11,11 @@ const PENDING_ALERT_ROOM_KEY = 'pendingAlertRoom';
 const PENDING_ALERT_DANGER_KEY = 'pendingAlertDanger';
 const DANGER_STATE_TRUE = 'true';
 
+// Reconnection constants
+const INITIAL_RETRY_DELAY_MS = 1000;
+const MAX_RETRY_DELAY_MS = 30000;
+const RETRY_MULTIPLIER = 2;
+
 // Safe sessionStorage access
 const safeGetSessionStorage = (key: string): string | null => {
   try {
@@ -20,20 +25,11 @@ const safeGetSessionStorage = (key: string): string | null => {
   }
 };
 
-const safeClearSessionStorage = (key: string): void => {
-  try {
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem(key);
-    }
-  } catch {
-    // Silently ignore storage errors
-  }
-};
-
 export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
   // Initialize dangerRooms with pending alert danger state from sessionStorage
   const [dangerRooms, setDangerRooms] = useState<Record<string, boolean>>(
     () => {
@@ -46,6 +42,9 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
     },
   );
   const eventSourceRef = useRef<EventSource | null>(null);
+  const retryDelayRef = useRef(INITIAL_RETRY_DELAY_MS);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
 
   // Fetch initial rooms list
   const fetchRooms = useCallback(async () => {
@@ -71,11 +70,103 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
     }
   }, [apiBase]);
 
-  // Subscribe to SSE for real-time updates
-  useEffect(() => {
-    if (!enabled || !apiBase) {
-      console.log('[useRoomSSE] SSE disabled or no apiBase');
-      return;
+  // Incremental update handlers - avoid full refetch
+  const handleRoomCreated = useCallback((roomName: string) => {
+    setRooms(prev => {
+      // If room already exists, skip
+      if (prev.some(r => r.name === roomName)) return prev;
+      // Add minimal room entry (will be updated on participant join)
+      const newRoom: Room = {
+        name: roomName,
+        metadata: null,
+        createdAt: new Date().toISOString(),
+        numParticipants: 0,
+        numPublishers: null,
+        participants: [],
+      };
+      return [...prev, newRoom];
+    });
+  }, []);
+
+  const handleParticipantJoined = useCallback((roomName: string, identity?: string, name?: string) => {
+    setRooms(prev => {
+      const roomIndex = prev.findIndex(r => r.name === roomName);
+      if (roomIndex === -1) {
+        // Room doesn't exist yet, create it with this participant
+        if (identity) {
+          const newRoom: Room = {
+            name: roomName,
+            metadata: null,
+            createdAt: new Date().toISOString(),
+            numParticipants: 1,
+            numPublishers: null,
+            participants: [{
+              identity,
+              name: name || identity,
+              metadata: null,
+              joinedAt: new Date().toISOString(),
+            }],
+          };
+          return [...prev, newRoom];
+        }
+        return prev;
+      }
+
+      const room = prev[roomIndex];
+      // Check if participant already exists
+      if (identity && room.participants.some(p => p.identity === identity)) {
+        return prev;
+      }
+
+      const newParticipant: RoomParticipant | null = identity ? {
+        identity,
+        name: name || identity,
+        metadata: null,
+        joinedAt: new Date().toISOString(),
+      } : null;
+
+      const updatedRoom: Room = {
+        ...room,
+        participants: newParticipant
+          ? [...room.participants, newParticipant]
+          : room.participants,
+        numParticipants: room.numParticipants + 1,
+      };
+
+      const newRooms = [...prev];
+      newRooms[roomIndex] = updatedRoom;
+      return newRooms;
+    });
+  }, []);
+
+  const handleParticipantLeft = useCallback((roomName: string, participantIdentity?: string) => {
+    setRooms(prev => {
+      const roomIndex = prev.findIndex(r => r.name === roomName);
+      if (roomIndex === -1) return prev;
+
+      const room = prev[roomIndex];
+      const updatedRoom: Room = {
+        ...room,
+        participants: participantIdentity
+          ? room.participants.filter(p => p.identity !== participantIdentity)
+          : room.participants,
+        numParticipants: Math.max(0, room.numParticipants - 1),
+      };
+
+      const newRooms = [...prev];
+      newRooms[roomIndex] = updatedRoom;
+      return newRooms;
+    });
+  }, []);
+
+  // Connect to SSE with reconnection logic
+  const connectSSE = useCallback(() => {
+    if (!enabled || !apiBase || !mountedRef.current) return;
+
+    // Clean up existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
 
     const sseUrl = `${apiBase}/v1/events/stream`;
@@ -86,64 +177,102 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
 
     eventSource.onopen = () => {
       console.log('[useRoomSSE] SSE connection opened');
+      setConnected(true);
+      setError(null);
+      // Reset retry delay on successful connection
+      retryDelayRef.current = INITIAL_RETRY_DELAY_MS;
     };
 
     eventSource.onmessage = event => {
-      console.log('[useRoomSSE] SSE message received:', event.data);
       try {
         const data: AppEvent = JSON.parse(event.data);
-        console.log('[useRoomSSE] Parsed event:', data);
 
-        // Handle room-created event
-        if (data.type === 'room-created') {
-          console.log('[useRoomSSE] Room created:', data.roomName);
-          // Refetch all rooms to get the complete room data
-          fetchRooms();
-        }
+        switch (data.type) {
+          case 'room-created':
+            console.log('[useRoomSSE] Room created:', data.roomName);
+            handleRoomCreated(data.roomName);
+            break;
 
-        // Handle participant events (you can expand this later)
-        if (
-          data.type === 'participant-joined' ||
-          data.type === 'participant-left'
-        ) {
-          console.log(
-            '[useRoomSSE] Participant event:',
-            data.type,
-            data.roomName,
-          );
-          // Refetch to get updated participant counts
-          fetchRooms();
-        }
+          case 'participant-joined':
+            // RoomEvent has identity and name directly on the event
+            console.log('[useRoomSSE] Participant joined:', data.roomName, data.identity);
+            handleParticipantJoined(data.roomName, data.identity, data.name);
+            break;
 
-        // Handle room-danger event
-        if (data.type === 'room-danger') {
-          console.log(
-            '[useRoomSSE] Room danger event:',
-            data.roomName,
-            data.isDanger,
-          );
-          setDangerRooms(prev => ({
-            ...prev,
-            [data.roomName]: data.isDanger,
-          }));
+          case 'participant-left':
+            console.log('[useRoomSSE] Participant left:', data.roomName, data.identity);
+            handleParticipantLeft(data.roomName, data.identity);
+            break;
+
+          case 'room-danger':
+            console.log('[useRoomSSE] Room danger:', data.roomName, data.isDanger);
+            setDangerRooms(prev => ({
+              ...prev,
+              [data.roomName]: data.isDanger,
+            }));
+            break;
+
+          default:
+            // Includes room-updated, user-logout, user-deleted
+            console.log('[useRoomSSE] Unhandled event type:', data.type);
         }
       } catch (err) {
         console.error('[useRoomSSE] Failed to parse SSE event:', err);
       }
     };
 
-    eventSource.onerror = err => {
-      console.error('[useRoomSSE] SSE error:', err);
-      // Don't set error state here to avoid UI disruption
-      // The connection will auto-retry
-    };
-
-    return () => {
-      console.log('[useRoomSSE] Closing SSE connection');
+    eventSource.onerror = () => {
+      console.warn('[useRoomSSE] SSE connection error, will reconnect...');
+      setConnected(false);
       eventSource.close();
       eventSourceRef.current = null;
+
+      // Schedule reconnection with exponential backoff
+      if (mountedRef.current) {
+        const delay = retryDelayRef.current;
+        console.log(`[useRoomSSE] Reconnecting in ${delay}ms...`);
+
+        retryTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current) {
+            connectSSE();
+          }
+        }, delay);
+
+        // Increase delay for next retry (with cap)
+        retryDelayRef.current = Math.min(
+          retryDelayRef.current * RETRY_MULTIPLIER,
+          MAX_RETRY_DELAY_MS
+        );
+      }
     };
-  }, [enabled, apiBase, fetchRooms]);
+  }, [enabled, apiBase, handleRoomCreated, handleParticipantJoined, handleParticipantLeft]);
+
+  // Subscribe to SSE for real-time updates
+  useEffect(() => {
+    mountedRef.current = true;
+
+    if (!enabled || !apiBase) {
+      console.log('[useRoomSSE] SSE disabled or no apiBase');
+      return;
+    }
+
+    connectSSE();
+
+    return () => {
+      console.log('[useRoomSSE] Cleaning up SSE connection');
+      mountedRef.current = false;
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, [enabled, apiBase, connectSSE]);
 
   // Initial fetch
   useEffect(() => {
@@ -156,6 +285,7 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
     rooms,
     loading,
     error,
+    connected,
     dangerRooms,
     refetch: fetchRooms,
   };

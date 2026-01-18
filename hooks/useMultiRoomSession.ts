@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Room, RoomConnection } from '../types/room';
 import type { Admin } from '../types/models';
 
@@ -8,6 +8,9 @@ type UseMultiRoomSessionOptions = {
   enabled?: boolean;
 };
 
+// Cache admin identity to avoid refetching
+let cachedAdminIdentity: string | null = null;
+
 export function useMultiRoomSession({
   apiBase,
   rooms,
@@ -16,10 +19,17 @@ export function useMultiRoomSession({
   const [connections, setConnections] = useState<
     Record<string, RoomConnection>
   >({});
-  const [adminIdentity, setAdminIdentity] = useState<string>('');
+  const [adminIdentity, setAdminIdentity] = useState<string>(cachedAdminIdentity || '');
+  const pendingJoinsRef = useRef<Set<string>>(new Set());
 
-  // Fetch admin info on mount
+  // Fetch admin info on mount (with caching)
   useEffect(() => {
+    // Use cached value if available
+    if (cachedAdminIdentity) {
+      setAdminIdentity(cachedAdminIdentity);
+      return;
+    }
+
     const fetchAdminInfo = async () => {
       try {
         const adminAccessToken =
@@ -41,7 +51,9 @@ export function useMultiRoomSession({
         if (res.ok) {
           const data = (await res.json()) as { admin: Admin };
           const adminId = data.admin?.id || '';
-          setAdminIdentity(`admin_${adminId}`);
+          const identity = `admin_${adminId}`;
+          cachedAdminIdentity = identity;
+          setAdminIdentity(identity);
         }
       } catch (err) {
         console.error('Failed to fetch admin info:', err);
@@ -140,10 +152,6 @@ export function useMultiRoomSession({
       apiBase: !!apiBase,
       adminIdentity,
       roomsCount: rooms.length,
-      rooms: rooms.map(r => ({
-        name: r.name,
-        participants: r.participants.map(p => p.identity),
-      })),
     });
 
     if (!enabled) {
@@ -169,35 +177,50 @@ export function useMultiRoomSession({
       roomsWithNonAdminParticipants.map(r => r.name),
     );
 
-    console.log(
-      '[useMultiRoomSession] Filtered rooms with non-admin participants:',
-      {
-        total: rooms.length,
-        withNonAdmin: roomsWithNonAdminParticipants.length,
-        newRoomNames: Array.from(newRoomNames),
-        currentRoomNames: Array.from(currentRoomNames),
-      },
+    // Find rooms to join (not already connected and not pending)
+    const roomsToJoin = Array.from(newRoomNames).filter(
+      roomName => !currentRoomNames.has(roomName) && !pendingJoinsRef.current.has(roomName)
     );
 
-    // Join new rooms that have non-admin participants
-    newRoomNames.forEach(roomName => {
-      if (!currentRoomNames.has(roomName)) {
-        console.log(
-          `[useMultiRoomSession] Joining room with participants: ${roomName}`,
-        );
-        joinRoom(roomName);
-      }
+    // Find rooms to leave
+    const roomsToLeave = Array.from(currentRoomNames).filter(
+      roomName => !newRoomNames.has(roomName)
+    );
+
+    console.log('[useMultiRoomSession] Room changes:', {
+      toJoin: roomsToJoin,
+      toLeave: roomsToLeave,
     });
 
     // Leave rooms that no longer exist or have no non-admin participants
-    currentRoomNames.forEach(roomName => {
-      if (!newRoomNames.has(roomName)) {
-        console.log(
-          `[useMultiRoomSession] Leaving room (no participants or room closed): ${roomName}`,
-        );
-        leaveRoom(roomName);
-      }
+    roomsToLeave.forEach(roomName => {
+      console.log(
+        `[useMultiRoomSession] Leaving room (no participants or room closed): ${roomName}`,
+      );
+      leaveRoom(roomName);
     });
+
+    // Join new rooms in PARALLEL for lower latency
+    if (roomsToJoin.length > 0) {
+      // Mark rooms as pending to prevent duplicate joins
+      roomsToJoin.forEach(roomName => pendingJoinsRef.current.add(roomName));
+
+      console.log(`[useMultiRoomSession] Joining ${roomsToJoin.length} rooms in parallel`);
+
+      // Join all rooms concurrently
+      Promise.all(
+        roomsToJoin.map(async roomName => {
+          try {
+            await joinRoom(roomName);
+          } finally {
+            // Remove from pending set after join completes (success or failure)
+            pendingJoinsRef.current.delete(roomName);
+          }
+        })
+      ).catch(err => {
+        console.error('[useMultiRoomSession] Error joining rooms in parallel:', err);
+      });
+    }
   }, [
     enabled,
     apiBase,
