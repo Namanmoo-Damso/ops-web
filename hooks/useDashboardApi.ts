@@ -97,6 +97,9 @@ export interface CareAlertLog {
 export interface CareAlertsResponse {
   logs: CareAlertLog[];
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
   fetchedAt: string;
 }
 
@@ -202,6 +205,9 @@ export function useDashboardApi() {
     async (options?: {
       limit?: number;
       hoursBack?: number;
+      page?: number;
+      startDate?: string;
+      endDate?: string;
     }): Promise<CareAlertsResponse | null> => {
       setLoading(true);
       setError(null);
@@ -210,6 +216,9 @@ export function useDashboardApi() {
         if (options?.limit) params.set('limit', String(options.limit));
         if (options?.hoursBack)
           params.set('hoursBack', String(options.hoursBack));
+        if (options?.page) params.set('page', String(options.page));
+        if (options?.startDate) params.set('startDate', options.startDate);
+        if (options?.endDate) params.set('endDate', options.endDate);
         const query = params.toString() ? `?${params.toString()}` : '';
         return await apiClient.get<CareAlertsResponse>(
           `/v1/admin/dashboard/care-alerts${query}`,
