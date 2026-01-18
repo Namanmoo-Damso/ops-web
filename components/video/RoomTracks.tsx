@@ -34,6 +34,20 @@ const getParticipantId = (participant: any) =>
 const getBaseName = (participant: any) =>
   (participant.name || participant.identity || 'User').trim();
 
+// Check if participant has a real name (not just a placeholder)
+const hasRealName = (participant: any): boolean => {
+  const name = (participant.name || '').trim().toLowerCase();
+  const identity = (participant.identity || '').trim().toLowerCase();
+  // Consider it a placeholder if name is empty, "user", or identity looks like a generic ID
+  if (!name || name === 'user') {
+    // Check if identity is also generic (e.g., just "user" or UUID-like)
+    if (!identity || identity === 'user' || identity.match(/^[a-f0-9-]{36}$/i)) {
+      return false;
+    }
+  }
+  return true;
+};
+
 const isVideoOff = (participant: any) => {
   const publishing = participant.isCameraEnabled !== false;
   return !publishing;
@@ -108,11 +122,12 @@ export const RoomTracks = ({
     });
   }, [audioTracks, selectedParticipantForAudio]);
 
-  // Filter out admin and agent participants (they are invisible in grid)
+  // Filter out admin, agent participants, and placeholder participants (they are invisible in grid)
   const tracks = allTracks.filter(
     track =>
       !track.participant.identity.startsWith('admin_') &&
-      !track.participant.identity.startsWith('agent-'),
+      !track.participant.identity.startsWith('agent-') &&
+      hasRealName(track.participant),
   );
 
   // Filter audio tracks to only include selected participant and exclude AI agents and admins
