@@ -111,6 +111,24 @@ export interface CareAlertStatsResponse {
   fetchedAt: string;
 }
 
+export interface UpcomingCall {
+  scheduleId: string;
+  wardId: string;
+  wardName: string;
+  wardIdentity: string;
+  aiPersona: string;
+  scheduledTime: string;
+  slotStartHour: number;
+  slotStartMinute: number;
+}
+
+export interface UpcomingCallsResponse {
+  calls: UpcomingCall[];
+  count: number;
+  hoursAhead: number;
+  fetchedAt: string;
+}
+
 // ============================================================================
 // Hook
 // ============================================================================
@@ -263,6 +281,32 @@ export function useDashboardApi() {
     [],
   );
 
+  /**
+   * Get upcoming scheduled calls
+   */
+  const getUpcomingCalls = useCallback(
+    async (hoursAhead?: number): Promise<UpcomingCallsResponse | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const query = hoursAhead ? `?hoursAhead=${hoursAhead}` : '';
+        return await apiClient.get<UpcomingCallsResponse>(
+          `/v1/admin/dashboard/upcoming-calls${query}`,
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to fetch upcoming calls',
+        );
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   return {
     loading,
     error,
@@ -272,6 +316,7 @@ export function useDashboardApi() {
     getRealtime,
     getCareAlerts,
     getCareAlertStats,
+    getUpcomingCalls,
   };
 }
 

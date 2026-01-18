@@ -10,6 +10,8 @@ import {
   BulletinBoard,
   BulletinItem,
   HourlyCallData,
+  UpcomingCalls,
+  UpcomingCall,
 } from '../../components/dashboard';
 import { useBulletinsApi, useDashboardApi } from '../../hooks';
 import '../../styles/dashboard.css';
@@ -34,10 +36,12 @@ export default function DashboardPage() {
     DailyOperationsData | undefined
   >(undefined);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [upcomingCalls, setUpcomingCalls] = useState<UpcomingCall[]>([]);
+  const [upcomingCallsLoading, setUpcomingCallsLoading] = useState(true);
 
   const { listBulletins, createBulletin, updateBulletin, deleteBulletin } =
     useBulletinsApi();
-  const { getTimeline, getTodaySummary } = useDashboardApi();
+  const { getTimeline, getTodaySummary, getUpcomingCalls } = useDashboardApi();
 
   // Load today's summary on mount
   const loadTodaySummary = useCallback(async () => {
@@ -95,11 +99,27 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Load upcoming calls on mount and refresh every minute
+  const loadUpcomingCalls = useCallback(async () => {
+    setUpcomingCallsLoading(true);
+    const result = await getUpcomingCalls(2); // Next 2 hours
+    if (result && result.calls) {
+      setUpcomingCalls(result.calls);
+    }
+    setUpcomingCallsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     loadTodaySummary();
     loadBulletins();
     loadTimeline();
-  }, [loadTodaySummary, loadBulletins, loadTimeline]);
+    loadUpcomingCalls();
+
+    // Refresh upcoming calls every minute
+    const interval = setInterval(loadUpcomingCalls, 60000);
+    return () => clearInterval(interval);
+  }, [loadTodaySummary, loadBulletins, loadTimeline, loadUpcomingCalls]);
 
   const handleAddBulletin = async (item: Omit<BulletinItem, 'id'>) => {
     const result = await createBulletin({
@@ -136,18 +156,26 @@ export default function DashboardPage() {
       onCsvModalOpenChange={setCsvModalOpen}
     >
       <div className="dashboard-container">
-        {/* Hero Section: Daily Operations Summary */}
+        {/* Row 1: Daily Operations Summary (full width) */}
         <DailyOperationsSummary data={todaySummary} loading={summaryLoading} />
 
-        {/* Middle Row: Bulletin Board + Timeline Chart */}
-        <section className="dashboard-middle-row">
-          {/* Left: Bulletin Board */}
+        {/* Row 2: Bulletin Board (full width) */}
+        <section className="dashboard-bulletin-row">
           <BulletinBoard
             items={bulletinItems}
             onAdd={handleAddBulletin}
             onEdit={handleEditBulletin}
             onDelete={handleDeleteBulletin}
             loading={bulletinsLoading}
+          />
+        </section>
+
+        {/* Row 3: Upcoming Calls (left) + Timeline (right) */}
+        <section className="dashboard-bottom-row">
+          {/* Left: Upcoming Calls */}
+          <UpcomingCalls
+            calls={upcomingCalls}
+            loading={upcomingCallsLoading}
           />
 
           {/* Right: Timeline Chart */}

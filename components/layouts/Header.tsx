@@ -7,6 +7,28 @@ import { cn } from '../ui/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
 
+// Live Clock component
+const LiveClock = () => {
+    const [time, setTime] = useState<Date | null>(null);
+
+    useEffect(() => {
+        setTime(new Date());
+        const interval = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    if (!time) return <span style={{ opacity: 0 }}>오전 00:00:00</span>;
+
+    const hours = time.getHours();
+    const period = hours < 12 ? '오전' : '오후';
+    const displayHours = hours % 12 || 12;
+    const minutes = time.getMinutes();
+    const seconds = time.getSeconds();
+    const formattedTime = `${period} ${String(displayHours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+    return <span>{formattedTime}</span>;
+};
+
 // Header Icons
 const IconBell = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -274,6 +296,21 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
 
                     <div style={logoStyle} />
                     <span style={serviceNameStyle}>담소</span>
+
+                    {/* Live Clock */}
+                    <div
+                        style={{
+                            marginLeft: spacing.xl,
+                            paddingLeft: spacing.xl,
+                            borderLeft: `1px solid ${colors.border.main}`,
+                            fontSize: typography.fontSize.body,
+                            fontWeight: typography.fontWeight.semibold,
+                            color: colors.primary.dark,
+                            fontVariantNumeric: 'tabular-nums',
+                        }}
+                    >
+                        <LiveClock />
+                    </div>
                 </div>
 
                 {/* Right: Actions */}

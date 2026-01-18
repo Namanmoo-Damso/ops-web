@@ -8,7 +8,137 @@
   gap: var(--spacing-2xl);
 }
 
-/* --- Middle Row (Bulletin + Timeline) --- */
+/* --- Row 1: Daily Operations Summary (full width) --- */
+/* Handled by DailyOperationsSummary component */
+
+/* --- Row 2: Bulletin Board (full width) --- */
+.dashboard-bulletin-row {
+  width: 100%;
+}
+
+/* --- Row 3: Upcoming Calls (left) + Timeline (right) --- */
+.dashboard-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-xl);
+}
+
+@media (max-width: 900px) {
+  .dashboard-bottom-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Upcoming Calls --- */
+.upcoming-calls-card {
+  flex: 1;
+}
+
+.upcoming-calls-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.upcoming-calls-icon {
+  color: var(--color-primary-dark);
+}
+
+.upcoming-calls-title {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  margin: 0;
+  flex: 1;
+}
+
+.upcoming-calls-count {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-dark);
+  background: var(--color-accent-soft);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.upcoming-calls-content {
+  min-height: 200px;
+}
+
+.upcoming-calls-loading,
+.upcoming-calls-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-2xl);
+  color: var(--color-text-muted);
+  text-align: center;
+  height: 100%;
+}
+
+.upcoming-calls-empty-icon {
+  opacity: 0.5;
+}
+
+.upcoming-calls-empty p {
+  margin: 0;
+  font-size: var(--font-size-body);
+}
+
+.upcoming-calls-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.upcoming-call-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--color-bg-elevated-1);
+  border-radius: var(--radius-md);
+  transition: background 0.15s ease;
+}
+
+.upcoming-call-item:hover {
+  background: var(--color-bg-elevated-2);
+}
+
+.upcoming-call-time {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-dark);
+  min-width: 80px;
+}
+
+.upcoming-call-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.upcoming-call-name {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.upcoming-call-persona {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-muted);
+}
+
+/* --- Middle Row (kept for backwards compatibility, but now used for bulletin only) --- */
 .dashboard-middle-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
