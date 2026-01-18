@@ -11,6 +11,11 @@ import {
 } from 'react';
 import { API_BASE } from '../lib/api-client';
 
+// SSE reconnection constants
+const INITIAL_RETRY_DELAY_MS = 1000;
+const MAX_RETRY_DELAY_MS = 30000;
+const RETRY_MULTIPLIER = 2;
+
 export interface CareAlert {
   id: string;
   roomName: string;
@@ -149,6 +154,9 @@ export function CareAlertProvider({
   const [suspended, setSuspended] = useState(false); // True when detail sidebar is open
   const eventSourceRef = useRef<EventSource | null>(null);
   const alarmRef = useRef<AlarmController | null>(null);
+  const retryDelayRef = useRef(INITIAL_RETRY_DELAY_MS);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
   // Initialize alarm controller
   useEffect(() => {
@@ -205,65 +213,104 @@ export function CareAlertProvider({
     setActiveAlerts(prev => prev.filter(alert => alert.roomName !== roomName));
   }, []);
 
-  // Subscribe to SSE for room-danger events
+  // Subscribe to SSE for room-danger events with reconnection logic
   useEffect(() => {
     if (!enabled || !API_BASE) {
       return;
     }
 
-    const sseUrl = `${API_BASE}/v1/events/stream`;
-    console.log(`[CareAlertProvider] Connecting to SSE: ${sseUrl}`);
+    mountedRef.current = true;
 
-    const eventSource = new EventSource(sseUrl);
-    eventSourceRef.current = eventSource;
+    const connect = () => {
+      if (!mountedRef.current) return;
 
-    eventSource.onopen = () => {
-      console.log('[CareAlertProvider] SSE connection opened');
-    };
+      const sseUrl = `${API_BASE}/v1/events/stream`;
+      console.log(`[CareAlertProvider] Connecting to SSE: ${sseUrl}`);
 
-    eventSource.onmessage = event => {
-      try {
-        const data = JSON.parse(event.data);
+      const eventSource = new EventSource(sseUrl);
+      eventSourceRef.current = eventSource;
 
-        // Handle room-danger event
-        if (data.type === 'room-danger') {
-          console.log(
-            '[CareAlertProvider] Room danger event:',
-            data.roomName,
-            data.isDanger,
-            data.wardName,
-          );
+      eventSource.onopen = () => {
+        console.log('[CareAlertProvider] SSE connection opened');
+        // Reset retry delay on successful connection
+        retryDelayRef.current = INITIAL_RETRY_DELAY_MS;
+      };
 
-          if (data.isDanger) {
-            // Use wardName and alertType from event data if available
-            const alertType =
-              data.alertType || data.name?.split(':')[0] || 'unknown';
-            addAlert({
-              id: `${data.roomName}-${Date.now()}`,
-              roomName: data.roomName,
-              wardId: data.wardId,
-              wardName: data.wardName,
-              alertType,
-              timestamp: Date.now(),
-            });
-          } else {
-            // Remove alert when danger is cleared
-            removeAlertByRoom(data.roomName);
+      eventSource.onmessage = event => {
+        try {
+          const data = JSON.parse(event.data);
+
+          // Handle room-danger event
+          if (data.type === 'room-danger') {
+            console.log(
+              '[CareAlertProvider] Room danger event:',
+              data.roomName,
+              data.isDanger,
+              data.wardName,
+            );
+
+            if (data.isDanger) {
+              // Use wardName and alertType from event data if available
+              const alertType =
+                data.alertType || data.name?.split(':')[0] || 'unknown';
+              addAlert({
+                id: `${data.roomName}-${Date.now()}`,
+                roomName: data.roomName,
+                wardId: data.wardId,
+                wardName: data.wardName,
+                alertType,
+                timestamp: Date.now(),
+              });
+            } else {
+              // Remove alert when danger is cleared
+              removeAlertByRoom(data.roomName);
+            }
           }
+        } catch (err) {
+          console.error('[CareAlertProvider] Failed to parse SSE event:', err);
         }
-      } catch (err) {
-        console.error('[CareAlertProvider] Failed to parse SSE event:', err);
-      }
+      };
+
+      eventSource.onerror = err => {
+        console.warn('[CareAlertProvider] SSE connection error:', err);
+        eventSource.close();
+        eventSourceRef.current = null;
+
+        // Reconnect with exponential backoff
+        if (mountedRef.current) {
+          const delay = retryDelayRef.current;
+          console.log(`[CareAlertProvider] Reconnecting in ${delay}ms...`);
+
+          retryTimeoutRef.current = setTimeout(() => {
+            if (mountedRef.current) {
+              connect();
+            }
+          }, delay);
+
+          // Increase delay for next retry (exponential backoff)
+          retryDelayRef.current = Math.min(
+            retryDelayRef.current * RETRY_MULTIPLIER,
+            MAX_RETRY_DELAY_MS,
+          );
+        }
+      };
     };
 
-    eventSource.onerror = err => {
-      console.error('[CareAlertProvider] SSE error:', err);
-    };
+    connect();
 
     return () => {
       console.log('[CareAlertProvider] Closing SSE connection');
-      eventSource.close();
-      eventSourceRef.current = null;
+      mountedRef.current = false;
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     };
   }, [enabled, addAlert, removeAlertByRoom]);
 

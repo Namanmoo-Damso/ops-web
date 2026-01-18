@@ -40,6 +40,8 @@ export type {
   HealthAlerts,
   KeywordStat,
   StatsResponse,
+  UpcomingCall,
+  UpcomingCallsResponse,
 } from './useDashboardApi';
 export { useBeneficiaryStatsApi } from './useBeneficiaryStatsApi';
 export type {

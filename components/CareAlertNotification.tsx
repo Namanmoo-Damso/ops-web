@@ -16,7 +16,7 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
 const PENDING_ALERT_ROOM_KEY = 'pendingAlertRoom';
 const PENDING_ALERT_DANGER_KEY = 'pendingAlertDanger';
 const DANGER_STATE_TRUE = 'true';
-const HOME_PATH = '/';
+const HOME_PATH = '/monitoring';
 
 // Safe sessionStorage access
 const safeSetSessionStorage = (key: string, value: string): void => {

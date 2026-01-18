@@ -14,6 +14,8 @@ import {
   Check,
   Search,
   Download,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useDashboardApi } from '../../hooks';
 import {
@@ -88,6 +90,12 @@ export default function EmergencyLogsPage() {
   const [logs, setLogs] = useState<EmergencyLogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const PAGE_SIZE = 30;
+
   // Detail modal state
   const [detailLog, setDetailLog] = useState<EmergencyLogItem | null>(null);
   const [editManager, setEditManager] = useState('');
@@ -119,48 +127,47 @@ export default function EmergencyLogsPage() {
     }
   }, []);
 
+  // Reset to page 1 when date range changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [startDate, endDate]);
+
   // Load logs
   useEffect(() => {
     const loadLogs = async () => {
       setLoading(true);
-      // Calculate hours back from date range
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const hoursBack =
-        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60)) + 24;
 
       const result = await getCareAlerts({
-        limit: 200,
-        hoursBack: Math.max(hoursBack, 168),
+        limit: PAGE_SIZE,
+        page: currentPage,
+        startDate,
+        endDate,
       });
       if (result && result.logs) {
-        const items: EmergencyLogItem[] = result.logs
-          .filter(log => {
-            const logDate = new Date(log.timestamp);
-            return logDate >= start && logDate <= end;
-          })
-          .map(log => ({
-            id: log.id,
-            datetime: new Date(log.timestamp),
-            beneficiaryName: log.wardName,
-            type: ALERT_TYPE_LABELS[log.alertType] || log.type,
-            status:
-              log.status === 'pending'
-                ? 'pending'
-                : log.status === 'false_positive'
-                  ? 'false_positive'
-                  : 'resolved',
-            manager: '',
-            summary: '',
-            severity: log.severity,
-            alertType: log.alertType,
-          }));
+        const items: EmergencyLogItem[] = result.logs.map(log => ({
+          id: log.id,
+          datetime: new Date(log.timestamp),
+          beneficiaryName: log.wardName,
+          type: ALERT_TYPE_LABELS[log.alertType] || log.type,
+          status:
+            log.status === 'pending'
+              ? 'pending'
+              : log.status === 'false_positive'
+                ? 'false_positive'
+                : 'resolved',
+          manager: '',
+          summary: '',
+          severity: log.severity,
+          alertType: log.alertType,
+        }));
         setLogs(items);
+        setTotalCount(result.total);
+        setTotalPages(result.totalPages);
       }
       setLoading(false);
     };
     loadLogs();
-  }, [getCareAlerts, startDate, endDate]);
+  }, [getCareAlerts, startDate, endDate, currentPage]);
 
   // Filter logs by search query
   const filteredLogs = logs.filter(log => {
@@ -300,7 +307,7 @@ export default function EmergencyLogsPage() {
             <AlertTriangle size={26} className="emergency-log-module-icon" />
             <h3 className="emergency-log-module-title">위급 감지 로그</h3>
             <span className="emergency-log-module-count-badge">
-              {filteredLogs.length}건
+              {totalCount}건
             </span>
           </div>
 
@@ -367,6 +374,78 @@ export default function EmergencyLogsPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px',
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px 12px',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--color-panel)',
+                    color:
+                      currentPage === 1
+                        ? 'var(--color-text-muted)'
+                        : 'var(--color-text-primary)',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  <ChevronLeft size={16} />
+                  이전
+                </button>
+
+                <span
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--color-text-secondary)',
+                  }}
+                >
+                  {currentPage} / {totalPages} 페이지 (총 {totalCount}건)
+                </span>
+
+                <button
+                  onClick={() =>
+                    setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px 12px',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: '6px',
+                    backgroundColor: 'var(--color-panel)',
+                    color:
+                      currentPage === totalPages
+                        ? 'var(--color-text-muted)'
+                        : 'var(--color-text-primary)',
+                    cursor:
+                      currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  다음
+                  <ChevronRight size={16} />
+                </button>
               </div>
             )}
           </div>
