@@ -18,8 +18,8 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'LiveKit Control Room',
-  description: 'SFU control room dashboard',
+  title: '담소 관제센터',
+  description: '담소 관제센터 대시보드',
 };
 
 export default function RootLayout({

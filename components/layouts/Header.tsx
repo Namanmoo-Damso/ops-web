@@ -295,7 +295,7 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
                     </button>
 
                     <div style={logoStyle} />
-                    <span style={serviceNameStyle}>담소</span>
+                    <span style={serviceNameStyle}>담소 관제센터</span>
 
                     {/* Live Clock */}
                     <div
