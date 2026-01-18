@@ -208,18 +208,18 @@ export function useMultiRoomSession({
       console.log(`[useMultiRoomSession] Joining ${roomsToJoin.length} rooms in parallel`);
 
       // Join all rooms concurrently
-      Promise.all(
+      Promise.allSettled(
         roomsToJoin.map(async roomName => {
           try {
             await joinRoom(roomName);
+          } catch (err) {
+            console.error(`[useMultiRoomSession] Failed to join room ${roomName}:`, err);
           } finally {
             // Remove from pending set after join completes (success or failure)
             pendingJoinsRef.current.delete(roomName);
           }
         })
-      ).catch(err => {
-        console.error('[useMultiRoomSession] Error joining rooms in parallel:', err);
-      });
+      );
     }
   }, [
     enabled,

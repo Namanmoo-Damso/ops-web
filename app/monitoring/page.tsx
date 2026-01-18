@@ -288,6 +288,54 @@ export default function Home() {
     // If participants not yet loaded with real data, this effect will re-run when allParticipants changes
   }, [connections, allParticipants]);
 
+  // Fallback: Retry selecting pending room with polling (handles race conditions)
+  useEffect(() => {
+    const pendingRoom = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
+    if (!pendingRoom) return;
+
+    let retryCount = 0;
+    const maxRetries = 30; // 3 seconds max (100ms * 30)
+    
+    const retryInterval = setInterval(() => {
+      // Check if already selected (sessionStorage cleared)
+      const stillPending = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
+      if (!stillPending) {
+        clearInterval(retryInterval);
+        return;
+      }
+
+      retryCount++;
+      if (retryCount >= maxRetries) {
+        console.warn('[Home] Pending alert room selection timed out:', pendingRoom);
+        safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+        pendingAlertRoomRef.current = null;
+        clearInterval(retryInterval);
+        return;
+      }
+
+      // Try to find and select the room (only accept real participants, not 'user' placeholder)
+      const connectionExists = connections.some(c => c.roomName === pendingRoom);
+      const roomParticipants = allParticipants[pendingRoom];
+      const hasRealParticipant = roomParticipants && roomParticipants.length > 0 &&
+        roomParticipants.some(p => p.name && p.name !== 'user');
+      
+      if (connectionExists && hasRealParticipant) {
+        const realParticipant = roomParticipants.find(p => p.name && p.name !== 'user') || roomParticipants[0];
+        setSelectedParticipantForAudio(realParticipant.id);
+        setSelectedRoomName(pendingRoom);
+        setDetailParticipant(realParticipant);
+        setShowFullScreenVideo(true);
+        setShowDetailSidebar(true);
+        safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+        pendingAlertRoomRef.current = null;
+        console.log('[Home] Fallback: Selected pending alert room:', pendingRoom, realParticipant.name);
+        clearInterval(retryInterval);
+      }
+    }, 100);
+
+    return () => clearInterval(retryInterval);
+  }, []); // Run once on mount
+
   // Listen for selectAlertRoom custom event from CareAlertNotification
   useEffect(() => {
     const handleSelectAlertRoom = (event: Event) => {
