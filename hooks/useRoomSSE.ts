@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { getAdminToken } from '../utils/roomApi';
 import type {
   Room,
   RoomsSummary,
@@ -60,7 +61,10 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
 
     try {
       setLoading(true);
-      const response = await fetch(`${apiBase}/v1/livekit/rooms`);
+      const token = getAdminToken();
+      const response = await fetch(`${apiBase}/v1/livekit/rooms`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch rooms: ${response.status}`);
       }
