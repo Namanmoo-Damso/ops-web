@@ -23,7 +23,9 @@ export type UserEvent = {
   timestamp: string;
 };
 
-export type AppEvent = UserEvent | RoomEvent | RoomDangerEvent;
+export type HeartBeat = { type: 'heartbeat' };
+
+export type AppEvent = UserEvent | RoomEvent | RoomDangerEvent | HeartBeat;
 
 export type RoomParticipant = {
   identity: string;

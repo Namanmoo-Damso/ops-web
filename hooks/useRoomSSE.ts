@@ -191,7 +191,7 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
     const sseUrl = `${apiBase}/v1/events/stream`;
     console.log(`[useRoomSSE] Connecting to SSE: ${sseUrl}`);
 
-    const eventSource = new EventSource(sseUrl);
+    const eventSource = new EventSource(sseUrl, { withCredentials: true });
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
@@ -241,6 +241,10 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
               ...prev,
               [data.roomName]: data.isDanger,
             }));
+            break;
+
+          case 'heartbeat':
+            console.log('[useRoomSSE] Heart Beating for connectivity');
             break;
 
           default:
