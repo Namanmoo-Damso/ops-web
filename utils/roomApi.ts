@@ -151,3 +151,43 @@ export const muteAgentInRoom = async (
     console.error('[muteAgentInRoom] Failed:', err);
   }
 };
+
+/**
+ * Acknowledge all alerts in a room via API
+ * Calls: PATCH /v1/guardians/alerts/acknowledge-all
+ */
+export const acknowledgeAllAlertsInRoom = async (
+  roomName: string,
+): Promise<void> => {
+  const apiBase = getApiBase();
+  const adminToken = getAdminToken();
+
+  if (!adminToken) {
+    console.warn('[acknowledgeAllAlertsInRoom] No admin token available');
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${apiBase}/v1/guardians/alerts/acknowledge-all`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ roomName }),
+      },
+    );
+
+    if (!response.ok) {
+      console.error('[acknowledgeAllAlertsInRoom] API error:', response.status);
+    } else {
+      console.log(
+        `[acknowledgeAllAlertsInRoom] All alerts acknowledged in ${roomName}`,
+      );
+    }
+  } catch (err) {
+    console.error('[acknowledgeAllAlertsInRoom] Failed:', err);
+  }
+};

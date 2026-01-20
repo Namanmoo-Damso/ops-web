@@ -12,7 +12,15 @@ type FullScreenVideoProps = {
   participant: MockParticipant;
   videoTrackRef: any;
   isDanger?: boolean;
+  riskLevel?: 'normal' | 'caution' | 'critical';
   isHeaderHidden?: boolean;
+};
+
+// Color configurations based on risk level
+const RISK_COLORS = {
+  normal: { border: 'transparent', glow: 'transparent', dot: '#10b981' },
+  caution: { border: '#eab308', glow: 'rgba(234, 179, 8, 0.6)', dot: '#eab308' },
+  critical: { border: '#ef4444', glow: 'rgba(239, 68, 68, 0.6)', dot: '#ef4444' },
 };
 
 const VOLUME_STORAGE_KEY = 'fullscreen-volume';
@@ -43,8 +51,13 @@ export const FullScreenVideo = ({
   participant,
   videoTrackRef: externalVideoTrackRef,
   isDanger = false,
+  riskLevel = 'normal',
   isHeaderHidden = false,
 }: FullScreenVideoProps) => {
+  // Determine effective risk level based on riskLevel prop (isDanger is for backward compatibility)
+  const effectiveRiskLevel = riskLevel !== 'normal' ? riskLevel : (isDanger ? 'critical' : 'normal');
+  const colors = RISK_COLORS[effectiveRiskLevel];
+  const isAlert = effectiveRiskLevel !== 'normal';
   const room = useRoomContext();
   const [volume, setVolume] = useState(() => getStoredVolume());
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
@@ -360,23 +373,27 @@ export const FullScreenVideo = ({
               position: 'relative',
               borderRadius: '24px',
               overflow: 'hidden',
-              boxShadow: isDanger
-                ? '0 0 0 4px #ef4444, 0 0 40px rgba(239, 68, 68, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6)'
+              boxShadow: isAlert
+                ? `0 0 0 4px ${colors.border}, 0 0 40px ${colors.glow}, 0 40px 100px rgba(0, 0, 0, 0.6)`
                 : '0 40px 100px rgba(0, 0, 0, 0.6)',
               background: '#000000',
               height: '90vh',
               aspectRatio: '9 / 16', // Maintains portrait aspect ratio
-              animation: isDanger
-                ? 'dangerPulse 1.5s ease-in-out infinite'
+              animation: isAlert
+                ? `${effectiveRiskLevel}Pulse 1.5s ease-in-out infinite`
                 : undefined,
             }}
           >
-            {isDanger && (
+            {isAlert && (
               <style>
                 {`
-                  @keyframes dangerPulse {
+                  @keyframes criticalPulse {
                     0%, 100% { box-shadow: 0 0 0 4px #ef4444, 0 0 40px rgba(239, 68, 68, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6); }
                     50% { box-shadow: 0 0 0 6px #ef4444, 0 0 60px rgba(239, 68, 68, 0.8), 0 40px 100px rgba(0, 0, 0, 0.6); }
+                  }
+                  @keyframes cautionPulse {
+                    0%, 100% { box-shadow: 0 0 0 4px #eab308, 0 0 40px rgba(234, 179, 8, 0.6), 0 40px 100px rgba(0, 0, 0, 0.6); }
+                    50% { box-shadow: 0 0 0 6px #eab308, 0 0 60px rgba(234, 179, 8, 0.8), 0 40px 100px rgba(0, 0, 0, 0.6); }
                   }
                 `}
               </style>
@@ -443,8 +460,8 @@ export const FullScreenVideo = ({
                   width: '10px',
                   height: '10px',
                   borderRadius: '50%',
-                  background: isDanger ? '#ef4444' : '#10b981',
-                  animation: isDanger
+                  background: colors.dot,
+                  animation: isAlert
                     ? 'pulse 1s ease-in-out infinite'
                     : undefined,
                 }}

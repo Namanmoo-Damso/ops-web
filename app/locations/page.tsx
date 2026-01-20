@@ -6,6 +6,7 @@ import { LocationMap, type WardLocation } from '../../components/LocationMap';
 import MonitoringSidebar from '../../components/monitoring/MonitoringSidebar';
 import { useApi } from '../../hooks/useApi';
 import { apiClient } from '../../lib/api-client';
+import { useLocationDangerSSE } from '../../hooks/useLocationDangerSSE';
 import DetailModal, {
   type BeneficiaryDetail,
   type BeneficiaryUpdatePayload,
@@ -147,7 +148,10 @@ export default function LocationsPage() {
     fetcher: (client, signal) => client.get('/v1/admin/locations', { signal }),
   });
 
-  const locations: WardLocation[] = useMemo(() => {
+  // 2. SSE for real-time danger state updates
+  const { getEffectiveStatus, connected: sseConnected } = useLocationDangerSSE();
+
+  const locationsRaw: WardLocation[] = useMemo(() => {
     if (!locationsDataRaw) return [];
     if (Array.isArray(locationsDataRaw)) return locationsDataRaw as WardLocation[];
     const response = locationsDataRaw as LocationsResponse;
@@ -155,10 +159,23 @@ export default function LocationsPage() {
     return [];
   }, [locationsDataRaw]);
 
+  // Apply SSE danger state to locations (SSE takes priority over API status)
+  const locations: WardLocation[] = useMemo(() => {
+    return locationsRaw.map(loc => ({
+      ...loc,
+      status: getEffectiveStatus(loc.wardId, loc.status),
+    }));
+  }, [locationsRaw, getEffectiveStatus]);
+
   useEffect(() => {
     const interval = setInterval(() => refetchLocations(), 30000);
     return () => clearInterval(interval);
   }, [refetchLocations]);
+
+  // Debug log for SSE connection
+  useEffect(() => {
+    console.log('[LocationsPage] SSE connected:', sseConnected);
+  }, [sseConnected]);
 
   // 2. Use Custom Hook for Details
   const { selectedData, detailError } = useBeneficiaryDetail(selectedWardId, locations);

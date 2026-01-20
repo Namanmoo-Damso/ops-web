@@ -15,6 +15,7 @@ import type { MockParticipant } from './ParticipantSidebar';
 export interface RoomDangerState {
   isDanger: boolean;
   dangerCode: string;
+  riskLevel?: 'normal' | 'caution' | 'critical';
 }
 
 export interface RoomTracksProps {
@@ -26,6 +27,7 @@ export interface RoomTracksProps {
   focusedParticipantId?: string | null;
   isFullscreenActive?: boolean;
   isDanger?: boolean;
+  riskLevel?: 'normal' | 'caution' | 'critical';
 }
 
 const getParticipantId = (participant: any) =>
@@ -62,6 +64,7 @@ export const RoomTracks = ({
   focusedParticipantId,
   isFullscreenActive,
   isDanger,
+  riskLevel,
 }: RoomTracksProps) => {
   // Get room metadata for danger state
   const roomInfo = useRoomInfo();
@@ -70,7 +73,7 @@ export const RoomTracks = ({
   useEffect(() => {
     if (!onDangerStateChange) return;
 
-    let dangerState: RoomDangerState = { isDanger: false, dangerCode: '0000' };
+    let dangerState: RoomDangerState = { isDanger: false, dangerCode: '0000', riskLevel: 'normal' };
 
     if (roomInfo.metadata) {
       try {
@@ -78,6 +81,7 @@ export const RoomTracks = ({
         dangerState = {
           isDanger: metadata.isDanger ?? false,
           dangerCode: metadata.dangerCode ?? '0000',
+          riskLevel: metadata.riskLevel ?? (metadata.isDanger ? 'critical' : 'normal'),
         };
       } catch {
         // Invalid metadata JSON, use defaults
@@ -265,6 +269,7 @@ export const RoomTracks = ({
             onClick={onTileClick}
             participantId={identity}
             isDanger={isDanger}
+            riskLevel={riskLevel}
           />
         );
       })}
