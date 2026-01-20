@@ -6,6 +6,7 @@ import { colors, shadows, spacing, typography } from '../../styles/tokens';
 import { cn } from '../ui/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
+import { NotificationDropdown } from '../notifications';
 
 // Live Clock component
 const LiveClock = () => {
@@ -30,25 +31,6 @@ const LiveClock = () => {
 };
 
 // Header Icons
-const IconBell = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-        <path
-            d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9z"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M13.73 21a2 2 0 0 1-3.46 0"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        />
-    </svg>
-);
-
 const IconChevronDown = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
         <path
@@ -205,20 +187,6 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
             gap: spacing.lg,
         };
 
-        const iconButtonStyle: CSSProperties = {
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            border: 'none',
-            background: 'transparent',
-            display: 'grid',
-            placeItems: 'center',
-            color: colors.text.muted,
-            cursor: 'pointer',
-            transition: 'all 150ms ease',
-            position: 'relative',
-        };
-
         const profileButtonStyle: CSSProperties = {
             display: 'flex',
             alignItems: 'center',
@@ -324,22 +292,8 @@ const Header = forwardRef<HTMLElement, HeaderProps>(
                         대상자 등록
                     </Button>
 
-                    {/* Notifications */}
-                    <button
-                        style={iconButtonStyle}
-                        onClick={onNotificationsClick}
-                        aria-label="알림"
-                        onMouseEnter={e => {
-                            e.currentTarget.style.backgroundColor = colors.background.elevated1;
-                            e.currentTarget.style.color = colors.text.primary;
-                        }}
-                        onMouseLeave={e => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            e.currentTarget.style.color = colors.text.muted;
-                        }}
-                    >
-                        <IconBell />
-                    </button>
+                    {/* Notifications Dropdown */}
+                    <NotificationDropdown />
 
                     {/* User Profile Dropdown */}
                     <div ref={dropdownRef} style={{ position: 'relative' }}>
