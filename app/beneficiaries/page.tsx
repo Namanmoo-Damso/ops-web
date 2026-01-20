@@ -153,39 +153,70 @@ export default function BeneficiariesPage() {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
     if (!apiBase) return;
 
-    const sseUrl = `${apiBase}/v1/events/stream`;
-    const eventSource = new EventSource(sseUrl);
-    eventSourceRef.current = eventSource;
+    let retryDelay = 1000;
+    let retryTimeout: NodeJS.Timeout | null = null;
+    let currentEventSource: EventSource | null = null;
 
-    eventSource.onmessage = event => {
-      try {
-        const data = JSON.parse(event.data);
+    const isWardRegisteredEvent = (
+      data: unknown,
+    ): data is WardRegisteredEvent => {
+      return (
+        typeof data === 'object' &&
+        data !== null &&
+        'type' in data &&
+        (data as { type: string }).type === 'ward-registered' &&
+        'wardName' in data &&
+        typeof (data as { wardName: unknown }).wardName === 'string'
+      );
+    };
 
-        if (data.type === 'ward-registered') {
-          const wardEvent = data as WardRegisteredEvent;
-          console.log('[Beneficiaries] Ward registered:', wardEvent.wardName);
+    const connect = () => {
+      const sseUrl = `${apiBase}/v1/events/stream`;
+      const eventSource = new EventSource(sseUrl);
+      currentEventSource = eventSource;
+      eventSourceRef.current = eventSource;
 
-          // 토스트 알림 표시
-          setToast({
-            isOpen: true,
-            message: `${wardEvent.wardName}님이 연동되었습니다`,
-            type: 'success',
-          });
+      eventSource.onopen = () => {
+        retryDelay = 1000; // 연결 성공 시 재시도 딜레이 초기화
+      };
 
-          // 목록 새로고침
-          setRefreshKey(prev => prev + 1);
+      eventSource.onmessage = event => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (isWardRegisteredEvent(data)) {
+            console.log('[Beneficiaries] Ward registered:', data.wardName);
+
+            setToast({
+              isOpen: true,
+              message: `${data.wardName}님이 연동되었습니다`,
+              type: 'success',
+            });
+
+            setRefreshKey(prev => prev + 1);
+          }
+        } catch (err) {
+          console.error('[Beneficiaries] SSE parse error:', err);
         }
-      } catch (err) {
-        console.error('[Beneficiaries] SSE parse error:', err);
-      }
+      };
+
+      eventSource.onerror = () => {
+        console.warn('[Beneficiaries] SSE connection error, reconnecting...');
+        eventSource.close();
+
+        // 지수 백오프로 재연결
+        retryTimeout = setTimeout(() => {
+          connect();
+        }, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 30000);
+      };
     };
 
-    eventSource.onerror = () => {
-      console.warn('[Beneficiaries] SSE connection error, will reconnect...');
-    };
+    connect();
 
     return () => {
-      eventSource.close();
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (currentEventSource) currentEventSource.close();
       eventSourceRef.current = null;
     };
   }, []);
