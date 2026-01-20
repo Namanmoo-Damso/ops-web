@@ -1,5 +1,9 @@
 export type RoomEvent = {
-  type: 'room-created' | 'room-updated' | 'participant-joined' | 'participant-left';
+  type:
+    | 'room-created'
+    | 'room-updated'
+    | 'participant-joined'
+    | 'participant-left';
   roomName: string;
   identity?: string;
   name?: string;
