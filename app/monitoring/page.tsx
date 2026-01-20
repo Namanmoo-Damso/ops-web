@@ -82,7 +82,7 @@ export default function Home() {
   useEffect(() => {
     document.documentElement.style.setProperty(
       '--header-height',
-      isMonitoringFullscreen ? '0px' : '64px'
+      isMonitoringFullscreen ? '0px' : '64px',
     );
   }, [isMonitoringFullscreen]);
 
@@ -149,7 +149,10 @@ export default function Home() {
         const newParticipant = roomParticipants[0];
         setSelectedParticipantForAudio(newParticipant.id);
         setDetailParticipant(newParticipant);
-        console.log('[Home] Updated participant after refresh:', newParticipant.name);
+        console.log(
+          '[Home] Updated participant after refresh:',
+          newParticipant.name,
+        );
         return;
       }
     }
@@ -162,7 +165,13 @@ export default function Home() {
       setSelectedVideoTrackRef(null);
       setShowFullScreenVideo(false);
     }
-  }, [participantList, detailParticipant, selectedParticipantForAudio, selectedRoomName, allParticipants]);
+  }, [
+    participantList,
+    detailParticipant,
+    selectedParticipantForAudio,
+    selectedRoomName,
+    allParticipants,
+  ]);
 
   // Ensure takeover is reset when sidebar closes unexpectedly
   useEffect(() => {
@@ -261,7 +270,10 @@ export default function Home() {
     // Check if room exists in connections
     const connectionExists = connections.some(c => c.roomName === pendingRoom);
     if (!connectionExists) {
-      console.warn('[Home] Pending alert room not found in connections:', pendingRoom);
+      console.warn(
+        '[Home] Pending alert room not found in connections:',
+        pendingRoom,
+      );
       safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
       pendingAlertRoomRef.current = null;
       return;
@@ -270,12 +282,16 @@ export default function Home() {
     // Check if participants are available for this room
     const roomParticipants = allParticipants[pendingRoom];
     // Wait until we have a participant with a real name (not just "user")
-    const hasRealParticipant = roomParticipants && roomParticipants.length > 0 && 
+    const hasRealParticipant =
+      roomParticipants &&
+      roomParticipants.length > 0 &&
       roomParticipants.some(p => p.name && p.name !== 'user');
-    
+
     if (hasRealParticipant) {
       // Participants are ready with real data, select the room
-      const realParticipant = roomParticipants.find(p => p.name && p.name !== 'user') || roomParticipants[0];
+      const realParticipant =
+        roomParticipants.find(p => p.name && p.name !== 'user') ||
+        roomParticipants[0];
       setSelectedParticipantForAudio(realParticipant.id);
       setSelectedRoomName(pendingRoom);
       setDetailParticipant(realParticipant);
@@ -283,7 +299,11 @@ export default function Home() {
       setShowDetailSidebar(true);
       safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
       pendingAlertRoomRef.current = null;
-      console.log('[Home] Successfully selected pending alert room:', pendingRoom, realParticipant.name);
+      console.log(
+        '[Home] Successfully selected pending alert room:',
+        pendingRoom,
+        realParticipant.name,
+      );
     }
     // If participants not yet loaded with real data, this effect will re-run when allParticipants changes
   }, [connections, allParticipants]);
@@ -295,7 +315,7 @@ export default function Home() {
 
     let retryCount = 0;
     const maxRetries = 30; // 3 seconds max (100ms * 30)
-    
+
     const retryInterval = setInterval(() => {
       // Check if already selected (sessionStorage cleared)
       const stillPending = safeGetSessionStorage(PENDING_ALERT_ROOM_KEY);
@@ -306,29 +326,48 @@ export default function Home() {
 
       retryCount++;
       if (retryCount >= maxRetries) {
-        console.warn('[Home] Pending alert room selection timed out:', pendingRoom);
-        safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+        console.warn(
+          '[Home] Pending alert room selection timed out:',
+          pendingRoom,
+        );
+        safeClearSessionStorage(
+          PENDING_ALERT_ROOM_KEY,
+          PENDING_ALERT_DANGER_KEY,
+        );
         pendingAlertRoomRef.current = null;
         clearInterval(retryInterval);
         return;
       }
 
       // Try to find and select the room (only accept real participants, not 'user' placeholder)
-      const connectionExists = connections.some(c => c.roomName === pendingRoom);
+      const connectionExists = connections.some(
+        c => c.roomName === pendingRoom,
+      );
       const roomParticipants = allParticipants[pendingRoom];
-      const hasRealParticipant = roomParticipants && roomParticipants.length > 0 &&
+      const hasRealParticipant =
+        roomParticipants &&
+        roomParticipants.length > 0 &&
         roomParticipants.some(p => p.name && p.name !== 'user');
-      
+
       if (connectionExists && hasRealParticipant) {
-        const realParticipant = roomParticipants.find(p => p.name && p.name !== 'user') || roomParticipants[0];
+        const realParticipant =
+          roomParticipants.find(p => p.name && p.name !== 'user') ||
+          roomParticipants[0];
         setSelectedParticipantForAudio(realParticipant.id);
         setSelectedRoomName(pendingRoom);
         setDetailParticipant(realParticipant);
         setShowFullScreenVideo(true);
         setShowDetailSidebar(true);
-        safeClearSessionStorage(PENDING_ALERT_ROOM_KEY, PENDING_ALERT_DANGER_KEY);
+        safeClearSessionStorage(
+          PENDING_ALERT_ROOM_KEY,
+          PENDING_ALERT_DANGER_KEY,
+        );
         pendingAlertRoomRef.current = null;
-        console.log('[Home] Fallback: Selected pending alert room:', pendingRoom, realParticipant.name);
+        console.log(
+          '[Home] Fallback: Selected pending alert room:',
+          pendingRoom,
+          realParticipant.name,
+        );
         clearInterval(retryInterval);
       }
     }, 100);
@@ -358,123 +397,180 @@ export default function Home() {
     };
   }, [selectRoomByName]);
 
+  // Stable callback for updating participants - doesn't need to change per room
+  const handleParticipantsUpdate = useCallback(
+    (roomName: string, participants: MockParticipant[]) => {
+      setAllParticipants(prev => {
+        const existingParticipants = prev[roomName] || [];
+
+        // Check if anything actually changed
+        if (
+          existingParticipants.length === participants.length &&
+          existingParticipants.every((p, idx) => {
+            const updated = participants[idx];
+            return (
+              p.id === updated?.id &&
+              p.muted === updated?.muted &&
+              p.cameraOff === updated?.cameraOff &&
+              p.speaking === updated?.speaking
+            );
+          })
+        ) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          [roomName]: participants,
+        };
+      });
+    },
+    [],
+  );
+
+  // Ref to hold latest state values for tile click handler
+  const tileClickStateRef = useRef({
+    showFullScreenVideo,
+    selectedParticipantForAudio,
+    allParticipants,
+  });
+
+  // Keep ref updated with latest values
+  useEffect(() => {
+    tileClickStateRef.current = {
+      showFullScreenVideo,
+      selectedParticipantForAudio,
+      allParticipants,
+    };
+  }, [showFullScreenVideo, selectedParticipantForAudio, allParticipants]);
+
+  // Stable callback for tile clicks - uses ref to access current state
+  const handleTileClick = useCallback(
+    (
+      roomName: string,
+      participantId: string,
+      videoTrackRef: TrackReferenceOrPlaceholder,
+    ) => {
+      const {
+        showFullScreenVideo: isFullscreen,
+        selectedParticipantForAudio: selectedId,
+        allParticipants: participants,
+      } = tileClickStateRef.current;
+
+      console.debug('[video] tile click', {
+        participantId,
+        roomName,
+        fullscreenActive: isFullscreen,
+      });
+      // If clicking the same participant that's already in fullscreen, close it
+      if (isFullscreen && selectedId === participantId) {
+        setShowFullScreenVideo(false);
+        setShowDetailSidebar(false);
+        setDetailParticipant(null);
+        setSelectedRoomName(null);
+        setSelectedParticipantForAudio(null);
+        setSelectedVideoTrackRef(null);
+      } else {
+        requestHighQuality(videoTrackRef, {
+          participantId,
+          roomName,
+          source: 'tile-click',
+        });
+        // Open both fullscreen video and detail sidebar, enable audio for this participant
+        setSelectedParticipantForAudio(participantId);
+        setSelectedRoomName(roomName);
+        setSelectedVideoTrackRef(videoTrackRef);
+        // Get the participant details from this room
+        const roomParticipants = participants[roomName];
+        if (roomParticipants && roomParticipants.length > 0) {
+          // Find the specific participant that was clicked
+          const clickedParticipant =
+            roomParticipants.find(p => p.id === participantId) ||
+            roomParticipants[0];
+          setDetailParticipant(clickedParticipant);
+          setShowFullScreenVideo(true);
+          setShowDetailSidebar(true); // Show sidebar together with video
+        }
+      }
+    },
+    [],
+  );
+
+  // Memoize connection slots separately - these don't change with grid size
+  // Categorize into user rooms and bot rooms based on room name
+  const { userRoomSlots, botRoomSlots } = useMemo(() => {
+    type SlotType = {
+      type: 'connection';
+      key: string;
+      connection: RoomConnection;
+      isDanger: boolean;
+    };
+    const userRooms: SlotType[] = [];
+    const botRooms: SlotType[] = [];
+
+    connections.forEach(connection => {
+      // Bot rooms have names starting with 'bot-'
+      const isBotRoom = connection.roomName.startsWith('bot-');
+      
+      const slot = {
+        type: 'connection' as const,
+        key: connection.roomName,
+        connection,
+        isDanger: dangerStates[connection.roomName]?.isDanger ?? false,
+      };
+
+      if (isBotRoom) {
+        botRooms.push(slot);
+      } else {
+        userRooms.push(slot);
+      }
+    });
+
+    return { userRoomSlots: userRooms, botRoomSlots: botRooms };
+  }, [connections, dangerStates]);
+
+  // Combine connection slots with empty slots based on grid size
+  // First tile is reserved for user rooms - if no user, show empty tile then bot rooms
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;
     const result: Array<{
       type: 'connection' | 'empty';
       key: string;
       connection?: RoomConnection;
-      onParticipantsUpdate?: (participants: MockParticipant[]) => void;
-      onTileClick?: (
-        participantId: string,
-        videoTrackRef: TrackReferenceOrPlaceholder,
-      ) => void;
-      selectedParticipantForAudio?: string | null;
       isDanger?: boolean;
     }> = [];
 
-    for (let i = 0; i < slots; i++) {
-      const connection = connections[i];
-      if (connection) {
-        // Create a stable callback for each room
-        const roomName = connection.roomName;
-        const onParticipantsUpdate = (participants: MockParticipant[]) => {
-          setAllParticipants(prev => {
-            const existingParticipants = prev[roomName] || [];
-
-            // Check if anything actually changed
-            if (
-              existingParticipants.length === participants.length &&
-              existingParticipants.every((p, idx) => {
-                const updated = participants[idx];
-                return (
-                  p.id === updated?.id &&
-                  p.muted === updated?.muted &&
-                  p.cameraOff === updated?.cameraOff &&
-                  p.speaking === updated?.speaking
-                );
-              })
-            ) {
-              return prev;
-            }
-
-            return {
-              ...prev,
-              [roomName]: participants,
-            };
-          });
-        };
-
-        const onTileClick = (
-          participantId: string,
-          videoTrackRef: TrackReferenceOrPlaceholder,
-        ) => {
-          console.debug('[video] tile click', {
-            participantId,
-            roomName,
-            fullscreenActive: showFullScreenVideo,
-          });
-          // If clicking the same participant that's already in fullscreen, close it
-          if (
-            showFullScreenVideo &&
-            selectedParticipantForAudio === participantId
-          ) {
-            setShowFullScreenVideo(false);
-            setShowDetailSidebar(false);
-            setDetailParticipant(null);
-            setSelectedRoomName(null);
-            setSelectedParticipantForAudio(null);
-            setSelectedVideoTrackRef(null);
-          } else {
-            requestHighQuality(videoTrackRef, {
-              participantId,
-              roomName,
-              source: 'tile-click',
-            });
-            // Open both fullscreen video and detail sidebar, enable audio for this participant
-            setSelectedParticipantForAudio(participantId);
-            setSelectedRoomName(roomName);
-            setSelectedVideoTrackRef(videoTrackRef);
-            // Get the participant details from this room
-            const roomParticipants = allParticipants[roomName];
-            if (roomParticipants && roomParticipants.length > 0) {
-              // Find the specific participant that was clicked
-              const clickedParticipant =
-                roomParticipants.find(p => p.id === participantId) ||
-                roomParticipants[0];
-              setDetailParticipant(clickedParticipant);
-              setShowFullScreenVideo(true);
-              setShowDetailSidebar(true); // Show sidebar together with video
-            }
-          }
-        };
-
-        result.push({
-          type: 'connection',
-          key: connection.roomName,
-          connection,
-          onParticipantsUpdate,
-          onTileClick,
-          selectedParticipantForAudio,
-          isDanger: dangerStates[roomName]?.isDanger ?? false,
-        });
-      } else {
-        result.push({
-          type: 'empty',
-          key: `empty-${i}`,
-        });
+    // If we have user rooms, put them first
+    if (userRoomSlots.length > 0) {
+      result.push(...userRoomSlots.slice(0, slots));
+      // Add bot rooms after user rooms
+      const remainingSlots = slots - result.length;
+      if (remainingSlots > 0) {
+        result.push(...botRoomSlots.slice(0, remainingSlots));
+      }
+    } else {
+      // No user rooms - reserve first tile as empty, then add bot rooms
+      result.push({
+        type: 'empty',
+        key: 'reserved-for-user',
+      });
+      // Add bot rooms starting from position 2
+      const remainingSlots = slots - 1;
+      if (remainingSlots > 0) {
+        result.push(...botRoomSlots.slice(0, remainingSlots));
       }
     }
 
+    // Fill remaining slots with empty tiles
+    for (let i = result.length; i < slots; i++) {
+      result.push({
+        type: 'empty',
+        key: `empty-${i}`,
+      });
+    }
+
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    connections,
-    gridSize,
-    selectedParticipantForAudio,
-    showFullScreenVideo,
-    dangerStates,
-  ]);
+  }, [userRoomSlots, botRoomSlots, gridSize]);
 
   const handleCloseSidebar = () => {
     setIsTakeoverActive(false);
@@ -577,12 +673,12 @@ export default function Home() {
             )}
             <RoomTracks
               roomName={slot.connection.roomName}
-              onParticipantsUpdate={slot.onParticipantsUpdate}
-              onTileClick={slot.onTileClick}
+              onParticipantsUpdate={handleParticipantsUpdate}
+              onTileClick={handleTileClick}
               onDangerStateChange={state =>
                 handleDangerStateChange(slot.connection!.roomName, state)
               }
-              selectedParticipantForAudio={slot.selectedParticipantForAudio}
+              selectedParticipantForAudio={selectedParticipantForAudio}
               focusedParticipantId={
                 showFullScreenVideo ? selectedParticipantForAudio : null
               }
@@ -598,7 +694,9 @@ export default function Home() {
                   <FullScreenVideo
                     participant={detailParticipant}
                     videoTrackRef={selectedVideoTrackRef}
-                    isDanger={dangerStates[slot.connection.roomName]?.isDanger ?? false}
+                    isDanger={
+                      dangerStates[slot.connection.roomName]?.isDanger ?? false
+                    }
                     isHeaderHidden={isMonitoringFullscreen}
                   />
                   <ParticipantDetailSidebar
@@ -608,8 +706,12 @@ export default function Home() {
                     isTakeoverActive={isTakeoverActive}
                     onToggleTakeover={handleToggleTakeover}
                     onClose={handleCloseSidebar}
-                    isDanger={dangerStates[slot.connection.roomName]?.isDanger ?? false}
-                    dangerCode={dangerStates[slot.connection.roomName]?.dangerCode}
+                    isDanger={
+                      dangerStates[slot.connection.roomName]?.isDanger ?? false
+                    }
+                    dangerCode={
+                      dangerStates[slot.connection.roomName]?.dangerCode
+                    }
                     onClearDanger={handleClearDanger}
                     isHeaderHidden={isMonitoringFullscreen}
                   />
@@ -640,71 +742,62 @@ export default function Home() {
 
   const hasConnections = connections.length > 0;
 
-  // Fullscreen container (no sidebar/navbar)
-  const fullscreenContent = (
-    <div
-      className={styles.page}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: '#F7F9F2',
-      }}
-    >
-      <div className={styles.roomWrap} style={{ height: '100%' }}>
-        <div className={styles.content} style={{ gridTemplateColumns: '1fr' }}>
-          <div className={styles.stage} style={{ position: 'relative' }}>
-            {renderGrid()}
-            <ControlBar
-              showParticipantList={showParticipantList}
-              onToggleParticipantList={() =>
-                setShowParticipantList(!showParticipantList)
-              }
-              gridSize={gridSize}
-              onGridSizeChange={setGridSize}
-              connected={hasConnections}
-              isFullscreen={isMonitoringFullscreen}
-              onToggleFullscreen={toggleMonitoringFullscreen}
-            />
-          </div>
-          {renderParticipantSidebar()}
-        </div>
-      </div>
-    </div>
+  // Common grid and control content - rendered only once to preserve LiveKitRoom connections
+  const gridContent = (
+    <>
+      {renderGrid()}
+      <ControlBar
+        showParticipantList={showParticipantList}
+        onToggleParticipantList={() =>
+          setShowParticipantList(!showParticipantList)
+        }
+        gridSize={gridSize}
+        onGridSizeChange={setGridSize}
+        connected={hasConnections}
+        isFullscreen={isMonitoringFullscreen}
+        onToggleFullscreen={toggleMonitoringFullscreen}
+      />
+    </>
   );
 
-  // If fullscreen mode, render without SidebarLayout
-  if (isMonitoringFullscreen) {
-    return fullscreenContent;
-  }
-
+  // Always render the same structure within SidebarLayout to preserve React tree
+  // Use fixed positioning to create fullscreen overlay effect without changing tree structure
   return (
     <SidebarLayout noPadding>
-      <div className={styles.page}>
-        <div className={styles.roomWrap}>
+      <div
+        className={styles.page}
+        style={
+          isMonitoringFullscreen
+            ? {
+                position: 'fixed',
+                inset: 0,
+                zIndex: 10001,
+                background: '#F7F9F2',
+              }
+            : undefined
+        }
+      >
+        <div
+          className={styles.roomWrap}
+          style={isMonitoringFullscreen ? { height: '100%' } : undefined}
+        >
           <div
             className={`${styles.content} ${
-              !showParticipantList ? styles.contentFullWidth : ''
+              !showParticipantList || isMonitoringFullscreen
+                ? styles.contentFullWidth
+                : ''
             }`}
+            style={
+              isMonitoringFullscreen
+                ? { gridTemplateColumns: '1fr' }
+                : undefined
+            }
           >
-            {renderErrorBanner()}
+            {!isMonitoringFullscreen && renderErrorBanner()}
 
             {/* Main Stage */}
             <div className={styles.stage} style={{ position: 'relative' }}>
-              {renderGrid()}
-
-              {/* Control Bar */}
-              <ControlBar
-                showParticipantList={showParticipantList}
-                onToggleParticipantList={() =>
-                  setShowParticipantList(!showParticipantList)
-                }
-                gridSize={gridSize}
-                onGridSizeChange={setGridSize}
-                connected={hasConnections}
-                isFullscreen={isMonitoringFullscreen}
-                onToggleFullscreen={toggleMonitoringFullscreen}
-              />
+              {gridContent}
             </div>
 
             {renderParticipantSidebar()}

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { IconPeople, IconGrid, IconMinus, IconPlus } from '../Icons';
 import { Maximize, Minimize } from 'lucide-react';
 import styles from '../../app/monitoring/page.module.css';
@@ -14,7 +15,7 @@ type ControlBarProps = {
   onToggleFullscreen?: () => void;
 };
 
-export const ControlBar = ({
+export const ControlBar = memo(function ControlBar({
   showParticipantList,
   onToggleParticipantList,
   gridSize,
@@ -22,7 +23,7 @@ export const ControlBar = ({
   connected,
   isFullscreen = false,
   onToggleFullscreen,
-}: ControlBarProps) => {
+}: ControlBarProps) {
   return (
     <div className={styles.controlBar}>
       {/* Participants Toggle */}
@@ -78,4 +79,4 @@ export const ControlBar = ({
       )}
     </div>
   );
-};
+});

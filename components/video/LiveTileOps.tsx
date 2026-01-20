@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { TrackRefContext, VideoTrack } from '@livekit/components-react';
 import { getInitials } from './VideoTiles';
 import styles from '../../app/monitoring/page.module.css';
@@ -10,26 +11,27 @@ export interface LiveTileOpsProps {
   roomName: string;
   videoOff: boolean;
   suppressVideo?: boolean;
-  onClick?: (participantId: string) => void;
+  onClick?: (roomName: string, participantId: string, trackRef: any) => void;
   participantId: string;
   isDanger?: boolean;
 }
 
-export const LiveTileOps = ({
+export const LiveTileOps = memo(function LiveTileOps({
   trackRef,
   displayName,
+  roomName,
   videoOff,
   suppressVideo,
   onClick,
   participantId,
   isDanger,
-}: LiveTileOpsProps) => {
+}: LiveTileOpsProps) {
   const cameraOff = videoOff;
   const showVideo = !cameraOff && !suppressVideo;
 
   const handleClick = () => {
     if (onClick) {
-      onClick(participantId);
+      onClick(roomName, participantId, trackRef);
     }
   };
 
@@ -103,4 +105,4 @@ export const LiveTileOps = ({
       </div>
     </div>
   );
-};
+});

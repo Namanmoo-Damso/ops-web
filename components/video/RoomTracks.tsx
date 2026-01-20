@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   RoomAudioRenderer,
   TrackRefContext,
@@ -19,8 +19,8 @@ export interface RoomDangerState {
 
 export interface RoomTracksProps {
   roomName: string;
-  onParticipantsUpdate?: (participants: MockParticipant[]) => void;
-  onTileClick?: (participantId: string, videoTrackRef: any) => void;
+  onParticipantsUpdate?: (roomName: string, participants: MockParticipant[]) => void;
+  onTileClick?: (roomName: string, participantId: string, videoTrackRef: any) => void;
   onDangerStateChange?: (state: RoomDangerState) => void;
   selectedParticipantForAudio?: string | null;
   focusedParticipantId?: string | null;
@@ -165,47 +165,67 @@ export const RoomTracks = ({
     });
   }, [hasFocusedParticipant, roomName, focusedParticipantId]);
 
-  // Update parent with participant list
-  useEffect(() => {
-    if (onParticipantsUpdate) {
-      const participants: MockParticipant[] = tracks.map(trackRef => {
-        const participant = trackRef.participant;
+  // Memoize participant list to prevent unnecessary updates
+  const participants = useMemo<MockParticipant[]>(() => {
+    return tracks.map(trackRef => {
+      const participant = trackRef.participant;
 
-        // Try to extract beneficiaryId from metadata
-        let beneficiaryId: string | undefined;
-        try {
-          if (participant.metadata) {
-            const metadata = JSON.parse(participant.metadata);
-            beneficiaryId =
-              metadata.beneficiaryId || metadata.wardId || metadata.userId;
-          }
-        } catch (e) {
-          // If metadata parsing fails, try to extract from identity
-          // Format: beneficiary-{id} or ward-{id}
-          const identity = getParticipantId(participant);
-          const match = identity.match(/^(?:beneficiary-|ward-)(.+)$/);
-          if (match) {
-            beneficiaryId = match[1];
-          }
+      // Try to extract beneficiaryId from metadata
+      let beneficiaryId: string | undefined;
+      try {
+        if (participant.metadata) {
+          const metadata = JSON.parse(participant.metadata);
+          beneficiaryId =
+            metadata.beneficiaryId || metadata.wardId || metadata.userId;
         }
+      } catch (e) {
+        // If metadata parsing fails, try to extract from identity
+        // Format: beneficiary-{id} or ward-{id}
+        const identity = getParticipantId(participant);
+        const match = identity.match(/^(?:beneficiary-|ward-)(.+)$/);
+        if (match) {
+          beneficiaryId = match[1];
+        }
+      }
 
-        return {
-          id: getParticipantId(participant),
-          name: getBaseName(participant),
-          status: '',
-          speaking: participant.isSpeaking || false,
-          muted: !participant.isMicrophoneEnabled,
-          cameraOff: !participant.isCameraEnabled,
-          you: participant.isLocal,
-          online: true,
-          lastSeen: new Date().toISOString(),
-          beneficiaryId,
-        };
-      });
-      onParticipantsUpdate(participants);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      return {
+        id: getParticipantId(participant),
+        name: getBaseName(participant),
+        status: '',
+        speaking: participant.isSpeaking || false,
+        muted: !participant.isMicrophoneEnabled,
+        cameraOff: !participant.isCameraEnabled,
+        you: participant.isLocal,
+        online: true,
+        lastSeen: new Date().toISOString(),
+        beneficiaryId,
+      };
+    });
   }, [tracks]);
+
+  // Track previous participants to avoid redundant updates
+  const prevParticipantsRef = useRef<string>('');
+
+  // Update parent with participant list only when data actually changes
+  useEffect(() => {
+    if (!onParticipantsUpdate) return;
+    
+    // Create a stable key for comparison (exclude lastSeen which always changes)
+    const participantsKey = JSON.stringify(
+      participants.map(p => ({
+        id: p.id,
+        name: p.name,
+        speaking: p.speaking,
+        muted: p.muted,
+        cameraOff: p.cameraOff,
+      }))
+    );
+    
+    if (participantsKey !== prevParticipantsRef.current) {
+      prevParticipantsRef.current = participantsKey;
+      onParticipantsUpdate(roomName, participants);
+    }
+  }, [participants, roomName, onParticipantsUpdate]);
 
   // If no visible participants, render an EmptyTile to maintain grid structure
   if (tracks.length === 0) {
@@ -242,7 +262,7 @@ export const RoomTracks = ({
             roomName={roomName}
             videoOff={isVideoOff(participant)}
             suppressVideo={suppressVideo}
-            onClick={participantId => onTileClick?.(participantId, trackRef)}
+            onClick={onTileClick}
             participantId={identity}
             isDanger={isDanger}
           />
