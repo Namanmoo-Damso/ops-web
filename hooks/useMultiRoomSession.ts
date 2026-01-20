@@ -231,8 +231,24 @@ export function useMultiRoomSession({
     leaveRoom,
   ]);
 
-  // Memoize the connections array to prevent creating new reference on every render
-  const connectionsArray = useMemo(() => Object.values(connections), [connections]);
+  // Memoize the connections array and sort by room creation time
+  // This provides stable ordering across page refreshes
+  const connectionsArray = useMemo(() => {
+    const connectionValues = Object.values(connections);
+    if (connectionValues.length === 0) return [];
+
+    // Create a map of room name to its createdAt timestamp
+    const roomCreatedAtMap = new Map(
+      rooms.map(room => [room.name, room.createdAt || ''])
+    );
+
+    // Sort connections by createdAt timestamp (oldest first)
+    return connectionValues.sort((a, b) => {
+      const createdA = roomCreatedAtMap.get(a.roomName) || '';
+      const createdB = roomCreatedAtMap.get(b.roomName) || '';
+      return createdA.localeCompare(createdB);
+    });
+  }, [connections, rooms]);
 
   return {
     connections: connectionsArray,

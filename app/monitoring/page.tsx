@@ -514,10 +514,14 @@ export default function Home() {
       key: string;
       connection?: RoomConnection;
       isDanger?: boolean;
-    }> = [...connectionSlots];
+    }> = [];
+
+    // Only include connections that fit in the current grid
+    const visibleConnections = connectionSlots.slice(0, slots);
+    result.push(...visibleConnections);
 
     // Add empty slots to fill the remaining grid positions
-    for (let i = connectionSlots.length; i < slots; i++) {
+    for (let i = visibleConnections.length; i < slots; i++) {
       result.push({
         type: 'empty',
         key: `empty-${i}`,
