@@ -18,7 +18,6 @@ import DetailModal, {
   type BeneficiarySummary,
 } from './DetailModal';
 import StatsSummary from '../../components/ui/StatsSummary';
-import Toast, { type ToastType } from '../../components/ui/Toast';
 import {
   RefreshIcon,
   UsersIcon,
@@ -38,21 +37,6 @@ import {
 } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
-const SSE_INITIAL_RETRY_DELAY_MS = 1000;
-const SSE_MAX_RETRY_DELAY_MS = 30000;
-const SSE_RETRY_MULTIPLIER = 2;
-const SSE_MAX_RETRY_ATTEMPTS = 8;
-
-const getAdminToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('admin_access_token');
-};
-
-const buildSseUrl = (base: string) => {
-  const token = getAdminToken();
-  if (!token) return `${base}/v1/events/stream`;
-  return `${base}/v1/events/stream?token=${encodeURIComponent(token)}`;
-};
 
 // API response type (has 'guardian' instead of 'emergencyContact')
 type BeneficiaryDetailApiPayload = Omit<
@@ -134,20 +118,8 @@ export default function BeneficiariesPage() {
   const [reinviting, setReinviting] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>([]);
 
-  // Toast state for ward registration notification
-  const [toast, setToast] = useState<{
-    isOpen: boolean;
-    message: string;
-    type: ToastType;
-  }>({ isOpen: false, message: '', type: 'success' });
-
   // Refs for scrolling to specific rows
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const retryDelayRef = useRef(SSE_INITIAL_RETRY_DELAY_MS);
-  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryCountRef = useRef(0);
-  const sseMountedRef = useRef(false);
 
   // Staff API hook
   const staffApi = useStaffApi();
@@ -167,102 +139,18 @@ export default function BeneficiariesPage() {
     fetchStaff();
   }, []);
 
-  // SSE 연결: 대상자 연동 완료 이벤트 수신
+  // 전역 SSE 이벤트 수신 (DashboardLayout에서 발생)
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-    if (!apiBase) return;
-
-    sseMountedRef.current = true;
-
-    const connect = () => {
-      if (!sseMountedRef.current) return;
-
-      const existing = eventSourceRef.current;
-      if (existing && existing.readyState !== EventSource.CLOSED) {
-        return;
-      }
-
-      if (existing) {
-        existing.close();
-        eventSourceRef.current = null;
-      }
-
-      const sseUrl = buildSseUrl(apiBase);
-      const eventSource = new EventSource(sseUrl);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        retryDelayRef.current = SSE_INITIAL_RETRY_DELAY_MS;
-        retryCountRef.current = 0;
-      };
-
-      eventSource.onmessage = event => {
-        try {
-          const data = JSON.parse(event.data);
-          const wardEvent = data as Partial<WardRegisteredEvent>;
-
-          if (
-            wardEvent.type === 'ward-registered' &&
-            typeof wardEvent.wardName === 'string'
-          ) {
-            console.log('[Beneficiaries] Ward registered:', wardEvent.wardName);
-
-            setToast({
-              isOpen: true,
-              message: `${wardEvent.wardName}님이 연동되었습니다`,
-              type: 'success',
-            });
-
-            setRefreshKey(prev => prev + 1);
-          }
-        } catch (err) {
-          console.error('[Beneficiaries] SSE parse error:', err);
-        }
-      };
-
-      eventSource.onerror = () => {
-        console.warn('[Beneficiaries] SSE connection error, reconnecting...');
-        eventSource.close();
-        eventSourceRef.current = null;
-
-        if (!sseMountedRef.current) return;
-
-        retryCountRef.current += 1;
-        if (retryCountRef.current > SSE_MAX_RETRY_ATTEMPTS) {
-          console.warn('[Beneficiaries] SSE retry limit reached, giving up');
-          return;
-        }
-
-        const delay = retryDelayRef.current;
-        retryDelayRef.current = Math.min(
-          retryDelayRef.current * SSE_RETRY_MULTIPLIER,
-          SSE_MAX_RETRY_DELAY_MS,
-        );
-
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current);
-        }
-
-        retryTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, delay);
-      };
+    const handleWardRegistered = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as Partial<WardRegisteredEvent> | undefined;
+      if (detail?.type !== 'ward-registered') return;
+      setRefreshKey(prev => prev + 1);
     };
 
-    connect();
-
+    window.addEventListener('wardRegistered', handleWardRegistered);
     return () => {
-      sseMountedRef.current = false;
-
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = null;
-      }
-
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
-      }
+      window.removeEventListener('wardRegistered', handleWardRegistered);
     };
   }, []);
 
@@ -1060,14 +948,6 @@ export default function BeneficiariesPage() {
           />
         )}
       </div>
-
-      {/* 연동 완료 토스트 알림 */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isOpen={toast.isOpen}
-        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
-      />
     </DashboardLayout>
   );
 }
