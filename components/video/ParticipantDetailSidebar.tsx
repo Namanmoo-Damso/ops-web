@@ -22,6 +22,7 @@ import DetailModal from '../../app/beneficiaries/DetailModal';
 import type { BeneficiarySummary } from '../../types/models';
 import type { BeneficiaryDetail } from '../../app/beneficiaries/DetailModal';
 import { API_BASE } from '../../lib/api-client';
+import { getAdminToken } from '@/utils/roomApi';
 
 type ParticipantDetailSidebarProps = {
   participant: MockParticipant;
@@ -276,7 +277,9 @@ const LEVEL_COLORS: Record<
 
 // Convert 4-bit danger code to DetectionInfo
 // Format: 1000=deviceFall, 0100=personFall, 0010=loudVoice, 0001=emotion
-const dangerCodeToDetectionInfo = (dangerCode: string): DetectionInfo | null => {
+const dangerCodeToDetectionInfo = (
+  dangerCode: string,
+): DetectionInfo | null => {
   if (!dangerCode || dangerCode === '0000') return null;
 
   // Parse the 4-bit code
@@ -391,10 +394,10 @@ export const ParticipantDetailSidebar = ({
 
     const fetchTranscripts = async () => {
       try {
+        const token = getAdminToken();
         const res = await fetch(
-          `${apiBase}/v1/calls/room/${encodeURIComponent(
-            roomName,
-          )}/transcripts`,
+          `${apiBase}/v1/calls/room/${encodeURIComponent(roomName)}/transcripts`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : undefined },
         );
         if (!res.ok) {
           console.warn('[Sidebar] Failed to fetch transcripts:', res.status);
@@ -513,7 +516,8 @@ export const ParticipantDetailSidebar = ({
   useEffect(() => {
     if (chatContainerRef.current) {
       // Scroll only the chat container, not the entire panel
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
     }
   }, [transcripts]);
 
@@ -544,7 +548,9 @@ export const ParticipantDetailSidebar = ({
           right: 0,
           top: isHeaderHidden ? 0 : 'var(--header-height, 64px)',
           width: 'min(420px, 90vw)',
-          height: isHeaderHidden ? '100vh' : 'calc(100vh - var(--header-height, 64px))',
+          height: isHeaderHidden
+            ? '100vh'
+            : 'calc(100vh - var(--header-height, 64px))',
           background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
           borderLeft: '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
