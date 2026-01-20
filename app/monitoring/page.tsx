@@ -497,16 +497,40 @@ export default function Home() {
   );
 
   // Memoize connection slots separately - these don't change with grid size
-  const connectionSlots = useMemo(() => {
-    return connections.map(connection => ({
-      type: 'connection' as const,
-      key: connection.roomName,
-      connection,
-      isDanger: dangerStates[connection.roomName]?.isDanger ?? false,
-    }));
+  // Categorize into user rooms and bot rooms based on room name
+  const { userRoomSlots, botRoomSlots } = useMemo(() => {
+    type SlotType = {
+      type: 'connection';
+      key: string;
+      connection: RoomConnection;
+      isDanger: boolean;
+    };
+    const userRooms: SlotType[] = [];
+    const botRooms: SlotType[] = [];
+
+    connections.forEach(connection => {
+      // Bot rooms have names starting with 'bot-'
+      const isBotRoom = connection.roomName.startsWith('bot-');
+      
+      const slot = {
+        type: 'connection' as const,
+        key: connection.roomName,
+        connection,
+        isDanger: dangerStates[connection.roomName]?.isDanger ?? false,
+      };
+
+      if (isBotRoom) {
+        botRooms.push(slot);
+      } else {
+        userRooms.push(slot);
+      }
+    });
+
+    return { userRoomSlots: userRooms, botRoomSlots: botRooms };
   }, [connections, dangerStates]);
 
   // Combine connection slots with empty slots based on grid size
+  // First tile is reserved for user rooms - if no user, show empty tile then bot rooms
   const gridSlots = useMemo(() => {
     const slots = gridSize * gridSize;
     const result: Array<{
@@ -516,12 +540,29 @@ export default function Home() {
       isDanger?: boolean;
     }> = [];
 
-    // Only include connections that fit in the current grid
-    const visibleConnections = connectionSlots.slice(0, slots);
-    result.push(...visibleConnections);
+    // If we have user rooms, put them first
+    if (userRoomSlots.length > 0) {
+      result.push(...userRoomSlots.slice(0, slots));
+      // Add bot rooms after user rooms
+      const remainingSlots = slots - result.length;
+      if (remainingSlots > 0) {
+        result.push(...botRoomSlots.slice(0, remainingSlots));
+      }
+    } else {
+      // No user rooms - reserve first tile as empty, then add bot rooms
+      result.push({
+        type: 'empty',
+        key: 'reserved-for-user',
+      });
+      // Add bot rooms starting from position 2
+      const remainingSlots = slots - 1;
+      if (remainingSlots > 0) {
+        result.push(...botRoomSlots.slice(0, remainingSlots));
+      }
+    }
 
-    // Add empty slots to fill the remaining grid positions
-    for (let i = visibleConnections.length; i < slots; i++) {
+    // Fill remaining slots with empty tiles
+    for (let i = result.length; i < slots; i++) {
       result.push({
         type: 'empty',
         key: `empty-${i}`,
@@ -529,7 +570,7 @@ export default function Home() {
     }
 
     return result;
-  }, [connectionSlots, gridSize]);
+  }, [userRoomSlots, botRoomSlots, gridSize]);
 
   const handleCloseSidebar = () => {
     setIsTakeoverActive(false);
