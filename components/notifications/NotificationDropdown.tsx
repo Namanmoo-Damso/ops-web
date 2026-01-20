@@ -1,8 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, type CSSProperties } from 'react';
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  type CSSProperties,
+} from 'react';
 import { colors, shadows, spacing, typography } from '../../styles/tokens';
-import { useNotificationsApi, type NotificationItem, type NotificationType } from '../../hooks/useNotificationsApi';
+import {
+  useNotificationsApi,
+  type NotificationItem,
+  type NotificationType,
+} from '../../hooks/useNotificationsApi';
 
 // ============================================================================
 // Icons
@@ -49,8 +59,24 @@ const IconAlert = () => (
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <line
+      x1="12"
+      y1="9"
+      x2="12"
+      y2="13"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+    <line
+      x1="12"
+      y1="17"
+      x2="12.01"
+      y2="17"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
   </svg>
 );
 
@@ -75,13 +101,25 @@ const IconLink = () => (
 
 const IconChevronLeft = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M15 18l-6-6 6-6"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
 const IconChevronRight = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-    <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M9 18l6-6-6-6"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -146,7 +184,8 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   const [totalPages, setTotalPages] = useState(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { listNotifications, getUnreadCount, markAsRead, markAllAsRead } = useNotificationsApi();
+  const { listNotifications, getUnreadCount, markAsRead, markAllAsRead } =
+    useNotificationsApi();
 
   const PAGE_SIZE = 5;
 
@@ -164,14 +203,17 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   }, [getUnreadCount]);
 
   // Fetch notifications when dropdown opens
-  const fetchNotifications = useCallback(async (page: number) => {
-    const result = await listNotifications(page, PAGE_SIZE);
-    if (result) {
-      setNotifications(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setUnreadCount(result.unreadCount);
-    }
-  }, [listNotifications]);
+  const fetchNotifications = useCallback(
+    async (page: number) => {
+      const result = await listNotifications(page, PAGE_SIZE);
+      if (result) {
+        setNotifications(result.data);
+        setTotalPages(result.pagination.totalPages);
+        setUnreadCount(result.unreadCount);
+      }
+    },
+    [listNotifications],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -182,14 +224,18 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen]);
 
@@ -197,7 +243,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
     if (!notification.isRead) {
       await markAsRead(notification.id);
       setNotifications(prev =>
-        prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+        prev.map(n => (n.id === notification.id ? { ...n, isRead: true } : n)),
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
@@ -268,10 +314,10 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
     display: 'flex',
     gap: spacing.md,
     padding: `${spacing.md} ${spacing.lg}`,
-    backgroundColor: isRead ? 'transparent' : colors.primary.soft,
+    backgroundColor: isRead ? 'transparent' : colors.accent.soft,
     cursor: 'pointer',
     transition: 'background-color 150ms ease',
-    borderBottom: `1px solid ${colors.border.light}`,
+    borderBottom: `1px solid ${colors.border.main}`,
   });
 
   const paginationStyle: CSSProperties = {
@@ -285,7 +331,11 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   };
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative' }} className={className}>
+    <div
+      ref={dropdownRef}
+      style={{ position: 'relative' }}
+      className={className}
+    >
       {/* Bell Button */}
       <button
         style={iconButtonStyle}
@@ -313,11 +363,13 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
         <div style={dropdownStyle}>
           {/* Header */}
           <div style={headerStyle}>
-            <span style={{
-              fontSize: typography.fontSize.body,
-              fontWeight: typography.fontWeight.semibold,
-              color: colors.text.primary,
-            }}>
+            <span
+              style={{
+                fontSize: typography.fontSize.body,
+                fontWeight: typography.fontWeight.semibold,
+                color: colors.text.primary,
+              }}
+            >
               알림
             </span>
             {unreadCount > 0 && (
@@ -340,12 +392,14 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
           {/* Notification List */}
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {notifications.length === 0 ? (
-              <div style={{
-                padding: `${spacing['3xl']} ${spacing.lg}`,
-                textAlign: 'center',
-                color: colors.text.muted,
-                fontSize: typography.fontSize.caption,
-              }}>
+              <div
+                style={{
+                  padding: `${spacing['3xl']} ${spacing.lg}`,
+                  textAlign: 'center',
+                  color: colors.text.muted,
+                  fontSize: typography.fontSize.caption,
+                }}
+              >
                 알림이 없습니다
               </div>
             ) : (
@@ -356,70 +410,81 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                   onClick={() => handleNotificationClick(notification)}
                   onMouseEnter={e => {
                     if (notification.isRead) {
-                      e.currentTarget.style.backgroundColor = colors.background.elevated1;
+                      e.currentTarget.style.backgroundColor =
+                        colors.background.elevated1;
                     }
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.backgroundColor = notification.isRead
                       ? 'transparent'
-                      : colors.primary.soft;
+                      : colors.accent.soft;
                   }}
                 >
                   {/* Icon */}
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: `${getNotificationColor(notification.type)}15`,
-                    color: getNotificationColor(notification.type),
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
+                  <div
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: `${getNotificationColor(notification.type)}15`,
+                      color: getNotificationColor(notification.type),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
                     {getNotificationIcon(notification.type)}
                   </div>
 
                   {/* Content */}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: typography.fontSize.body,
-                      fontWeight: notification.isRead
-                        ? typography.fontWeight.normal
-                        : typography.fontWeight.semibold,
-                      color: colors.text.primary,
-                      marginBottom: '4px',
-                    }}>
+                    <div
+                      style={{
+                        fontSize: typography.fontSize.body,
+                        fontWeight: notification.isRead
+                          ? typography.fontWeight.regular
+                          : typography.fontWeight.semibold,
+                        color: colors.text.primary,
+                        marginBottom: '4px',
+                      }}
+                    >
                       {notification.title}
                     </div>
-                    <div style={{
-                      fontSize: typography.fontSize.caption,
-                      color: colors.text.muted,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
+                    <div
+                      style={{
+                        fontSize: typography.fontSize.caption,
+                        color: colors.text.muted,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {notification.message}
                     </div>
-                    <div style={{
-                      fontSize: typography.fontSize.small,
-                      color: colors.text.soft,
-                      marginTop: '6px',
-                    }}>
+                    <div
+                      style={{
+                        fontSize: typography.fontSize.small,
+                        color: colors.text.soft,
+                        marginTop: '6px',
+                      }}
+                    >
                       {formatTimeAgo(notification.createdAt)}
                     </div>
                   </div>
 
                   {/* Unread indicator */}
                   {!notification.isRead && (
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: colors.primary.main,
-                      flexShrink: 0,
-                      alignSelf: 'center',
-                    }} />
+                    <div
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: colors.primary.main,
+                        flexShrink: 0,
+                        alignSelf: 'center',
+                      }}
+                    />
                   )}
                 </div>
               ))
@@ -438,7 +503,8 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                   borderRadius: '50%',
                   border: 'none',
                   background: 'transparent',
-                  color: currentPage <= 1 ? colors.text.disabled : colors.text.muted,
+                  color:
+                    currentPage <= 1 ? colors.text.soft : colors.text.muted,
                   cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
                   display: 'grid',
                   placeItems: 'center',
@@ -446,10 +512,12 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
               >
                 <IconChevronLeft />
               </button>
-              <span style={{
-                fontSize: typography.fontSize.small,
-                color: colors.text.muted,
-              }}>
+              <span
+                style={{
+                  fontSize: typography.fontSize.small,
+                  color: colors.text.muted,
+                }}
+              >
                 {currentPage} / {totalPages}
               </span>
               <button
@@ -461,7 +529,10 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                   borderRadius: '50%',
                   border: 'none',
                   background: 'transparent',
-                  color: currentPage >= totalPages ? colors.text.disabled : colors.text.muted,
+                  color:
+                    currentPage >= totalPages
+                      ? colors.text.soft
+                      : colors.text.muted,
                   cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
                   display: 'grid',
                   placeItems: 'center',
