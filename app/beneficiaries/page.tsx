@@ -38,6 +38,21 @@ import {
 } from '../../components/ui/Table';
 
 const SEARCH_DEBOUNCE_MS = 250;
+const SSE_INITIAL_RETRY_DELAY_MS = 1000;
+const SSE_MAX_RETRY_DELAY_MS = 30000;
+const SSE_RETRY_MULTIPLIER = 2;
+const SSE_MAX_RETRY_ATTEMPTS = 8;
+
+const getAdminToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('admin_access_token');
+};
+
+const buildSseUrl = (base: string) => {
+  const token = getAdminToken();
+  if (!token) return `${base}/v1/events/stream`;
+  return `${base}/v1/events/stream?token=${encodeURIComponent(token)}`;
+};
 
 // API response type (has 'guardian' instead of 'emergencyContact')
 type BeneficiaryDetailApiPayload = Omit<
@@ -129,6 +144,10 @@ export default function BeneficiariesPage() {
   // Refs for scrolling to specific rows
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
   const eventSourceRef = useRef<EventSource | null>(null);
+  const retryDelayRef = useRef(SSE_INITIAL_RETRY_DELAY_MS);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
+  const sseMountedRef = useRef(false);
 
   // Staff API hook
   const staffApi = useStaffApi();
@@ -153,43 +172,44 @@ export default function BeneficiariesPage() {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
     if (!apiBase) return;
 
-    let retryDelay = 1000;
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let currentEventSource: EventSource | null = null;
-
-    const isWardRegisteredEvent = (
-      data: unknown,
-    ): data is WardRegisteredEvent => {
-      return (
-        typeof data === 'object' &&
-        data !== null &&
-        'type' in data &&
-        (data as { type: string }).type === 'ward-registered' &&
-        'wardName' in data &&
-        typeof (data as { wardName: unknown }).wardName === 'string'
-      );
-    };
+    sseMountedRef.current = true;
 
     const connect = () => {
-      const sseUrl = `${apiBase}/v1/events/stream`;
+      if (!sseMountedRef.current) return;
+
+      const existing = eventSourceRef.current;
+      if (existing && existing.readyState !== EventSource.CLOSED) {
+        return;
+      }
+
+      if (existing) {
+        existing.close();
+        eventSourceRef.current = null;
+      }
+
+      const sseUrl = buildSseUrl(apiBase);
       const eventSource = new EventSource(sseUrl);
-      currentEventSource = eventSource;
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        retryDelay = 1000; // 연결 성공 시 재시도 딜레이 초기화
+        retryDelayRef.current = SSE_INITIAL_RETRY_DELAY_MS;
+        retryCountRef.current = 0;
       };
 
       eventSource.onmessage = event => {
         try {
           const data = JSON.parse(event.data);
+          const wardEvent = data as Partial<WardRegisteredEvent>;
 
-          if (isWardRegisteredEvent(data)) {
-            console.log('[Beneficiaries] Ward registered:', data.wardName);
+          if (
+            wardEvent.type === 'ward-registered' &&
+            typeof wardEvent.wardName === 'string'
+          ) {
+            console.log('[Beneficiaries] Ward registered:', wardEvent.wardName);
 
             setToast({
               isOpen: true,
-              message: `${data.wardName}님이 연동되었습니다`,
+              message: `${wardEvent.wardName}님이 연동되었습니다`,
               type: 'success',
             });
 
@@ -203,21 +223,46 @@ export default function BeneficiariesPage() {
       eventSource.onerror = () => {
         console.warn('[Beneficiaries] SSE connection error, reconnecting...');
         eventSource.close();
+        eventSourceRef.current = null;
 
-        // 지수 백오프로 재연결
-        retryTimeout = setTimeout(() => {
+        if (!sseMountedRef.current) return;
+
+        retryCountRef.current += 1;
+        if (retryCountRef.current > SSE_MAX_RETRY_ATTEMPTS) {
+          console.warn('[Beneficiaries] SSE retry limit reached, giving up');
+          return;
+        }
+
+        const delay = retryDelayRef.current;
+        retryDelayRef.current = Math.min(
+          retryDelayRef.current * SSE_RETRY_MULTIPLIER,
+          SSE_MAX_RETRY_DELAY_MS,
+        );
+
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+
+        retryTimeoutRef.current = setTimeout(() => {
           connect();
-        }, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 30000);
+        }, delay);
       };
     };
 
     connect();
 
     return () => {
-      if (retryTimeout) clearTimeout(retryTimeout);
-      if (currentEventSource) currentEventSource.close();
-      eventSourceRef.current = null;
+      sseMountedRef.current = false;
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
     };
   }, []);
 
