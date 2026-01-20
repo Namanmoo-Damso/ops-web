@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { Room, RoomConnection } from '../types/room';
 import type { Admin } from '../types/models';
 
@@ -231,8 +231,11 @@ export function useMultiRoomSession({
     leaveRoom,
   ]);
 
+  // Memoize the connections array to prevent creating new reference on every render
+  const connectionsArray = useMemo(() => Object.values(connections), [connections]);
+
   return {
-    connections: Object.values(connections),
+    connections: connectionsArray,
     adminIdentity,
   };
 }
