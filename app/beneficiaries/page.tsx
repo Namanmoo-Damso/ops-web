@@ -18,6 +18,7 @@ import DetailModal, {
   type BeneficiarySummary,
 } from './DetailModal';
 import StatsSummary from '../../components/ui/StatsSummary';
+import Toast, { type ToastType } from '../../components/ui/Toast';
 import {
   RefreshIcon,
   UsersIcon,
@@ -92,6 +93,15 @@ const EMPTY_DETAIL: BeneficiaryDetail = {
 
 type SortOption = 'name' | 'lastCall-recent' | 'lastCall-old';
 
+// SSE 이벤트 타입 정의
+type WardRegisteredEvent = {
+  type: 'ward-registered';
+  organizationWardId: string;
+  organizationId: string;
+  wardName: string;
+  timestamp: string;
+};
+
 export default function BeneficiariesPage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -109,8 +119,16 @@ export default function BeneficiariesPage() {
   const [reinviting, setReinviting] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>([]);
 
+  // Toast state for ward registration notification
+  const [toast, setToast] = useState<{
+    isOpen: boolean;
+    message: string;
+    type: ToastType;
+  }>({ isOpen: false, message: '', type: 'success' });
+
   // Refs for scrolling to specific rows
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Staff API hook
   const staffApi = useStaffApi();
@@ -128,6 +146,48 @@ export default function BeneficiariesPage() {
       }
     };
     fetchStaff();
+  }, []);
+
+  // SSE 연결: 대상자 연동 완료 이벤트 수신
+  useEffect(() => {
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+    if (!apiBase) return;
+
+    const sseUrl = `${apiBase}/v1/events/stream`;
+    const eventSource = new EventSource(sseUrl);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = event => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'ward-registered') {
+          const wardEvent = data as WardRegisteredEvent;
+          console.log('[Beneficiaries] Ward registered:', wardEvent.wardName);
+
+          // 토스트 알림 표시
+          setToast({
+            isOpen: true,
+            message: `${wardEvent.wardName}님이 연동되었습니다`,
+            type: 'success',
+          });
+
+          // 목록 새로고침
+          setRefreshKey(prev => prev + 1);
+        }
+      } catch (err) {
+        console.error('[Beneficiaries] SSE parse error:', err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      console.warn('[Beneficiaries] SSE connection error, will reconnect...');
+    };
+
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
   }, []);
 
   // 디바운스된 검색어로 필터링 부담을 줄임
@@ -924,6 +984,14 @@ export default function BeneficiariesPage() {
           />
         )}
       </div>
+
+      {/* 연동 완료 토스트 알림 */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isOpen={toast.isOpen}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+      />
     </DashboardLayout>
   );
 }
