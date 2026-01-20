@@ -15,6 +15,18 @@ import { API_BASE } from '../lib/api-client';
 const INITIAL_RETRY_DELAY_MS = 1000;
 const MAX_RETRY_DELAY_MS = 30000;
 const RETRY_MULTIPLIER = 2;
+const MAX_RETRY_ATTEMPTS = 8;
+
+const getAdminToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('admin_access_token');
+};
+
+const buildSseUrl = (base: string) => {
+  const token = getAdminToken();
+  if (!token) return `${base}/v1/events/stream`;
+  return `${base}/v1/events/stream?token=${encodeURIComponent(token)}`;
+};
 
 export interface CareAlert {
   id: string;
@@ -156,6 +168,7 @@ export function CareAlertProvider({
   const alarmRef = useRef<AlarmController | null>(null);
   const retryDelayRef = useRef(INITIAL_RETRY_DELAY_MS);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef = useRef(0);
   const mountedRef = useRef(true);
 
   // Initialize alarm controller
@@ -186,9 +199,15 @@ export function CareAlertProvider({
       setSuspended(isOpen);
     };
 
-    window.addEventListener('detailSidebarStateChange', handleSidebarStateChange);
+    window.addEventListener(
+      'detailSidebarStateChange',
+      handleSidebarStateChange,
+    );
     return () => {
-      window.removeEventListener('detailSidebarStateChange', handleSidebarStateChange);
+      window.removeEventListener(
+        'detailSidebarStateChange',
+        handleSidebarStateChange,
+      );
     };
   }, []);
 
@@ -215,7 +234,8 @@ export function CareAlertProvider({
 
   // Subscribe to SSE for room-danger events with reconnection logic
   useEffect(() => {
-    if (!enabled || !API_BASE) {
+    const apiBase = API_BASE;
+    if (!enabled || !apiBase) {
       return;
     }
 
@@ -224,7 +244,12 @@ export function CareAlertProvider({
     const connect = () => {
       if (!mountedRef.current) return;
 
-      const sseUrl = `${API_BASE}/v1/events/stream`;
+      const existing = eventSourceRef.current;
+      if (existing && existing.readyState !== EventSource.CLOSED) {
+        return;
+      }
+
+      const sseUrl = buildSseUrl(apiBase);
       console.log(`[CareAlertProvider] Connecting to SSE: ${sseUrl}`);
 
       const eventSource = new EventSource(sseUrl);
@@ -234,6 +259,7 @@ export function CareAlertProvider({
         console.log('[CareAlertProvider] SSE connection opened');
         // Reset retry delay on successful connection
         retryDelayRef.current = INITIAL_RETRY_DELAY_MS;
+        retryCountRef.current = 0;
       };
 
       eventSource.onmessage = event => {
@@ -278,8 +304,20 @@ export function CareAlertProvider({
 
         // Reconnect with exponential backoff
         if (mountedRef.current) {
+          retryCountRef.current += 1;
+          if (retryCountRef.current > MAX_RETRY_ATTEMPTS) {
+            console.warn(
+              '[CareAlertProvider] SSE retry limit reached, giving up',
+            );
+            return;
+          }
+
           const delay = retryDelayRef.current;
           console.log(`[CareAlertProvider] Reconnecting in ${delay}ms...`);
+
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+          }
 
           retryTimeoutRef.current = setTimeout(() => {
             if (mountedRef.current) {

@@ -3,6 +3,8 @@
 import {
   forwardRef,
   useCallback,
+  useEffect,
+  useRef,
   useState,
   type CSSProperties,
   type ReactNode,
@@ -19,6 +21,23 @@ import { Admin } from '../../types/models';
 import Sidebar, { SIDEBAR_WIDTH_VALUE } from './Sidebar';
 import Header, { HEADER_HEIGHT } from './Header';
 import { API_BASE } from '../../lib/api-client';
+import Toast, { type ToastType } from '../ui/Toast';
+
+const SSE_INITIAL_RETRY_DELAY_MS = 1000;
+const SSE_MAX_RETRY_DELAY_MS = 30000;
+const SSE_RETRY_MULTIPLIER = 2;
+const SSE_MAX_RETRY_ATTEMPTS = 8;
+
+const getAdminToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('admin_access_token');
+};
+
+const buildSseUrl = (base: string) => {
+  const token = getAdminToken();
+  if (!token) return `${base}/v1/events/stream`;
+  return `${base}/v1/events/stream?token=${encodeURIComponent(token)}`;
+};
 
 export interface DashboardLayoutProps {
   /** Page content */
@@ -60,6 +79,16 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
       processed: number;
       total: number;
     } | null>(null);
+    const [toast, setToast] = useState<{
+      isOpen: boolean;
+      message: string;
+      type: ToastType;
+    }>({ isOpen: false, message: '', type: 'success' });
+    const eventSourceRef = useRef<EventSource | null>(null);
+    const retryDelayRef = useRef(SSE_INITIAL_RETRY_DELAY_MS);
+    const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const retryCountRef = useRef(0);
+    const sseMountedRef = useRef(false);
 
     const isCsvModalOpen = csvModalOpen ?? internalCsvModalOpen;
     const setCsvModalOpen = useCallback(
@@ -77,6 +106,109 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
     useSessionMonitor({
       warningBeforeExpiryMs: 5 * 60 * 1000,
     });
+
+    // SSE 연결: 대상자 연동 완료 이벤트 수신 (전역 토스트)
+    useEffect(() => {
+      const apiBase = API_BASE;
+      if (!apiBase) return;
+
+      sseMountedRef.current = true;
+
+      const connect = () => {
+        if (!sseMountedRef.current) return;
+
+        const existing = eventSourceRef.current;
+        if (existing && existing.readyState !== EventSource.CLOSED) {
+          return;
+        }
+
+        if (existing) {
+          existing.close();
+          eventSourceRef.current = null;
+        }
+
+        const sseUrl = buildSseUrl(apiBase);
+        const eventSource = new EventSource(sseUrl);
+        eventSourceRef.current = eventSource;
+
+        eventSource.onopen = () => {
+          retryDelayRef.current = SSE_INITIAL_RETRY_DELAY_MS;
+          retryCountRef.current = 0;
+        };
+
+        eventSource.onmessage = event => {
+          try {
+            const data = JSON.parse(event.data) as {
+              type?: string;
+              wardName?: string;
+              organizationWardId?: string;
+              organizationId?: string;
+            };
+
+            if (data.type === 'ward-registered' && data.wardName) {
+              setToast({
+                isOpen: true,
+                message: `${data.wardName}님이 연동되었습니다`,
+                type: 'success',
+              });
+              window.dispatchEvent(
+                new CustomEvent('wardRegistered', { detail: data }),
+              );
+            }
+          } catch (err) {
+            console.error('[DashboardLayout] SSE parse error:', err);
+          }
+        };
+
+        eventSource.onerror = () => {
+          console.warn(
+            '[DashboardLayout] SSE connection error, reconnecting...',
+          );
+          eventSource.close();
+          eventSourceRef.current = null;
+
+          if (!sseMountedRef.current) return;
+
+          retryCountRef.current += 1;
+          if (retryCountRef.current > SSE_MAX_RETRY_ATTEMPTS) {
+            console.warn(
+              '[DashboardLayout] SSE retry limit reached, giving up',
+            );
+            return;
+          }
+
+          const delay = retryDelayRef.current;
+          retryDelayRef.current = Math.min(
+            retryDelayRef.current * SSE_RETRY_MULTIPLIER,
+            SSE_MAX_RETRY_DELAY_MS,
+          );
+
+          if (retryTimeoutRef.current) {
+            clearTimeout(retryTimeoutRef.current);
+          }
+
+          retryTimeoutRef.current = setTimeout(() => {
+            connect();
+          }, delay);
+        };
+      };
+
+      connect();
+
+      return () => {
+        sseMountedRef.current = false;
+
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
+
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+      };
+    }, []);
 
     const handleAuthError = useCallback(() => {
       localStorage.removeItem('admin_access_token');
@@ -265,7 +397,10 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
       [createWard, uploading],
     );
 
-    const mainStyle: CSSProperties & { '--sidebar-width': string; '--header-height': string } = {
+    const mainStyle: CSSProperties & {
+      '--sidebar-width': string;
+      '--header-height': string;
+    } = {
       flex: 1,
       marginLeft: sidebarCollapsed ? 0 : SIDEBAR_WIDTH_VALUE,
       marginTop: HEADER_HEIGHT,
@@ -346,6 +481,14 @@ const DashboardLayout = forwardRef<HTMLDivElement, DashboardLayoutProps>(
           onManualSubmit={handleManualSubmit}
           uploading={uploading}
           uploadProgress={uploadProgress}
+        />
+
+        {/* Global Toast */}
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isOpen={toast.isOpen}
+          onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
         />
       </AuthGuard>
     );

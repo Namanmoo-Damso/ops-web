@@ -18,7 +18,6 @@ import DetailModal, {
   type BeneficiarySummary,
 } from './DetailModal';
 import StatsSummary from '../../components/ui/StatsSummary';
-import Toast, { type ToastType } from '../../components/ui/Toast';
 import {
   RefreshIcon,
   UsersIcon,
@@ -119,16 +118,8 @@ export default function BeneficiariesPage() {
   const [reinviting, setReinviting] = useState(false);
   const [staffList, setStaffList] = useState<Staff[]>([]);
 
-  // Toast state for ward registration notification
-  const [toast, setToast] = useState<{
-    isOpen: boolean;
-    message: string;
-    type: ToastType;
-  }>({ isOpen: false, message: '', type: 'success' });
-
   // Refs for scrolling to specific rows
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
-  const eventSourceRef = useRef<EventSource | null>(null);
 
   // Staff API hook
   const staffApi = useStaffApi();
@@ -148,76 +139,18 @@ export default function BeneficiariesPage() {
     fetchStaff();
   }, []);
 
-  // SSE 연결: 대상자 연동 완료 이벤트 수신
+  // 전역 SSE 이벤트 수신 (DashboardLayout에서 발생)
   useEffect(() => {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-    if (!apiBase) return;
-
-    let retryDelay = 1000;
-    let retryTimeout: NodeJS.Timeout | null = null;
-    let currentEventSource: EventSource | null = null;
-
-    const isWardRegisteredEvent = (
-      data: unknown,
-    ): data is WardRegisteredEvent => {
-      return (
-        typeof data === 'object' &&
-        data !== null &&
-        'type' in data &&
-        (data as { type: string }).type === 'ward-registered' &&
-        'wardName' in data &&
-        typeof (data as { wardName: unknown }).wardName === 'string'
-      );
+    const handleWardRegistered = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return;
+      const detail = event.detail as Partial<WardRegisteredEvent> | undefined;
+      if (detail?.type !== 'ward-registered') return;
+      setRefreshKey(prev => prev + 1);
     };
 
-    const connect = () => {
-      const sseUrl = `${apiBase}/v1/events/stream`;
-      const eventSource = new EventSource(sseUrl);
-      currentEventSource = eventSource;
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        retryDelay = 1000; // 연결 성공 시 재시도 딜레이 초기화
-      };
-
-      eventSource.onmessage = event => {
-        try {
-          const data = JSON.parse(event.data);
-
-          if (isWardRegisteredEvent(data)) {
-            console.log('[Beneficiaries] Ward registered:', data.wardName);
-
-            setToast({
-              isOpen: true,
-              message: `${data.wardName}님이 연동되었습니다`,
-              type: 'success',
-            });
-
-            setRefreshKey(prev => prev + 1);
-          }
-        } catch (err) {
-          console.error('[Beneficiaries] SSE parse error:', err);
-        }
-      };
-
-      eventSource.onerror = () => {
-        console.warn('[Beneficiaries] SSE connection error, reconnecting...');
-        eventSource.close();
-
-        // 지수 백오프로 재연결
-        retryTimeout = setTimeout(() => {
-          connect();
-        }, retryDelay);
-        retryDelay = Math.min(retryDelay * 2, 30000);
-      };
-    };
-
-    connect();
-
+    window.addEventListener('wardRegistered', handleWardRegistered);
     return () => {
-      if (retryTimeout) clearTimeout(retryTimeout);
-      if (currentEventSource) currentEventSource.close();
-      eventSourceRef.current = null;
+      window.removeEventListener('wardRegistered', handleWardRegistered);
     };
   }, []);
 
@@ -1015,14 +948,6 @@ export default function BeneficiariesPage() {
           />
         )}
       </div>
-
-      {/* 연동 완료 토스트 알림 */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        isOpen={toast.isOpen}
-        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
-      />
     </DashboardLayout>
   );
 }
