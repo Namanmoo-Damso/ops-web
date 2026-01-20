@@ -1,5 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import type { Room, RoomsSummary, AppEvent, RoomParticipant } from '../types/room';
+import type {
+  Room,
+  RoomsSummary,
+  AppEvent,
+  RoomParticipant,
+} from '../types/room';
 
 type UseRoomSSEOptions = {
   apiBase: string | undefined;
@@ -88,76 +93,86 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
     });
   }, []);
 
-  const handleParticipantJoined = useCallback((roomName: string, identity?: string, name?: string) => {
-    setRooms(prev => {
-      const roomIndex = prev.findIndex(r => r.name === roomName);
-      if (roomIndex === -1) {
-        // Room doesn't exist yet, create it with this participant
-        if (identity) {
-          const newRoom: Room = {
-            name: roomName,
-            metadata: null,
-            createdAt: new Date().toISOString(),
-            numParticipants: 1,
-            numPublishers: null,
-            participants: [{
+  const handleParticipantJoined = useCallback(
+    (roomName: string, identity?: string, name?: string) => {
+      setRooms(prev => {
+        const roomIndex = prev.findIndex(r => r.name === roomName);
+        if (roomIndex === -1) {
+          // Room doesn't exist yet, create it with this participant
+          if (identity) {
+            const newRoom: Room = {
+              name: roomName,
+              metadata: null,
+              createdAt: new Date().toISOString(),
+              numParticipants: 1,
+              numPublishers: null,
+              participants: [
+                {
+                  identity,
+                  name: name || identity,
+                  metadata: null,
+                  joinedAt: new Date().toISOString(),
+                },
+              ],
+            };
+            return [...prev, newRoom];
+          }
+          return prev;
+        }
+
+        const room = prev[roomIndex];
+        // Check if participant already exists
+        if (identity && room.participants.some(p => p.identity === identity)) {
+          return prev;
+        }
+
+        const newParticipant: RoomParticipant | null = identity
+          ? {
               identity,
               name: name || identity,
               metadata: null,
               joinedAt: new Date().toISOString(),
-            }],
-          };
-          return [...prev, newRoom];
-        }
-        return prev;
-      }
+            }
+          : null;
 
-      const room = prev[roomIndex];
-      // Check if participant already exists
-      if (identity && room.participants.some(p => p.identity === identity)) {
-        return prev;
-      }
+        const updatedRoom: Room = {
+          ...room,
+          participants: newParticipant
+            ? [...room.participants, newParticipant]
+            : room.participants,
+          numParticipants: room.numParticipants + 1,
+        };
 
-      const newParticipant: RoomParticipant | null = identity ? {
-        identity,
-        name: name || identity,
-        metadata: null,
-        joinedAt: new Date().toISOString(),
-      } : null;
+        const newRooms = [...prev];
+        newRooms[roomIndex] = updatedRoom;
+        return newRooms;
+      });
+    },
+    [],
+  );
 
-      const updatedRoom: Room = {
-        ...room,
-        participants: newParticipant
-          ? [...room.participants, newParticipant]
-          : room.participants,
-        numParticipants: room.numParticipants + 1,
-      };
+  const handleParticipantLeft = useCallback(
+    (roomName: string, participantIdentity?: string) => {
+      setRooms(prev => {
+        const roomIndex = prev.findIndex(r => r.name === roomName);
+        if (roomIndex === -1) return prev;
 
-      const newRooms = [...prev];
-      newRooms[roomIndex] = updatedRoom;
-      return newRooms;
-    });
-  }, []);
+        const room = prev[roomIndex];
+        const updatedRoom: Room = {
+          ...room,
+          participants: participantIdentity
+            ? room.participants.filter(p => p.identity !== participantIdentity)
+            : room.participants,
+          numParticipants: Math.max(0, room.numParticipants - 1),
+        };
 
-  const handleParticipantLeft = useCallback((roomName: string, participantIdentity?: string) => {
-    setRooms(prev => {
-      const roomIndex = prev.findIndex(r => r.name === roomName);
-      if (roomIndex === -1) return prev;
-
-      const room = prev[roomIndex];
-      const updatedRoom: Room = {
-        ...room,
-        participants: participantIdentity
-          ? room.participants.filter(p => p.identity !== participantIdentity)
-          : room.participants,
-        numParticipants: Math.max(0, room.numParticipants - 1),
-      };
-
-      const newRooms = [...prev];
-      newRooms[roomIndex] = updatedRoom;
-      return newRooms;
-    });
-  }, []);
+        const newRooms = [...prev];
+        newRooms[roomIndex] = updatedRoom;
+        return newRooms;
+      });
+    },
+    [],
+  );
 
   // Connect to SSE with reconnection logic
   const connectSSE = useCallback(() => {
@@ -195,17 +210,29 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
 
           case 'participant-joined':
             // RoomEvent has identity and name directly on the event
-            console.log('[useRoomSSE] Participant joined:', data.roomName, data.identity);
+            console.log(
+              '[useRoomSSE] Participant joined:',
+              data.roomName,
+              data.identity,
+            );
             handleParticipantJoined(data.roomName, data.identity, data.name);
             break;
 
           case 'participant-left':
-            console.log('[useRoomSSE] Participant left:', data.roomName, data.identity);
+            console.log(
+              '[useRoomSSE] Participant left:',
+              data.roomName,
+              data.identity,
+            );
             handleParticipantLeft(data.roomName, data.identity);
             break;
 
           case 'room-danger':
-            console.log('[useRoomSSE] Room danger:', data.roomName, data.isDanger);
+            console.log(
+              '[useRoomSSE] Room danger:',
+              data.roomName,
+              data.isDanger,
+            );
             setDangerRooms(prev => ({
               ...prev,
               [data.roomName]: data.isDanger,
@@ -241,11 +268,17 @@ export function useRoomSSE({ apiBase, enabled = true }: UseRoomSSEOptions) {
         // Increase delay for next retry (with cap)
         retryDelayRef.current = Math.min(
           retryDelayRef.current * RETRY_MULTIPLIER,
-          MAX_RETRY_DELAY_MS
+          MAX_RETRY_DELAY_MS,
         );
       }
     };
-  }, [enabled, apiBase, handleRoomCreated, handleParticipantJoined, handleParticipantLeft]);
+  }, [
+    enabled,
+    apiBase,
+    handleRoomCreated,
+    handleParticipantJoined,
+    handleParticipantLeft,
+  ]);
 
   // Subscribe to SSE for real-time updates
   useEffect(() => {
