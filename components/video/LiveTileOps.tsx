@@ -14,7 +14,15 @@ export interface LiveTileOpsProps {
   onClick?: (roomName: string, participantId: string, trackRef: any) => void;
   participantId: string;
   isDanger?: boolean;
+  riskLevel?: 'normal' | 'caution' | 'critical';
 }
+
+// Color configurations based on risk level
+const RISK_COLORS = {
+  normal: { border: 'transparent', glow: 'transparent', dot: '#10b981' },
+  caution: { border: '#eab308', glow: 'rgba(234, 179, 8, 0.5)', dot: '#eab308' },
+  critical: { border: '#ef4444', glow: 'rgba(239, 68, 68, 0.5)', dot: '#ef4444' },
+};
 
 export const LiveTileOps = memo(function LiveTileOps({
   trackRef,
@@ -25,9 +33,15 @@ export const LiveTileOps = memo(function LiveTileOps({
   onClick,
   participantId,
   isDanger,
+  riskLevel = 'normal',
 }: LiveTileOpsProps) {
   const cameraOff = videoOff;
   const showVideo = !cameraOff && !suppressVideo;
+
+  // Determine effective risk level based on riskLevel prop (isDanger is for backward compatibility)
+  const effectiveRiskLevel = riskLevel !== 'normal' ? riskLevel : (isDanger ? 'critical' : 'normal');
+  const colors = RISK_COLORS[effectiveRiskLevel];
+  const isAlert = effectiveRiskLevel !== 'normal';
 
   const handleClick = () => {
     if (onClick) {
@@ -43,20 +57,24 @@ export const LiveTileOps = memo(function LiveTileOps({
         cursor: onClick ? 'pointer' : 'default',
         borderRadius: '12px',
         overflow: 'hidden',
-        boxShadow: isDanger
-          ? '0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5)'
+        boxShadow: isAlert
+          ? `0 0 0 3px ${colors.border}, 0 0 20px ${colors.glow}`
           : undefined,
-        animation: isDanger
-          ? 'dangerPulse 1.5s ease-in-out infinite'
+        animation: isAlert
+          ? `${effectiveRiskLevel}Pulse 1.5s ease-in-out infinite`
           : undefined,
       }}
       onClick={handleClick}
     >
       <style>
         {`
-          @keyframes dangerPulse {
+          @keyframes criticalPulse {
             0%, 100% { box-shadow: 0 0 0 3px #ef4444, 0 0 20px rgba(239, 68, 68, 0.5); }
             50% { box-shadow: 0 0 0 4px #ef4444, 0 0 30px rgba(239, 68, 68, 0.8); }
+          }
+          @keyframes cautionPulse {
+            0%, 100% { box-shadow: 0 0 0 3px #eab308, 0 0 20px rgba(234, 179, 8, 0.5); }
+            50% { box-shadow: 0 0 0 4px #eab308, 0 0 30px rgba(234, 179, 8, 0.8); }
           }
         `}
       </style>
@@ -88,8 +106,8 @@ export const LiveTileOps = memo(function LiveTileOps({
                 width: '8px',
                 height: '8px',
                 borderRadius: '50%',
-                backgroundColor: isDanger ? '#ef4444' : '#10b981',
-                animation: isDanger
+                backgroundColor: colors.dot,
+                animation: isAlert
                   ? 'pulse 1s ease-in-out infinite'
                   : undefined,
               }}

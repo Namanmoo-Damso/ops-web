@@ -31,6 +31,7 @@ type ParticipantDetailSidebarProps = {
   isTakeoverActive?: boolean;
   onToggleTakeover?: () => void;
   isDanger?: boolean;
+  riskLevel?: 'normal' | 'caution' | 'critical';
   dangerCode?: string; // 4-bit: 1000=deviceFall, 0100=personFall, 0010=loudVoice, 0001=emotion
   onClearDanger?: () => void;
   detectionInfo?: DetectionInfo | null;
@@ -53,6 +54,206 @@ type DetectionInfo = {
   type: string;
   severity: string;
   criteria: DetectionCriteria[];
+};
+
+// 센서 상태 타입
+type SensorStatusLevel = 'normal' | 'caution' | 'critical';
+
+type SensorState = {
+  status: SensorStatusLevel;
+  value: number; // 0-100 퍼센트 값
+  lastUpdated: number;
+  isLocked: boolean; // 주의/경고 시 값 고정
+  pendingValue?: number; // 잠금 상태에서 들어온 최신 값 (해제 시 적용)
+};
+
+type SensorStates = {
+  emotion: SensorState;
+  audio: SensorState;
+  motion: SensorState;
+  face: SensorState;
+};
+
+// sensor_status 토픽으로 수신되는 메시지 타입
+type SensorStatusMessage = {
+  timestamp: number;
+  wardId: string;
+  emotion?: {
+    status: SensorStatusLevel;
+    value: string;
+    confidence: number;
+  };
+  audio?: {
+    status: SensorStatusLevel;
+    level: number;
+    decibel: number;
+  };
+  motion?: {
+    status: SensorStatusLevel;
+    fallRisk: number;
+    isFreefalling: boolean;
+  };
+  face?: {
+    status: SensorStatusLevel;
+    isDetected: boolean;
+    faceY: number;
+  };
+};
+
+const SENSOR_LABELS: Record<keyof SensorStates, string> = {
+  emotion: '감정',
+  audio: '음성',
+  motion: '모션',
+  face: '얼굴',
+};
+
+// alertType → sensor 매핑
+const ALERT_TYPE_TO_SENSOR: Record<string, keyof SensorStates> = {
+  emotion: 'emotion',
+  device_fall: 'motion',
+  person_fall: 'face',
+  loud_voice: 'audio',
+};
+
+// 상태별 색상
+const SENSOR_STATUS_COLORS: Record<SensorStatusLevel, { dot: string; border: string; bg: string }> = {
+  normal: { dot: '#22c55e', border: '#e2e8f0', bg: '#ffffff' },
+  caution: { dot: '#eab308', border: '#eab308', bg: '#fefce8' },
+  critical: { dot: '#ef4444', border: '#ef4444', bg: '#fef2f2' },
+};
+
+// 센서 상태 표시 컴포넌트 (가로 막대그래프)
+const SensorStatusIndicator = ({
+  states,
+  onUnlock,
+}: {
+  states: SensorStates;
+  onUnlock?: (sensor: keyof SensorStates) => void;
+}) => {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        padding: '14px 16px',
+        background: '#ffffff',
+        borderRadius: '12px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      }}
+    >
+      {(Object.keys(states) as Array<keyof SensorStates>).map((sensor) => {
+        const state = states[sensor];
+        const colors = SENSOR_STATUS_COLORS[state.status];
+        const isAlert = state.status !== 'normal';
+
+        return (
+          <div
+            key={sensor}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+            }}
+          >
+            {/* 센서 라벨 */}
+            <span
+              style={{
+                width: '36px',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: isAlert ? colors.dot : '#64748b',
+                flexShrink: 0,
+              }}
+            >
+              {SENSOR_LABELS[sensor]}
+            </span>
+
+            {/* 막대그래프 컨테이너 */}
+            <div
+              style={{
+                flex: 1,
+                height: '20px',
+                background: '#f1f5f9',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                position: 'relative',
+                border: isAlert ? `1.5px solid ${colors.border}` : '1px solid #e2e8f0',
+              }}
+            >
+              {/* 막대 (값) */}
+              <div
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  height: '100%',
+                  width: `${state.value}%`,
+                  background: isAlert
+                    ? `linear-gradient(90deg, ${colors.dot}cc, ${colors.dot})`
+                    : 'linear-gradient(90deg, #22c55e99, #22c55e)',
+                  borderRadius: '10px',
+                  transition: state.isLocked ? 'none' : 'width 0.3s ease',
+                  animation: isAlert && state.status === 'critical' ? 'bar-pulse 1.5s infinite' : undefined,
+                }}
+              />
+              {/* 퍼센트 텍스트 */}
+              <span
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: state.value > 60 ? '#ffffff' : '#475569',
+                  textShadow: state.value > 60 ? '0 1px 2px rgba(0,0,0,0.3)' : 'none',
+                }}
+              >
+                {Math.round(state.value)}%
+              </span>
+            </div>
+
+            {/* 잠금 상태 표시 및 해제 버튼 */}
+            {state.isLocked ? (
+              <button
+                onClick={() => onUnlock?.(sensor)}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: '#ffffff',
+                  background: colors.dot,
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.2s',
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.opacity = '0.8';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                }}
+              >
+                해제
+              </button>
+            ) : (
+              <div style={{ width: '40px', flexShrink: 0 }} /> // 공간 유지
+            )}
+          </div>
+        );
+      })}
+      <style>{`
+        @keyframes bar-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+      `}</style>
+    </div>
+  );
 };
 
 const hexToRgba = (hex: string, alpha = 1) => {
@@ -88,9 +289,8 @@ const InfoCard = ({
       style={{
         position: 'relative',
         background: '#ffffff',
-        border: `1px solid ${
-          highlight ? hexToRgba(color, 0.45) : 'rgba(226,232,240,1)'
-        }`,
+        border: `1px solid ${highlight ? hexToRgba(color, 0.45) : 'rgba(226,232,240,1)'
+          }`,
         borderRadius: '18px',
         padding: '14px 20px',
         boxShadow: highlight
@@ -161,8 +361,8 @@ const InfoCard = ({
 };
 
 // Helper function to highlight danger keywords
-const highlightDangerKeywords = (text: string) => {
-  const dangerKeywords = [
+const highlightDangerKeywords = (text: string, additionalKeywords: string[] = []) => {
+  const baseKeywords = [
     '도와주세요',
     '살려주세요',
     '아파',
@@ -187,6 +387,9 @@ const highlightDangerKeywords = (text: string) => {
     '먹었',
     '삼켰',
   ];
+
+  // 기본 키워드 + Agent에서 감지한 동적 키워드 합치기 (중복 제거)
+  const dangerKeywords = [...new Set([...baseKeywords, ...additionalKeywords])];
 
   let highlightedText: (string | JSX.Element)[] = [text];
 
@@ -345,6 +548,13 @@ const dangerCodeToDetectionInfo = (dangerCode: string): DetectionInfo | null => 
   };
 };
 
+// Border colors based on risk level
+const SIDEBAR_BORDER_COLORS = {
+  normal: 'rgba(148,163,184,0.35)',
+  caution: '#eab308',
+  critical: '#ef4444',
+};
+
 export const ParticipantDetailSidebar = ({
   participant,
   onClose,
@@ -353,6 +563,7 @@ export const ParticipantDetailSidebar = ({
   isTakeoverActive = false,
   onToggleTakeover,
   isDanger = false,
+  riskLevel = 'normal',
   dangerCode,
   onClearDanger,
   detectionInfo,
@@ -360,6 +571,10 @@ export const ParticipantDetailSidebar = ({
 }: ParticipantDetailSidebarProps) => {
   const isWarning = participant.status === 'WARNING';
   const accentColor = isWarning ? '#f87171' : '#38bdf8';
+
+  // Determine effective risk level for sidebar border
+  const effectiveRiskLevel = riskLevel !== 'normal' ? riskLevel : (isDanger ? 'critical' : 'normal');
+  const sidebarBorderColor = SIDEBAR_BORDER_COLORS[effectiveRiskLevel];
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null); // Ref for chat scroll container
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
@@ -375,6 +590,196 @@ export const ParticipantDetailSidebar = ({
   // Detection info from DataChannel (agent alert_response)
   const [localDetectionInfo, setLocalDetectionInfo] =
     useState<DetectionInfo | null>(null);
+
+  // 센서 상태 (4개 센서)
+  const initialSensorState: SensorState = {
+    status: 'normal',
+    value: 0,
+    lastUpdated: Date.now(),
+    isLocked: false,
+  };
+  const [sensorStates, setSensorStates] = useState<SensorStates>({
+    emotion: initialSensorState,
+    audio: initialSensorState,
+    motion: initialSensorState,
+    face: initialSensorState,
+  });
+
+  // Agent에서 감지한 동적 키워드 리스트 (하이라이트용)
+  const [detectedKeywords, setDetectedKeywords] = useState<string[]>([]);
+
+  // 센서 상태 업데이트 함수 (값과 상태 모두 업데이트)
+  const updateSensorStatus = useCallback((
+    sensor: keyof SensorStates,
+    status: SensorStatusLevel,
+    value?: number
+  ) => {
+    setSensorStates(prev => {
+      const currentState = prev[sensor];
+
+      // 이미 잠금 상태면 pendingValue만 업데이트
+      if (currentState.isLocked) {
+        return {
+          ...prev,
+          [sensor]: {
+            ...currentState,
+            pendingValue: value ?? currentState.pendingValue,
+          },
+        };
+      }
+
+      const isAlert = status !== 'normal';
+
+      return {
+        ...prev,
+        [sensor]: {
+          status,
+          value: value ?? currentState.value,
+          lastUpdated: Date.now(),
+          isLocked: isAlert, // 주의/경고 시 자동 잠금
+          pendingValue: undefined, // 새로 잠금될 때 pending 클리어
+        },
+      };
+    });
+  }, []);
+
+  // 센서 값만 업데이트 (잠금 상태면 pendingValue에 저장)
+  const updateSensorValue = useCallback((
+    sensor: keyof SensorStates,
+    value: number
+  ) => {
+    setSensorStates(prev => {
+      const currentState = prev[sensor];
+
+      // 잠금 상태면 pendingValue에 저장 (해제 시 적용됨)
+      if (currentState.isLocked) {
+        return {
+          ...prev,
+          [sensor]: {
+            ...currentState,
+            pendingValue: value,
+          },
+        };
+      }
+
+      return {
+        ...prev,
+        [sensor]: {
+          ...currentState,
+          value,
+          lastUpdated: Date.now(),
+          pendingValue: undefined, // 정상 상태면 pending 클리어
+        },
+      };
+    });
+  }, []);
+
+  // 센서 잠금 해제 함수 (pendingValue가 있으면 적용) + API 호출
+  const unlockSensor = useCallback(async (sensor: keyof SensorStates) => {
+    // 1. 로컬 상태 먼저 업데이트 (UI 반응성)
+    setSensorStates(prev => {
+      const currentState = prev[sensor];
+      return {
+        ...prev,
+        [sensor]: {
+          ...currentState,
+          status: 'normal',
+          isLocked: false,
+          // pendingValue가 있으면 적용, 없으면 현재 값 유지
+          value: currentState.pendingValue ?? currentState.value,
+          pendingValue: undefined,
+          lastUpdated: Date.now(),
+        },
+      };
+    });
+
+    // 2. API 호출하여 DB의 alert acknowledge + room metadata 업데이트
+    if (roomName) {
+      try {
+        const token = localStorage.getItem('admin_access_token');
+        if (!token) {
+          console.warn('[Sidebar] No auth token for acknowledge API');
+          return;
+        }
+
+        const response = await fetch(`${API_BASE}/v1/guardians/alerts/acknowledge-by-type`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            roomName,
+            sensorType: sensor,
+          }),
+        });
+
+        if (!response.ok) {
+          console.error('[Sidebar] Failed to acknowledge by type:', response.status);
+        } else {
+          const result = await response.json();
+          console.log(`[Sidebar] Acknowledged ${sensor} alerts:`, result);
+
+          // 모든 alert이 해제되었으면 onClearDanger 호출 (UI 동기화)
+          if (result.acknowledgedCount > 0) {
+            // 다른 센서에 alert이 남아있는지 확인
+            const hasOtherLockedSensors = Object.entries(sensorStates).some(
+              ([key, state]) => key !== sensor && state.isLocked
+            );
+
+            if (!hasOtherLockedSensors) {
+              // 모든 센서가 해제됨 - onClearDanger 호출하여 Grid 테두리도 업데이트
+              onClearDanger?.();
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Sidebar] Error acknowledging by type:', error);
+      }
+    }
+  }, [roomName, sensorStates, onClearDanger]);
+
+  // 잠금 상태가 아닌 센서만 30초 후 자동으로 normal 상태로 복구
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const RESET_DELAY = 30000; // 30초
+
+      setSensorStates(prev => {
+        const updated = { ...prev };
+        let changed = false;
+
+        (Object.keys(prev) as Array<keyof SensorStates>).forEach(sensor => {
+          const state = prev[sensor];
+          // 잠금 상태가 아니고, normal이 아니고, 30초 지났으면 복구
+          if (!state.isLocked && state.status !== 'normal' && now - state.lastUpdated > RESET_DELAY) {
+            updated[sensor] = {
+              ...state,
+              status: 'normal',
+              lastUpdated: now,
+            };
+            changed = true;
+          }
+        });
+
+        return changed ? updated : prev;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // isDanger가 false가 되면 모든 센서 상태 리셋
+  useEffect(() => {
+    if (!isDanger) {
+      setSensorStates({
+        emotion: initialSensorState,
+        audio: initialSensorState,
+        motion: initialSensorState,
+        face: initialSensorState,
+      });
+    }
+  }, [isDanger]);
 
   // Convert dangerCode to DetectionInfo if available
   const dangerCodeDetectionInfo = dangerCode
@@ -497,6 +902,179 @@ export const ParticipantDetailSidebar = ({
         if (topic === 'alert_response' && data.detectionInfo) {
           console.log('[Sidebar] Received detection info:', data.detectionInfo);
           setLocalDetectionInfo(data.detectionInfo);
+
+          // 센서 상태 업데이트
+          const alertType = data.alertType || data.detectionInfo?.type;
+          const riskLevel = data.riskLevel || data.severity || data.detectionInfo?.severity;
+
+          if (alertType && ALERT_TYPE_TO_SENSOR[alertType]) {
+            const sensor = ALERT_TYPE_TO_SENSOR[alertType];
+            let status: SensorStatusLevel = 'normal';
+
+            if (riskLevel === 'critical' || riskLevel === 'high') {
+              status = 'critical';
+            } else if (riskLevel === 'caution' || riskLevel === 'medium') {
+              status = 'caution';
+            }
+
+            console.log(`[Sidebar] Updating sensor ${sensor} to ${status}`);
+            updateSensorStatus(sensor, status);
+          }
+        }
+
+        // Handle care_alert topic directly
+        if (topic === 'care_alert' && data.alertType) {
+          const alertType = data.alertType;
+          const riskLevel = data.data?.payload?.riskLevel || data.severity;
+
+          if (ALERT_TYPE_TO_SENSOR[alertType]) {
+            const sensor = ALERT_TYPE_TO_SENSOR[alertType];
+            let status: SensorStatusLevel = 'normal';
+
+            if (riskLevel === 'critical' || riskLevel === 'high') {
+              status = 'critical';
+            } else if (riskLevel === 'caution' || riskLevel === 'medium') {
+              status = 'caution';
+            }
+
+            console.log(`[Sidebar] Care alert: ${sensor} -> ${status}`);
+            updateSensorStatus(sensor, status);
+          }
+        }
+
+        // Handle sensor_stream topic (iOS에서 보내는 실시간 센서 데이터)
+        // iOS 형식: { timestamp, emotion?: {...}, audio?: {...}, motion?: {...}, face?: {...} }
+        if (topic === 'sensor_stream') {
+          console.log('[Sidebar] sensor_stream received:', data);
+          // emotion 데이터 처리
+          if (data.emotion) {
+            const emotionValue = data.emotion.confidence !== undefined
+              ? Math.round(data.emotion.confidence * 100)
+              : undefined;
+            if (emotionValue !== undefined) {
+              updateSensorValue('emotion', emotionValue);
+            }
+          }
+
+          // audio 데이터 처리
+          if (data.audio) {
+            // level을 우선 사용 (0.0~1.0 -> 0~100%)
+            // decibel은 -160~0 dB 범위 (-60dB 이상을 유효 범위로 가정)
+            const audioValue = data.audio.level !== undefined
+              ? Math.round(data.audio.level * 100)
+              : (data.audio.decibel !== undefined
+                ? Math.min(100, Math.max(0, Math.round((data.audio.decibel + 60) * (100 / 60))))
+                : undefined);
+            if (audioValue !== undefined) {
+              updateSensorValue('audio', audioValue);
+            }
+          }
+
+          // motion 데이터 처리 (iOS는 camelCase: fallRisk)
+          if (data.motion) {
+            const motionValue = data.motion.fallRisk !== undefined
+              ? Math.round(data.motion.fallRisk * 100)
+              : undefined;
+            if (motionValue !== undefined) {
+              updateSensorValue('motion', motionValue);
+            }
+          }
+
+          // face 데이터 처리 (iOS는 camelCase: faceY, isDetected)
+          if (data.face) {
+            const faceValue = data.face.faceY !== undefined
+              ? Math.min(100, Math.max(0, Math.round(data.face.faceY * 100)))
+              : undefined;
+            if (faceValue !== undefined) {
+              updateSensorValue('face', faceValue);
+            }
+          }
+        }
+
+        // Handle sensor_status topic (Agent로부터 실시간 센서 상태 수신)
+        if (topic === 'sensor_status') {
+          const sensorData = data as SensorStatusMessage;
+
+          // emotion 센서 상태 업데이트
+          if (sensorData.emotion) {
+            const emotionValue = sensorData.emotion.confidence !== undefined
+              ? Math.round(sensorData.emotion.confidence * 100)
+              : undefined;
+
+            if (sensorData.emotion.status === 'normal') {
+              if (emotionValue !== undefined) updateSensorValue('emotion', emotionValue);
+            } else {
+              updateSensorStatus('emotion', sensorData.emotion.status, emotionValue);
+            }
+          }
+
+          // audio 센서 상태 업데이트
+          // level 우선 사용 (0.0~1.0 -> 0~100%), decibel은 -160~0 범위
+          if (sensorData.audio) {
+            const audioValue = sensorData.audio.level !== undefined
+              ? Math.round(sensorData.audio.level * 100)
+              : undefined;
+
+            if (sensorData.audio.status === 'normal') {
+              if (audioValue !== undefined) updateSensorValue('audio', audioValue);
+            } else {
+              updateSensorStatus('audio', sensorData.audio.status, audioValue);
+            }
+          }
+
+          // motion 센서 상태 업데이트
+          if (sensorData.motion) {
+            const motionValue = sensorData.motion.fallRisk !== undefined
+              ? Math.round(sensorData.motion.fallRisk * 100)
+              : undefined;
+
+            if (sensorData.motion.status === 'normal') {
+              if (motionValue !== undefined) updateSensorValue('motion', motionValue);
+            } else {
+              updateSensorStatus('motion', sensorData.motion.status, motionValue);
+            }
+          }
+
+          // face 센서 상태 업데이트
+          if (sensorData.face) {
+            const faceValue = sensorData.face.faceY !== undefined
+              ? Math.min(100, Math.max(0, Math.round(sensorData.face.faceY * 100)))
+              : undefined;
+
+            if (sensorData.face.status === 'normal') {
+              if (faceValue !== undefined) updateSensorValue('face', faceValue);
+            } else {
+              updateSensorStatus('face', sensorData.face.status, faceValue);
+            }
+          }
+        }
+
+        // speech_alert 토픽: 발화 키워드 감지 시 emotion 상태 업데이트
+        if (topic === 'speech_alert') {
+          const speechData = data as {
+            timestamp: number;
+            wardId: string;
+            speech: {
+              status: 'caution' | 'critical';
+              category: string;
+              categoryLabel: string;
+              matchedKeyword: string;
+              matchedKeywords: string[];
+              text: string;
+              matchCount: number;
+            };
+          };
+
+          if (speechData.speech) {
+            // 발화 키워드 감지 시 emotion 센서 상태를 caution/critical로 업데이트
+            const emotionValue = Math.round(speechData.speech.matchCount * 10); // matchCount 기반 값
+            updateSensorStatus('emotion', speechData.speech.status, Math.min(100, emotionValue));
+
+            console.log(
+              `[Sidebar] Speech alert: ${speechData.speech.categoryLabel} ` +
+              `keyword="${speechData.speech.matchedKeyword}" status=${speechData.speech.status}`
+            );
+          }
         }
       } catch (e) {
         console.error('[Sidebar] Failed to parse data packet:', e);
@@ -507,7 +1085,7 @@ export const ParticipantDetailSidebar = ({
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room, addTranscript]);
+  }, [room, addTranscript, updateSensorStatus, updateSensorValue]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -546,7 +1124,7 @@ export const ParticipantDetailSidebar = ({
           width: 'min(420px, 90vw)',
           height: isHeaderHidden ? '100vh' : 'calc(100vh - var(--header-height, 64px))',
           background: 'linear-gradient(180deg, #F7F9F2 0%, #F0F5E8 70%)',
-          borderLeft: '1px solid rgba(148,163,184,0.35)',
+          borderLeft: effectiveRiskLevel !== 'normal' ? `3px solid ${sidebarBorderColor}` : '1px solid rgba(148,163,184,0.35)',
           zIndex: 70,
           color: '#4A5D23',
           boxShadow: '-40px 0 80px rgba(15, 23, 42, 0.15)',
@@ -602,6 +1180,11 @@ export const ParticipantDetailSidebar = ({
               }}
             />
           </div>
+        </div>
+
+        {/* 센서 상태 표시 */}
+        <div style={{ padding: '16px 32px 0 32px', flexShrink: 0 }}>
+          <SensorStatusIndicator states={sensorStates} onUnlock={unlockSensor} />
         </div>
 
         {/* Content */}
@@ -914,8 +1497,7 @@ export const ParticipantDetailSidebar = ({
                         error,
                       );
                       alert(
-                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant: ${participant.name}\nRoom: ${roomName || 'N/A'}\n\n${
-                          error instanceof Error ? error.message : String(error)
+                        `대상자 정보를 불러오는데 실패했습니다.\n\nParticipant: ${participant.name}\nRoom: ${roomName || 'N/A'}\n\n${error instanceof Error ? error.message : String(error)
                         }`,
                       );
                     } finally {
@@ -1048,7 +1630,7 @@ export const ParticipantDetailSidebar = ({
                             </span>
                           </div>
                           {/* Highlight danger keywords in text */}
-                          {highlightDangerKeywords(t.text)}
+                          {highlightDangerKeywords(t.text, detectedKeywords)}
                         </div>
                       </div>
                     );
@@ -1132,8 +1714,8 @@ export const ParticipantDetailSidebar = ({
             {isTakeoverActive ? '통화 종료' : '긴급 통화 개입'}
           </button>
 
-          {/* Clear Danger Button */}
-          {isDanger && (
+          {/* Clear Danger Button - shown for both danger and caution states */}
+          {(isDanger || riskLevel === 'caution') && (
             <button
               style={{
                 width: '100%',
@@ -1167,7 +1749,7 @@ export const ParticipantDetailSidebar = ({
               }}
             >
               <AlertTriangle size={16} />
-              위험 상태 해제
+              경고 상태 해제
             </button>
           )}
 

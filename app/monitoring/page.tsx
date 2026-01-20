@@ -16,7 +16,7 @@ import {
   type RoomDangerState,
 } from '../../components/video';
 import { useRoomSSE, useMultiRoomSession } from '../../hooks';
-import { requestHighQuality, setRoomDanger } from '../../utils/roomApi';
+import { requestHighQuality, setRoomDanger, acknowledgeAllAlertsInRoom } from '../../utils/roomApi';
 import { API_BASE } from '../../lib/api-client';
 import type { RoomConnection } from '../../types/room';
 import styles from './page.module.css';
@@ -102,7 +102,8 @@ export default function Home() {
         // Only update if changed to avoid re-renders
         if (
           prev[roomName]?.isDanger === state.isDanger &&
-          prev[roomName]?.dangerCode === state.dangerCode
+          prev[roomName]?.dangerCode === state.dangerCode &&
+          prev[roomName]?.riskLevel === state.riskLevel
         ) {
           return prev;
         }
@@ -538,6 +539,7 @@ export default function Home() {
       key: string;
       connection?: RoomConnection;
       isDanger?: boolean;
+      riskLevel?: 'normal' | 'caution' | 'critical';
     }> = [];
 
     // If we have user rooms, put them first
@@ -584,6 +586,8 @@ export default function Home() {
 
   const handleClearDanger = () => {
     if (selectedRoomName) {
+      // Call both APIs: acknowledge all alerts and clear danger state
+      acknowledgeAllAlertsInRoom(selectedRoomName);
       setRoomDanger(selectedRoomName, false);
     }
   };
@@ -684,6 +688,7 @@ export default function Home() {
               }
               isFullscreenActive={showFullScreenVideo}
               isDanger={slot.isDanger}
+              riskLevel={slot.riskLevel}
             />
             {/* Render detail sidebar inside the selected room's LiveKitRoom context */}
             {selectedRoomName === slot.connection.roomName &&
@@ -697,6 +702,9 @@ export default function Home() {
                     isDanger={
                       dangerStates[slot.connection.roomName]?.isDanger ?? false
                     }
+                    riskLevel={
+                      dangerStates[slot.connection.roomName]?.riskLevel ?? 'normal'
+                    }
                     isHeaderHidden={isMonitoringFullscreen}
                   />
                   <ParticipantDetailSidebar
@@ -708,6 +716,9 @@ export default function Home() {
                     onClose={handleCloseSidebar}
                     isDanger={
                       dangerStates[slot.connection.roomName]?.isDanger ?? false
+                    }
+                    riskLevel={
+                      dangerStates[slot.connection.roomName]?.riskLevel ?? 'normal'
                     }
                     dangerCode={
                       dangerStates[slot.connection.roomName]?.dangerCode

@@ -45,3 +45,4 @@ next-env.d.ts
 # refactoring docs (local only)
 REFACTORING_PLAN.md
 REFACTORING_PROGRESS.md
+.claude/
