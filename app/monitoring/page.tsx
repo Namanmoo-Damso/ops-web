@@ -603,7 +603,7 @@ export default function Home() {
 
   const liveKitOptions = {
     // Adaptive Bitrate: 네트워크 상태에 따라 자동 품질 조절
-    adaptiveStream: true,
+    adaptiveStream: false,
     audioCaptureDefaults: {
       autoGainControl: true,
       echoCancellation: true,

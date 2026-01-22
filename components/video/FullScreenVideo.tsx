@@ -342,6 +342,8 @@ export const FullScreenVideo = ({
       let bytesReceived = 0;
       let freezeCountDelta = 0;
       let totalFreezesDuration = 0;
+      let frameWidth = 0;
+      let frameHeight = 0;
 
       try {
         const receiver = (track as any)?.receiver;
@@ -358,12 +360,17 @@ export const FullScreenVideo = ({
               freezeCountDelta = (report.freezeCount || 0) - freezeCount;
               freezeCount = report.freezeCount || 0;
               totalFreezesDuration = report.totalFreezesDuration || 0;
+              frameWidth = report.frameWidth || 0;
+              frameHeight = report.frameHeight || 0;
             }
           });
         }
       } catch (e) {
         // stats 접근 실패 시 무시
       }
+
+      // 실제 수신 해상도
+      const resolution = `${frameWidth}x${frameHeight}`;
 
       // 프레임 드랍/freeze 감지
       const framesDelta = framesReceived - lastFramesReceived;
@@ -396,8 +403,8 @@ export const FullScreenVideo = ({
         subscribed: pub.subscribed,
         videoQuality: qualityNames[pub.videoQuality] || pub.videoQuality,
         isMuted: pub.isMuted,
-        // 해상도
-        dimensions: track?.dimensions ? `${track.dimensions.width}x${track.dimensions.height}` : 'unknown',
+        // 실제 수신 해상도
+        resolution,
         // 연결 상태
         connectionQuality: connectionNames[remoteParticipant.connectionQuality] || remoteParticipant.connectionQuality,
         roomState: room.state,
