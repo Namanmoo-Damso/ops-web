@@ -602,7 +602,8 @@ export default function Home() {
   };
 
   const liveKitOptions = {
-    adaptiveStream: false,
+    // Adaptive Bitrate: 네트워크 상태에 따라 자동 품질 조절
+    adaptiveStream: true,
     audioCaptureDefaults: {
       autoGainControl: true,
       echoCancellation: true,
@@ -614,9 +615,27 @@ export default function Home() {
     },
     dynacast: true,
     publishDefaults: {
+      // Simulcast: 여러 품질의 스트림을 동시 발행
+      simulcast: true,
+      // 백업 코덱: VP8 실패 시 H.264로 fallback
+      backupCodecPolicy: 'PREFER_REGRESSION' as const,
       videoEncoding: {
         maxBitrate: 3_000_000,
         maxFramerate: 30,
+      },
+      // Simulcast 레이어 설정 (모바일 대역폭 고려)
+      videoSimulcastLayers: [
+        { width: 320, height: 180, encoding: { maxBitrate: 150_000, maxFramerate: 15 } },
+        { width: 640, height: 360, encoding: { maxBitrate: 500_000, maxFramerate: 24 } },
+        { width: 1280, height: 720, encoding: { maxBitrate: 1_500_000, maxFramerate: 30 } },
+      ],
+    },
+    // 연결 안정성: 끊김 시 자동 재연결
+    reconnectPolicy: {
+      maxRetries: 5,
+      nextRetryDelayInMs: (context: { retryCount: number }) => {
+        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        return Math.min(1000 * Math.pow(2, context.retryCount), 16000);
       },
     },
   };

@@ -1,10 +1,10 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   TrackRefContext,
   VideoTrack,
   useRoomContext,
 } from '@livekit/components-react';
-import { VideoQuality, RoomEvent, Track } from 'livekit-client';
+import { VideoQuality, RoomEvent, Track, ConnectionQuality } from 'livekit-client';
 import type { MockParticipant } from './ParticipantSidebar';
 import Slider from '../ui/Slider';
 
@@ -193,29 +193,34 @@ export const FullScreenVideo = ({
       trackAttached: track?.attachedElements?.length > 0,
     });
 
+    // FullScreen은 항상 구독 활성화 + HIGH 품질
     try {
       (pub as any)?.setSubscribed?.(true);
     } catch (e) {
       // ignore
     }
 
+    // 품질 요청 중복 방지 플래그
+    let hasRequestedHigh = false;
+
     const requestHighQuality = (source: string) => {
+      // 이미 요청했으면 스킵 (중복 요청으로 인한 freeze 방지)
+      // 🧪 테스트: HIGH → MEDIUM으로 변경하여 simulcast 레이어 문제 확인
+      const TARGET_QUALITY = VideoQuality.MEDIUM; // 원래: VideoQuality.HIGH
+      
+      if (hasRequestedHigh && pub.videoQuality === TARGET_QUALITY) {
+        console.log('[FullScreen] 이미 MEDIUM, 스킵:', { source });
+        return;
+      }
+
       const currentTrack = pub?.track;
       const beforeQuality = pub.videoQuality;
       const beforeDimensions = currentTrack?.dimensions;
 
-      // 이미 HIGH면 스킵
-      if (beforeQuality === VideoQuality.HIGH) {
-        console.log('[FullScreen] 이미 HIGH 품질, 스킵:', { source });
-        return;
-      }
-
-      // Request high-quality layer (modern API)
       if (typeof pub.setVideoQuality === 'function') {
-        pub.setVideoQuality(VideoQuality.HIGH);
+        pub.setVideoQuality(TARGET_QUALITY);
       } else if (typeof (pub as any).setPreferredLayer === 'function') {
-        // older client/server combos may use setPreferredLayer
-        (pub as any).setPreferredLayer(VideoQuality.HIGH);
+        (pub as any).setPreferredLayer(TARGET_QUALITY);
       }
 
       // Request high subscription priority where supported
@@ -232,10 +237,11 @@ export const FullScreenVideo = ({
         // ignore if API not present
       }
 
-      // Prefer a large render size
-      pub.setVideoDimensions?.({ width: 1920, height: 1080 });
+      // 🧪 MEDIUM 테스트: 해상도도 낮춤 (1920x1080 → 1280x720)
+      pub.setVideoDimensions?.({ width: 1280, height: 720 });
+      hasRequestedHigh = true;
 
-      console.log('[FullScreen] HIGH 품질 요청:', {
+      console.log('[FullScreen] MEDIUM 품질 요청:', {
         source,
         trackSid: pub.trackSid,
         beforeQuality,
@@ -246,38 +252,22 @@ export const FullScreenVideo = ({
       });
     };
 
-    // 이미 HIGH면 추가 작업 불필요
-    const isAlreadyHigh = pub.videoQuality === VideoQuality.HIGH;
+    // 🧪 테스트: 품질 요청을 아예 하지 않고 SFU 자동 선택에 맡김
+    // requestHighQuality('mount');
+    console.log('[FullScreen] 품질 요청 비활성화 - SFU 자동 선택:', {
+      currentQuality: pub.videoQuality,
+      simulcasted: pub.simulcasted,
+    });
 
-    let retryTimeouts: NodeJS.Timeout[] = [];
+    // 초기 연결 안정화를 위한 단일 retry (1초 후)
+    // const retryTimeout = setTimeout(() => {
+    //   if (pub.videoQuality !== VideoQuality.HIGH) {
+    //     requestHighQuality('retry');
+    //   }
+    // }, 1000);
+    const retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    if (isAlreadyHigh) {
-      console.log('[FullScreen] 이미 HIGH 품질, 추가 요청 불필요');
-    } else {
-      // HIGH가 아닐 때만 요청 및 retry
-      requestHighQuality('mount');
-
-      // 트랙이 이미 attach된 경우 바로 재요청
-      if (track?.attachedElements?.length > 0) {
-        requestHighQuality('already-attached');
-      }
-
-      // 서버 응답 대기를 위한 retry (500ms, 1s, 2s 후)
-      retryTimeouts = [500, 1000, 2000].map((delay, i) =>
-        setTimeout(() => requestHighQuality(`retry-${i + 1}`), delay),
-      );
-    }
-
-    // 트랙이 attach되면 재요청 (HIGH 아닐 때만)
-    const handleAttached = () => {
-      if (pub.videoQuality !== VideoQuality.HIGH) {
-        console.log('[FullScreen] 트랙 attached, 재요청');
-        requestHighQuality('attached');
-      }
-    };
-    track?.on('attached', handleAttached);
-
-    // 🔍 비디오 크기 변경 감지
+    // 🔍 비디오 크기 변경 감지 (로깅만, 재요청 안 함)
     const handleVideoDimensionsChanged = () => {
       console.log('[FullScreen] 해상도 변경됨:', {
         participant: participant.name,
@@ -287,7 +277,7 @@ export const FullScreenVideo = ({
       });
     };
 
-    // 🔍 품질 변경 감지
+    // 🔍 품질 변경 감지 (로깅만)
     const handleVideoQualityChanged = (quality: VideoQuality) => {
       console.log('[FullScreen] 품질 변경됨:', {
         participant: participant.name,
@@ -307,6 +297,8 @@ export const FullScreenVideo = ({
           trackSid: publication.trackSid,
           dimensions: subscribedTrack.dimensions,
         });
+        // 재구독 시에만 HIGH 재요청
+        hasRequestedHigh = false;
         requestHighQuality('track-subscribed');
       }
     };
@@ -318,11 +310,191 @@ export const FullScreenVideo = ({
 
     // Cleanup: remove listeners and timers
     return () => {
-      track?.off('attached', handleAttached);
       track?.off('videoDimensionsChanged', handleVideoDimensionsChanged);
       pub.off('videoQualityChanged', handleVideoQualityChanged);
       room.off(RoomEvent.TrackSubscribed, handleTrackSubscribed);
-      retryTimeouts.forEach(clearTimeout);
+      clearTimeout(retryTimeout);
+    };
+  }, [videoTrackRef, participant.name, room]);
+
+  // 🔍 Freeze 디버깅을 위한 상세 모니터링 (WebRTC 통계 포함)
+  useEffect(() => {
+    const pub = videoTrackRef?.publication;
+    const track = pub?.track;
+    const remoteParticipant = videoTrackRef?.participant;
+    if (!pub || !room || !remoteParticipant) return;
+
+    // WebRTC 프레임 통계 추적
+    let lastFramesReceived = 0;
+    let lastFramesDecoded = 0;
+    let lastFramesDropped = 0;
+    let freezeCount = 0;
+    let lastFreezeTime = 0;
+
+    // 3초마다 상태 로깅 (WebRTC 통계 포함)
+    const statusInterval = setInterval(async () => {
+      // WebRTC 통계 가져오기
+      let framesReceived = 0;
+      let framesDecoded = 0;
+      let framesDropped = 0;
+      let jitter = 0;
+      let packetsLost = 0;
+      let bytesReceived = 0;
+      let freezeCountDelta = 0;
+      let totalFreezesDuration = 0;
+
+      try {
+        const receiver = (track as any)?.receiver;
+        if (receiver) {
+          const stats = await receiver.getStats();
+          stats.forEach((report: any) => {
+            if (report.type === 'inbound-rtp' && report.kind === 'video') {
+              framesReceived = report.framesReceived || 0;
+              framesDecoded = report.framesDecoded || 0;
+              framesDropped = report.framesDropped || 0;
+              jitter = report.jitter || 0;
+              packetsLost = report.packetsLost || 0;
+              bytesReceived = report.bytesReceived || 0;
+              freezeCountDelta = (report.freezeCount || 0) - freezeCount;
+              freezeCount = report.freezeCount || 0;
+              totalFreezesDuration = report.totalFreezesDuration || 0;
+            }
+          });
+        }
+      } catch (e) {
+        // stats 접근 실패 시 무시
+      }
+
+      // 프레임 드랍/freeze 감지
+      const framesDelta = framesReceived - lastFramesReceived;
+      const decodedDelta = framesDecoded - lastFramesDecoded;
+      const droppedDelta = framesDropped - lastFramesDropped;
+      
+      const qualityNames = ['LOW', 'MEDIUM', 'HIGH'];
+      const connectionNames = ['unknown', 'poor', 'good', 'excellent'];
+
+      // Freeze 감지: 3초 동안 프레임이 거의 없거나 드랍이 많으면
+      const isFreezing = framesDelta < 10 || droppedDelta > 10 || freezeCountDelta > 0;
+      
+      if (isFreezing) {
+        console.warn('[FullScreen:Monitor] ⚠️ FREEZE 감지:', {
+          timestamp: new Date().toISOString(),
+          framesReceived: framesDelta,
+          framesDecoded: decodedDelta,
+          framesDropped: droppedDelta,
+          freezeCountDelta,
+          totalFreezesDuration: totalFreezesDuration.toFixed(2) + 's',
+          jitter: (jitter * 1000).toFixed(1) + 'ms',
+          packetsLost,
+        });
+      }
+      
+      console.log('[FullScreen:Monitor] 📊 상태:', {
+        timestamp: new Date().toISOString(),
+        // Track 상태
+        trackSid: pub.trackSid,
+        subscribed: pub.subscribed,
+        videoQuality: qualityNames[pub.videoQuality] || pub.videoQuality,
+        isMuted: pub.isMuted,
+        // 해상도
+        dimensions: track?.dimensions ? `${track.dimensions.width}x${track.dimensions.height}` : 'unknown',
+        // 연결 상태
+        connectionQuality: connectionNames[remoteParticipant.connectionQuality] || remoteParticipant.connectionQuality,
+        roomState: room.state,
+        // WebRTC 프레임 통계 (3초간)
+        framesReceived: framesDelta,
+        framesDecoded: decodedDelta, 
+        framesDropped: droppedDelta,
+        expectedFps: (framesDelta / 3).toFixed(1),
+        // 네트워크 품질
+        jitter: (jitter * 1000).toFixed(1) + 'ms',
+        packetsLost,
+        kbps: ((bytesReceived - (lastFramesReceived > 0 ? bytesReceived : 0)) * 8 / 3000).toFixed(0),
+      });
+
+      lastFramesReceived = framesReceived;
+      lastFramesDecoded = framesDecoded;
+      lastFramesDropped = framesDropped;
+    }, 3000);
+
+    // 🔴 Mute 상태 변경 (freeze 원인 가능)
+    const handleMuted = () => {
+      console.warn('[FullScreen:Monitor] ⚠️ 트랙 MUTED:', {
+        timestamp: new Date().toISOString(),
+        trackSid: pub.trackSid,
+        isMuted: pub.isMuted,
+      });
+    };
+
+    const handleUnmuted = () => {
+      console.log('[FullScreen:Monitor] ✅ 트랙 UNMUTED:', {
+        timestamp: new Date().toISOString(),
+        trackSid: pub.trackSid,
+      });
+    };
+
+    // 🔴 구독 상태 변경
+    const handleSubscriptionStatusChanged = () => {
+      console.warn('[FullScreen:Monitor] 🔄 구독 상태 변경:', {
+        timestamp: new Date().toISOString(),
+        trackSid: pub.trackSid,
+        subscribed: pub.subscribed,
+        subscriptionStatus: pub.subscriptionStatus,
+      });
+    };
+
+    // 🔴 연결 품질 변경 (네트워크 문제)
+    const handleConnectionQualityChanged = (quality: ConnectionQuality) => {
+      const qualityNames = ['unknown', 'poor', 'good', 'excellent'];
+      console.log('[FullScreen:Monitor] 📶 연결 품질 변경:', {
+        timestamp: new Date().toISOString(),
+        participant: participant.name,
+        quality: qualityNames[quality] || quality,
+      });
+      if (quality <= 1) { // poor or unknown
+        console.warn('[FullScreen:Monitor] ⚠️ 네트워크 품질 저하!');
+      }
+    };
+
+    // 🔴 트랙 ended (스트림 종료)
+    const handleEnded = () => {
+      console.error('[FullScreen:Monitor] ❌ 트랙 ENDED:', {
+        timestamp: new Date().toISOString(),
+        trackSid: pub.trackSid,
+      });
+    };
+
+    // 🔴 Room 재연결
+    const handleReconnecting = () => {
+      console.warn('[FullScreen:Monitor] 🔄 Room 재연결 중...', {
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    const handleReconnected = () => {
+      console.log('[FullScreen:Monitor] ✅ Room 재연결 완료', {
+        timestamp: new Date().toISOString(),
+      });
+    };
+
+    // 이벤트 리스너 등록
+    pub.on('muted', handleMuted);
+    pub.on('unmuted', handleUnmuted);
+    pub.on('subscriptionStatusChanged', handleSubscriptionStatusChanged);
+    track?.on('ended', handleEnded);
+    remoteParticipant.on('connectionQualityChanged', handleConnectionQualityChanged);
+    room.on(RoomEvent.Reconnecting, handleReconnecting);
+    room.on(RoomEvent.Reconnected, handleReconnected);
+
+    return () => {
+      clearInterval(statusInterval);
+      pub.off('muted', handleMuted);
+      pub.off('unmuted', handleUnmuted);
+      pub.off('subscriptionStatusChanged', handleSubscriptionStatusChanged);
+      track?.off('ended', handleEnded);
+      remoteParticipant.off('connectionQualityChanged', handleConnectionQualityChanged);
+      room.off(RoomEvent.Reconnecting, handleReconnecting);
+      room.off(RoomEvent.Reconnected, handleReconnected);
     };
   }, [videoTrackRef, participant.name, room]);
 

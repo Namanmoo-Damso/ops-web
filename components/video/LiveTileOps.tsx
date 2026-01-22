@@ -1,7 +1,8 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import { TrackRefContext, VideoTrack } from '@livekit/components-react';
+import { VideoQuality, RemoteTrackPublication } from 'livekit-client';
 import { getInitials } from './VideoTiles';
 import styles from '../../app/monitoring/page.module.css';
 
@@ -37,6 +38,93 @@ export const LiveTileOps = memo(function LiveTileOps({
 }: LiveTileOpsProps) {
   const cameraOff = videoOff;
   const showVideo = !cameraOff && !suppressVideo;
+
+  // Grid 타일은 LOW 품질 요청 (FullScreen이 아닐 때만)
+  // 주의: 구독 해제하면 안 됨 - FullScreen과 같은 publication 공유
+  useEffect(() => {
+    const pub = trackRef?.publication;
+    if (!pub || !(pub instanceof RemoteTrackPublication)) return;
+
+    // FullScreen이 활성화되면 품질 설정을 FullScreen에 위임
+    if (suppressVideo) {
+      console.log('[GridTile] FullScreen 활성 - 품질 설정 위임:', { participantId });
+      return;
+    }
+
+    // Grid 모드: HIGH 품질 요청
+    if (typeof pub.setVideoQuality === 'function') {
+      pub.setVideoQuality(VideoQuality.HIGH);
+    }
+    // 렌더 사이즈 힌트 (1080p)
+    pub.setVideoDimensions?.({ width: 1920, height: 1080 });
+    console.log('[GridTile] HIGH 품질 설정:', { participantId });
+  }, [trackRef, suppressVideo, participantId]);
+
+  // Grid 모니터링 (FullScreen과 비교용) - suppressVideo가 false일 때만
+  useEffect(() => {
+    const pub = trackRef?.publication;
+    const track = pub?.track;
+    if (!pub || !track || suppressVideo) return;
+
+    let lastFramesReceived = 0;
+    let freezeCount = 0;
+
+    const gridMonitor = setInterval(async () => {
+      let framesReceived = 0;
+      let freezeCountDelta = 0;
+      let jitter = 0;
+      let frameWidth = 0;
+      let frameHeight = 0;
+
+      try {
+        const receiver = (track as any)?.receiver;
+        if (receiver) {
+          const stats = await receiver.getStats();
+          stats.forEach((report: any) => {
+            if (report.type === 'inbound-rtp' && report.kind === 'video') {
+              framesReceived = report.framesReceived || 0;
+              freezeCountDelta = (report.freezeCount || 0) - freezeCount;
+              freezeCount = report.freezeCount || 0;
+              jitter = report.jitter || 0;
+              frameWidth = report.frameWidth || 0;
+              frameHeight = report.frameHeight || 0;
+            }
+          });
+        }
+      } catch (e) {
+        // stats 접근 실패 시 무시
+      }
+
+      const framesDelta = framesReceived - lastFramesReceived;
+      const isFreezing = framesDelta < 10 || freezeCountDelta > 0;
+
+      // 해상도 정보 추가
+      const resolution = `${frameWidth}x${frameHeight}`;
+
+      if (isFreezing) {
+        console.warn('[GridTile:Monitor] ⚠️ FREEZE 감지:', {
+          participantId,
+          resolution,
+          framesReceived: framesDelta,
+          freezeCountDelta,
+          jitter: (jitter * 1000).toFixed(1) + 'ms',
+          videoQuality: 'HIGH',
+        });
+      } else {
+        console.log('[GridTile:Monitor] 📊 상태:', {
+          participantId,
+          resolution,
+          framesReceived: framesDelta,
+          expectedFps: (framesDelta / 3).toFixed(1),
+          videoQuality: 'HIGH',
+        });
+      }
+
+      lastFramesReceived = framesReceived;
+    }, 3000);
+
+    return () => clearInterval(gridMonitor);
+  }, [trackRef, suppressVideo, participantId]);
 
   // Determine effective risk level based on riskLevel prop (isDanger is for backward compatibility)
   const effectiveRiskLevel = riskLevel !== 'normal' ? riskLevel : (isDanger ? 'critical' : 'normal');
