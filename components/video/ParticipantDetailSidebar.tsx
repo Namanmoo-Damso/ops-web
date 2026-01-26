@@ -160,14 +160,14 @@ const SensorStatusIndicator = ({
             {/* 센서 라벨 */}
             <span
               style={{
-                width: '36px',
+                width: '48px',
                 fontSize: '12px',
                 fontWeight: 600,
                 color: isAlert ? colors.dot : '#64748b',
                 flexShrink: 0,
               }}
             >
-              {SENSOR_LABELS[sensor]}
+  {SENSOR_LABELS[sensor]}
             </span>
 
             {/* 막대그래프 컨테이너 */}
@@ -360,36 +360,10 @@ const InfoCard = ({
   );
 };
 
-// Helper function to highlight danger keywords
-const highlightDangerKeywords = (text: string, additionalKeywords: string[] = []) => {
-  const baseKeywords = [
-    '도와주세요',
-    '살려주세요',
-    '아파',
-    '고통',
-    '숨',
-    '쓰러',
-    '넘어',
-    '위험',
-    '응급',
-    '119',
-    '112',
-    '사고',
-    '출혈',
-    '의식',
-    '어지러',
-    '가슴',
-    '통증',
-    '두통',
-    '호흡',
-    '심장',
-    '약',
-    '먹었',
-    '삼켰',
-  ];
-
-  // 기본 키워드 + Agent에서 감지한 동적 키워드 합치기 (중복 제거)
-  const dangerKeywords = [...new Set([...baseKeywords, ...additionalKeywords])];
+// Helper function to highlight danger keywords (Agent 감지 키워드만 사용 - 단일 소스)
+const highlightDangerKeywords = (text: string, detectedKeywords: string[] = []) => {
+  // Agent에서 감지한 키워드만 사용 (baseKeywords 제거 - 단일 소스 관리)
+  const dangerKeywords = detectedKeywords;
 
   let highlightedText: (string | JSX.Element)[] = [text];
 
@@ -436,6 +410,7 @@ const ALERT_TYPE_LABELS: Record<string, string> = {
   person_fall: '낙상',
   loud_voice: '큰 소리/비명',
   emotion: '감정 분석',
+  speech_keyword: '키워드 감지',
 };
 
 // Detection value labels in Korean (for criteria display)
@@ -608,6 +583,9 @@ export const ParticipantDetailSidebar = ({
   // Agent에서 감지한 동적 키워드 리스트 (하이라이트용)
   const [detectedKeywords, setDetectedKeywords] = useState<string[]>([]);
 
+  // 키워드 감지 시 카테고리 라벨 (예: "두통", "복통", "우울감")
+  const [keywordCategoryLabel, setKeywordCategoryLabel] = useState<string | null>(null);
+
   // 센서 상태 업데이트 함수 (값과 상태 모두 업데이트)
   const updateSensorStatus = useCallback((
     sensor: keyof SensorStates,
@@ -692,6 +670,11 @@ export const ParticipantDetailSidebar = ({
         },
       };
     });
+
+    // emotion 센서 해제 시 카테고리 라벨도 초기화
+    if (sensor === 'emotion') {
+      setKeywordCategoryLabel(null);
+    }
 
     // 2. API 호출하여 DB의 alert acknowledge + room metadata 업데이트
     if (roomName) {
@@ -786,9 +769,9 @@ export const ParticipantDetailSidebar = ({
     ? dangerCodeToDetectionInfo(dangerCode)
     : null;
 
-  // Priority: prop detectionInfo > dangerCode-based > local state from DataChannel
+  // Priority: prop detectionInfo > local state from DataChannel (most specific) > dangerCode-based (generic)
   const activeDetectionInfo =
-    detectionInfo ?? dangerCodeDetectionInfo ?? localDetectionInfo;
+    detectionInfo ?? localDetectionInfo ?? dangerCodeDetectionInfo;
 
   // Fetch initial transcripts from API
   useEffect(() => {
@@ -826,6 +809,106 @@ export const ParticipantDetailSidebar = ({
 
     fetchTranscripts();
   }, [roomName, apiBase, initialLoaded]);
+
+  // 초기 alert 상태 로드 (Fullscreen 진입 시 이전 이벤트 반영)
+  // roomName이 변경되면 다시 로드
+  const [alertsLoaded, setAlertsLoaded] = useState(false);
+  useEffect(() => {
+    // roomName 변경 시 로드 상태 리셋
+    setAlertsLoaded(false);
+  }, [roomName]);
+
+  useEffect(() => {
+    if (!roomName || alertsLoaded) return;
+
+    const fetchActiveAlerts = async () => {
+      try {
+        const token = localStorage.getItem('admin_access_token');
+        if (!token) {
+          console.warn('[Sidebar] No auth token for active alerts fetch');
+          return;
+        }
+
+        const res = await fetch(
+          `${API_BASE}/v1/guardians/alerts/by-room/${encodeURIComponent(roomName)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!res.ok) {
+          console.warn('[Sidebar] Failed to fetch active alerts:', res.status);
+          return;
+        }
+
+        const data = await res.json();
+        console.log('[Sidebar] Loaded active alerts:', data);
+
+        // 센서 상태 초기화
+        if (data.sensorStates) {
+          setSensorStates(prev => {
+            const updated = { ...prev };
+            (Object.keys(data.sensorStates) as Array<keyof SensorStates>).forEach(sensor => {
+              const apiState = data.sensorStates[sensor];
+              if (apiState.hasAlert) {
+                updated[sensor] = {
+                  ...prev[sensor],
+                  status: apiState.status,
+                  isLocked: true, // alert이 있으면 잠금 상태
+                  lastUpdated: Date.now(),
+                };
+              }
+            });
+            return updated;
+          });
+        }
+
+        // Detection info 초기화
+        if (data.detectionInfo) {
+          setLocalDetectionInfo(data.detectionInfo);
+        }
+
+        // 키워드 추출 (speech_keyword alert에서)
+        // Agent 구조: rawPayload = { type, payload: { categoryLabel, matchedKeywords } }
+        // iOS 구조: rawPayload = { categoryLabel, matchedKeywords }
+        if (data.alerts && Array.isArray(data.alerts)) {
+          const keywords: string[] = [];
+          for (const alert of data.alerts) {
+            if (alert.alertType === 'speech_keyword' && alert.rawPayload) {
+              // 중첩 구조 처리: rawPayload.payload 또는 rawPayload 직접
+              const payload = alert.rawPayload.payload ?? alert.rawPayload;
+              if (payload.matchedKeywords && Array.isArray(payload.matchedKeywords)) {
+                keywords.push(...payload.matchedKeywords);
+              } else if (payload.matchedKeyword) {
+                keywords.push(String(payload.matchedKeyword));
+              }
+              // 카테고리 라벨 설정
+              if (payload.categoryLabel && !keywordCategoryLabel) {
+                setKeywordCategoryLabel(String(payload.categoryLabel));
+              }
+            }
+          }
+          if (keywords.length > 0) {
+            // 중복 제거 및 부분 문자열 필터링 (실시간 DataChannel과 동일)
+            // 예: ["배", "아파", "배가 아"] -> ["배", "아파"]
+            const rawKeywords = [...new Set(keywords)];
+            const uniqueKeywords = rawKeywords.filter(keyword =>
+              !rawKeywords.some(other => other !== keyword && keyword.includes(other))
+            );
+            setDetectedKeywords(prev => [...new Set([...prev, ...uniqueKeywords])]);
+          }
+        }
+
+        setAlertsLoaded(true);
+      } catch (e) {
+        console.error('[Sidebar] Error fetching active alerts:', e);
+      }
+    };
+
+    fetchActiveAlerts();
+  }, [roomName, alertsLoaded, keywordCategoryLabel]);
 
   // Deduplicated transcript adder - prevents duplicates from API + real-time overlap
   const addTranscript = useCallback((newTranscript: Transcript) => {
@@ -937,8 +1020,12 @@ export const ParticipantDetailSidebar = ({
               status = 'caution';
             }
 
-            console.log(`[Sidebar] Care alert: ${sensor} -> ${status}`);
-            updateSensorStatus(sensor, status);
+            // confidence 값 추출하여 status와 value를 pair로 전달
+            const confidence = data.data?.payload?.confidence;
+            const value = confidence !== undefined ? Math.round(confidence * 100) : undefined;
+
+            console.log(`[Sidebar] Care alert: ${sensor} -> ${status} (value: ${value})`);
+            updateSensorStatus(sensor, status, value);
           }
         }
 
@@ -1070,6 +1157,49 @@ export const ParticipantDetailSidebar = ({
             const emotionValue = Math.round(speechData.speech.matchCount * 10); // matchCount 기반 값
             updateSensorStatus('emotion', speechData.speech.status, Math.min(100, emotionValue));
 
+            // 중복 제거 및 부분 문자열 필터링 (음영처리와 감지 기준에서 동일하게 사용)
+            // 예: ["배", "아파", "배가 아"] -> ["배", "아파"] (짧은 키워드가 포함된 긴 키워드 제거)
+            const rawKeywords = speechData.speech.matchedKeywords?.length > 0
+              ? [...new Set(speechData.speech.matchedKeywords)]
+              : [];
+            const uniqueKeywords = rawKeywords.filter(keyword => {
+              // 다른 키워드 중 이 키워드를 포함하는 더 짧은 키워드가 있으면 제외
+              return !rawKeywords.some(other =>
+                other !== keyword && keyword.includes(other)
+              );
+            });
+
+            // Agent가 감지한 키워드를 하이라이트용으로 추가 (단일 소스)
+            if (uniqueKeywords.length > 0) {
+              setDetectedKeywords(prev => [...new Set([...prev, ...uniqueKeywords])]);
+            }
+
+            // 키워드 카테고리 라벨 저장 (예: "두통", "복통", "우울감")
+            if (speechData.speech.categoryLabel) {
+              setKeywordCategoryLabel(speechData.speech.categoryLabel);
+            }
+
+            // 키워드 감지에 맞는 detectionInfo 설정 (음영처리와 동일한 키워드 사용)
+            const keywordsDisplay = uniqueKeywords.length > 0
+              ? uniqueKeywords.join(', ')
+              : speechData.speech.matchedKeyword || '';
+            setLocalDetectionInfo({
+              type: 'speech_keyword',
+              severity: speechData.speech.status === 'critical' ? 'high' : 'medium',
+              criteria: [
+                {
+                  name: '감지 유형',
+                  value: speechData.speech.categoryLabel || '키워드',
+                  level: speechData.speech.status === 'critical' ? 'high' : 'medium',
+                },
+                {
+                  name: '감지 키워드',
+                  value: keywordsDisplay,
+                  level: speechData.speech.status === 'critical' ? 'high' : 'medium',
+                },
+              ],
+            });
+
             console.log(
               `[Sidebar] Speech alert: ${speechData.speech.categoryLabel} ` +
               `keyword="${speechData.speech.matchedKeyword}" status=${speechData.speech.status}`
@@ -1085,7 +1215,7 @@ export const ParticipantDetailSidebar = ({
     return () => {
       room.off(RoomEvent.DataReceived, handleData);
     };
-  }, [room, addTranscript, updateSensorStatus, updateSensorValue]);
+  }, [room, addTranscript, updateSensorStatus, updateSensorValue, setDetectedKeywords]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -1184,7 +1314,10 @@ export const ParticipantDetailSidebar = ({
 
         {/* 센서 상태 표시 */}
         <div style={{ padding: '16px 32px 0 32px', flexShrink: 0 }}>
-          <SensorStatusIndicator states={sensorStates} onUnlock={unlockSensor} />
+          <SensorStatusIndicator
+            states={sensorStates}
+            onUnlock={unlockSensor}
+          />
         </div>
 
         {/* Content */}
